@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+
+package cicada_distributed;
+
+service Hub {
+    rpc Run (RunTestRequest) returns (stream TestStatus);
+    rpc Healthcheck (google.protobuf.Empty) returns (HealthcheckReply);
+}
+
+message RunTestRequest {
+    repeated string tags = 1;
+}
+
+// FIXME: make this a union type
+message TestStatus {
+    string type = 1; // FIXME: make this an enum
+    string scenario = 2;
+    string message = 3;
+    string context = 4;
+}
+
+message HealthcheckReply {
+    bool ready = 1;
+}
