@@ -1,4 +1,4 @@
-from typing import OrderedDict
+from collections import OrderedDict
 from unittest.mock import Mock, patch, call
 from pytest import raises
 import hashlib
