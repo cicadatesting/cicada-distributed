@@ -1,4 +1,4 @@
-name: Basic code check on push
+name: Code Check
 on: push
 jobs:
   build:
@@ -14,6 +14,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install flake8 pytest
           python3 -m pip install -e .
+      # TODO: lint
       # - name: Lint with flake8
       #   run: |
       #     # stop the build if there are Python syntax errors or undefined names
@@ -23,3 +24,23 @@ jobs:
       - name: Test with pytest
         run: |
           pytest src/tests
+  smoke-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      # - name: Login to DockerHub
+      #   uses: docker/login-action@v1
+      #   with:
+      #     username: ${{ secrets.DOCKER_USERNAME }}
+      #     password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: build-base-image
+        run: |
+          make build-base-dev
+      - name: build-manager
+        run: |
+          make build-manager

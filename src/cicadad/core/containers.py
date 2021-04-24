@@ -368,6 +368,7 @@ def docker_kafka_up(client: docker.DockerClient, network: str):
         Container: Kafka container
     """
     args = DockerServerArgs(
+        # TODO: pin to specific version, include docker pull
         image="bitnami/kafka:latest",
         name="cicada-distributed-kafka",
         in_cluster=False,
