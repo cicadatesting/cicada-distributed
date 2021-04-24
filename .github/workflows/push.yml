@@ -41,6 +41,7 @@ jobs:
           make build-manager
       - name: smoke-test
         run: |
+          make install-local
           cicada-distributed --debug init ./smoke-test
           cd smoke-test
           ls
