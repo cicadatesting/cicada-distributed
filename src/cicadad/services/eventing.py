@@ -3,7 +3,7 @@ import uuid
 import pickle  # nosec
 
 from kafka import KafkaProducer, KafkaConsumer  # type: ignore
-from kafka.errors import NoBrokersAvailable
+from kafka.errors import NoBrokersAvailable  # type: ignore
 from pydantic import BaseModel
 
 from cicadad.core.containers import DockerServerArgs
