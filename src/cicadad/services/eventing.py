@@ -3,10 +3,12 @@ import uuid
 import pickle  # nosec
 
 from kafka import KafkaProducer, KafkaConsumer  # type: ignore
+from kafka.errors import NoBrokersAvailable
 from pydantic import BaseModel
 
 from cicadad.core.containers import DockerServerArgs
 from cicadad.services.datastore import Result
+from cicadad.util.backoff import exponential_backoff
 from cicadad.util.constants import (
     CONTAINERS_STREAM,
     DEFAULT_EVENT_POLLING_MS,
@@ -14,18 +16,24 @@ from cicadad.util.constants import (
 )
 
 
-def get_event_producer(address: str = "localhost:29092"):
-    """Get a Kafka producer client
+def get_event_producer(address: str = "localhost:29092", tries: int = 3):
+    """Get a Kafka producer client with exponential backoff
 
     Args:
         address (str, optional): Address of Kafka event brokers. Defaults to "localhost:29092".
+        tries (int, optional): Number of times to retry attempting to get client. Defaults to 3.
 
     Returns:
         KafkaProducer: Kafka producer client
     """
-    return KafkaProducer(
-        bootstrap_servers=address,
-        value_serializer=pickle.dumps,
+
+    return exponential_backoff(
+        lambda: KafkaProducer(
+            bootstrap_servers=address,
+            value_serializer=pickle.dumps,
+        ),
+        error_class=NoBrokersAvailable,
+        tries=tries,
     )
 
 
@@ -34,24 +42,30 @@ def get_event_consumer(
     address: str = "localhost:29092",
     auto_offset_reset="earliest",
     group_id: Optional[str] = None,
+    tries: int = 3,
 ):
     """Configure a Kafka consumer client for a particular topic
 
     Args:
-        topic (str): Topic to bind client to
+        topic (str): Topic to bind client to.
         address (str, optional): Address of Kafka broker. Defaults to "localhost:29092".
         auto_offset_reset (str, optional): Where to begin reading from topic. Defaults to "earliest".
         group_id (Optional[str], optional): Consumer group to assign consumer to. Creates UUID if None.
+        tries (int, optional): Number of times to retry attempting to get client. Defaults to 3.
 
     Returns:
         KafkaConsumer: configured Kafka consumer client
     """
-    return KafkaConsumer(
-        topic,
-        group_id=str(uuid.uuid4()) if not group_id else group_id,
-        auto_offset_reset=auto_offset_reset,
-        bootstrap_servers=address,
-        value_deserializer=pickle.loads,
+    return exponential_backoff(
+        lambda: KafkaConsumer(
+            topic,
+            group_id=str(uuid.uuid4()) if not group_id else group_id,
+            auto_offset_reset=auto_offset_reset,
+            bootstrap_servers=address,
+            value_deserializer=pickle.loads,
+        ),
+        error_class=NoBrokersAvailable,
+        tries=tries,
     )
 
 

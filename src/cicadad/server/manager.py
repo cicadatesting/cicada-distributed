@@ -1,7 +1,5 @@
-import time
 import os
 
-from kafka.errors import NoBrokersAvailable  # type: ignore
 from dask.distributed import Client, fire_and_forget, secede, rejoin  # type: ignore
 import docker  # type: ignore
 
@@ -13,33 +11,6 @@ from cicadad.util import constants, printing
 EVENT_ADDRESS = os.getenv("EVENT_ADDRESS", constants.DEFAULT_EVENT_ADDRESS)
 EVENT_GROUP = os.getenv("EVENT_GROUP")
 LOGGER = printing.get_logger("manager")
-
-
-def get_consumer(sleep_period):
-    """Wait for broker to be available and return Kafka consumer
-
-    Args:
-        sleep_period ([type]): Time in seconds to wait before trying to create
-    consumer again
-
-    Returns:
-        KafkaConsumer: Configured consumer
-    """
-    consumer = None
-
-    while consumer is None:
-        try:
-            consumer = eventing.get_event_consumer(
-                constants.CONTAINERS_STREAM,
-                EVENT_ADDRESS,
-                "latest",
-                EVENT_GROUP,
-            )
-        except NoBrokersAvailable:
-            LOGGER.info("Waiting for Kafka brokers...")
-            time.sleep(sleep_period)
-
-    return consumer
 
 
 def create_docker_container(args: containers.DockerServerArgs):
@@ -108,7 +79,13 @@ def process_message(msg: eventing.ContainerEvent, client: Client):
 
 def main():
     """Receive container events and start or stop containers"""
-    consumer = get_consumer(sleep_period=3)
+    consumer = eventing.get_event_consumer(
+        constants.CONTAINERS_STREAM,
+        EVENT_ADDRESS,
+        "latest",
+        EVENT_GROUP,
+    )
+
     dask_client = Client(processes=False)
 
     while True:
