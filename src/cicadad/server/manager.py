@@ -1,9 +1,9 @@
 import time
 import os
 
-from kafka.errors import NoBrokersAvailable
-from dask.distributed import Client, fire_and_forget, secede, rejoin
-import docker
+from kafka.errors import NoBrokersAvailable  # type: ignore
+from dask.distributed import Client, fire_and_forget, secede, rejoin  # type: ignore
+import docker  # type: ignore
 
 from cicadad.core import containers
 from cicadad.services import eventing
@@ -56,7 +56,7 @@ def create_docker_container(args: containers.DockerServerArgs):
         c = containers.create_docker_container(client, args)
         # NOTE: maybe store container ID in stream
         LOGGER.info("created container: %s", c.id)
-    except Exception as e:
+    except Exception:
         LOGGER.exception("Error creating docker container")
 
 
@@ -73,7 +73,7 @@ def stop_docker_container(container_id: str):
 
         containers.stop_docker_container_by_name(client, container_id)
         LOGGER.info("stopped container: %s", container_id)
-    except Exception as e:
+    except Exception:
         LOGGER.exception("Error stopping docker container")
     finally:
         rejoin()

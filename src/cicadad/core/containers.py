@@ -1,10 +1,10 @@
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 import uuid
 import socket
 
 from pydantic import BaseModel
-from docker.errors import APIError, NotFound
-import docker
+from docker.errors import APIError, NotFound  # type: ignore
+import docker  # type: ignore
 
 from cicadad.util.constants import DEFAULT_DOCKER_NETWORK
 
@@ -176,7 +176,7 @@ def get_docker_container(client: docker.DockerClient, name: str):
         return None
 
 
-def container_is_running(container: any):
+def container_is_running(container: Any):
     """Check if container is running by running top
 
     Args:
@@ -192,7 +192,7 @@ def container_is_running(container: any):
         return False
 
 
-def container_logs(container: any) -> str:
+def container_logs(container: Any) -> str:
     """Get logs for a container
 
     Args:
@@ -216,7 +216,7 @@ def stop_docker_container_by_name(client: docker.DockerClient, container_id: str
     stop_docker_container(container)
 
 
-def stop_docker_container(container: any):
+def stop_docker_container(container: Any):
     """Stop a docker container
 
     Args:
@@ -238,7 +238,7 @@ def remove_docker_container_by_name(client: docker.DockerClient, container_id: s
     remove_docker_container(container)
 
 
-def remove_docker_container(container: any):
+def remove_docker_container(container: Any):
     """Remove a docker container
 
     Args:
@@ -319,7 +319,7 @@ def clean_docker_containers(client: docker.DockerClient, labels: List[str]):
     containers = client.containers.list(filters={"label": labels})
 
     for container in containers:
-        docker_container_down(container)
+        docker_container_down(client, container)
 
 
 def docker_zookeeper_up(client: docker.DockerClient, network: str):
@@ -367,6 +367,7 @@ def docker_kafka_up(client: docker.DockerClient, network: str):
     Returns:
         Container: Kafka container
     """
+
     args = DockerServerArgs(
         # TODO: pin to specific version, include docker pull
         image="bitnami/kafka:latest",
@@ -378,7 +379,9 @@ def docker_kafka_up(client: docker.DockerClient, network: str):
             "ALLOW_PLAINTEXT_LISTENER": "yes",
             "KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP": "PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT",
             "KAFKA_CFG_LISTENERS": "PLAINTEXT://:9092,PLAINTEXT_HOST://:29092",
-            "KAFKA_CFG_ADVERTISED_LISTENERS": "PLAINTEXT://cicada-distributed-kafka:9092,PLAINTEXT_HOST://localhost:29092",
+            "KAFKA_CFG_ADVERTISED_LISTENERS": (
+                "PLAINTEXT://cicada-distributed-kafka:9092,PLAINTEXT_HOST://localhost:29092"
+            ),
         },
         # volumes: Optional[List[Volume]]
         # FEATURE: support for multiple ports

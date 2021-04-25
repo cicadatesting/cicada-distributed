@@ -3,7 +3,7 @@ from concurrent import futures
 import uuid
 
 import click
-import grpc
+import grpc  # type: ignore
 
 from cicadad.services.eventing import get_event_consumer, get_event_producer
 from cicadad.core.scenario import Scenario, scenario_runner, user_runner

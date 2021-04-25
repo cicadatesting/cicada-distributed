@@ -1,8 +1,8 @@
 from typing import List, Optional, Set, Union
 import uuid
-import pickle
+import pickle  # nosec
 
-from kafka import KafkaProducer, KafkaConsumer
+from kafka import KafkaProducer, KafkaConsumer  # type: ignore
 from pydantic import BaseModel
 
 from cicadad.core.containers import DockerServerArgs
@@ -99,7 +99,8 @@ def get_events(
 
     Args:
         consumer (KafkaConsumer): Consumer client to receive events
-        timeout_ms (int, optional): Time to wait for events before returning empty. Defaults to DEFAULT_EVENT_POLLING_MS.
+        timeout_ms (int, optional): Time to wait for events before returning empty.
+        Defaults to DEFAULT_EVENT_POLLING_MS.
         max_records (int, optional): Max number of events to return. Defaults to DEFAULT_MAX_EVENTS.
 
     Returns:
@@ -167,7 +168,8 @@ def get_work(
 
     for event in get_events(consumer, timeout_ms):
         if (
-            event.event_id not in received_events
+            isinstance(event, WorkEvent)
+            and event.event_id not in received_events
             and event.event_id not in previous_received_events
             and (event.user_id_limit is None or user_id_hash <= event.user_id_limit)
         ):
