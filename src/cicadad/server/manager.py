@@ -107,7 +107,7 @@ def process_message(msg: eventing.ContainerEvent, client: Client):
 def main():
     """Receive container events and start or stop containers"""
     consumer = get_consumer(sleep_period=3)
-    dask_client = Client(processes=False, threads_per_worker=1)
+    dask_client = Client()
 
     while True:
         messages = eventing.get_events(consumer)
