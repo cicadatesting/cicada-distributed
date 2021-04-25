@@ -2,7 +2,7 @@ import time
 import os
 
 from kafka.errors import NoBrokersAvailable
-from dask.distributed import Client, fire_and_forget, secede
+from dask.distributed import Client, fire_and_forget, secede, rejoin
 import docker
 
 from cicadad.core import containers
@@ -75,6 +75,8 @@ def stop_docker_container(container_id: str):
         LOGGER.info("stopped container: %s", container_id)
     except Exception as e:
         LOGGER.exception("Error stopping docker container")
+    finally:
+        rejoin()
 
 
 def process_message(msg: eventing.ContainerEvent, client: Client):
@@ -107,7 +109,7 @@ def process_message(msg: eventing.ContainerEvent, client: Client):
 def main():
     """Receive container events and start or stop containers"""
     consumer = get_consumer(sleep_period=3)
-    dask_client = Client()
+    dask_client = Client(processes=False)
 
     while True:
         messages = eventing.get_events(consumer)
