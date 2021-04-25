@@ -1,4 +1,4 @@
-from typing import OrderedDict
+from collections import OrderedDict
 from unittest.mock import Mock, patch, call
 from pytest import raises
 import hashlib
@@ -681,7 +681,7 @@ def test_run_scenario_exception(report_scenario_result_mock):
     )
 
 
-def test_has_work():
+def test_while_has_work():
     closure = scenario_module.while_has_work(500)
 
     uc = Mock()

@@ -1,8 +1,9 @@
+from typing import Any
 import base64
 import json
 
 
-def encode_context(context: any) -> str:
+def encode_context(context: Any) -> str:
     """Encode a context as a base64 string
 
     Args:
@@ -14,7 +15,7 @@ def encode_context(context: any) -> str:
     return base64.b64encode(json.dumps(context).encode("ascii")).decode("ascii")
 
 
-def decode_context(encoded_context: str) -> any:
+def decode_context(encoded_context: str) -> Any:
     """Decode a base64 string to JSON deserialized context
 
     Args:

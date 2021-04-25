@@ -20,7 +20,7 @@ engine = Engine()
 
 
 @scenario(engine)
-@load_model(n_iterations(10, 1, timeout=None))
+@load_model(n_iterations(10000, 20, timeout=None))
 # @load_model(
 #     load_stages(
 #         n_seconds(30, 10, skip_scaledown=True),
@@ -28,7 +28,7 @@ engine = Engine()
 #         n_seconds(30, 30, skip_scaledown=True),
 #     )
 # )
-@user_loop(while_alive())
+# @user_loop(while_alive())
 @result_aggregator(util.post_user_aggregator)
 @output_transformer(util.print_get_user_output)
 def post_user(context):

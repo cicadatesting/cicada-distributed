@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, Iterable, List, Optional, Set
+from typing import Any, Callable, Dict, List, Optional, Set
 from datetime import datetime, timedelta
 import uuid
 import time
@@ -41,7 +41,7 @@ class UserCommands(object):
         self.result_producer = result_producer
 
         self.available_work = 0
-        self.work_event_ids = set()
+        self.work_event_ids: Set[str] = set()
 
     def is_up(self):
         """Check if user is still running
@@ -65,7 +65,9 @@ class UserCommands(object):
         if self.available_work < 1:
             new_work = eventing.get_work(
                 self.work_consumer,
-                int(hashlib.sha1(self.user_id.encode("ascii")).hexdigest(), 16),
+                int(
+                    hashlib.sha1(self.user_id.encode("ascii")).hexdigest(), 16  # nosec
+                ),
                 self.work_event_ids,
                 timeout_ms,
             )
@@ -164,11 +166,13 @@ class ScenarioCommands(object):
         self.context = context
 
         self.scenario_id = scenario_id
-        self.user_group_ids = {}  # NOTE: maybe make this an ordered dict
+        self.user_group_ids: Dict[
+            str, List[str]
+        ] = {}  # NOTE: maybe make this an ordered dict
         self.num_users = 0
         self.buffered_work = 0
         self.aggregated_results = None
-        self.errors = []
+        self.errors: List[str] = []
 
     def scale_users(self, n: int):
         """Change number of running users
@@ -313,7 +317,10 @@ class ScenarioCommands(object):
                     # give one work unit to some of users to meet remaining work
                     # essentially, this is the last group to get work
                     user_id_hashes = sorted(
-                        int(hashlib.sha1(user_id.encode("ascii")).hexdigest(), 16)
+                        int(
+                            hashlib.sha1(user_id.encode("ascii")).hexdigest(),  # nosec
+                            16,
+                        )
                         for user_id in self.user_group_ids[group_id]
                     )
 
@@ -404,6 +411,8 @@ class ScenarioCommands(object):
             self.errors.extend(errors)
             return errors
 
+        return None
+
     # FEATURE: get number of healthy users in scenario, healthy users per group
 
     # def create_metric(
@@ -454,7 +463,7 @@ def test_runner(
     event_broker_address: str,
 ):
     started: Set[str] = set()
-    results: Dict[str, Result] = {}
+    results: Dict[str, dict] = {}
 
     # Start scenarios with no dependencies
     for scenario in scenarios:
@@ -497,7 +506,7 @@ def test_runner(
 
     # listen to completed events and start scenarios with dependencies
     while len(results) != len(scenarios):
-        events = eventing.get_events(result_consumer)
+        events: List[eventing.ResultEvent] = eventing.get_events(result_consumer)  # type: ignore
 
         for event in events:
             # HACK: address jankiness?
@@ -615,10 +624,12 @@ def scenario_runner(
     buffer = io.StringIO()
 
     start = datetime.now()
+    output: Optional[Any] = None
+    exception: Optional[Exception] = None
 
     with printing.stdout_redirect(buffer):
         try:
-            scenario.load_model(scenario_commands, context)
+            scenario.load_model(scenario_commands, context)  # type: ignore
 
             if scenario.output_transformer is not None:
                 output = scenario.output_transformer(
@@ -686,7 +697,7 @@ def user_runner(
         event_producer,
     )
 
-    scenario.user_loop(user_commands, context)
+    scenario.user_loop(user_commands, context)  # type: ignore
 
 
 # FIXME: move these to another module
@@ -884,7 +895,7 @@ class Scenario(BaseModel):
 Scenario.update_forward_refs()
 
 
-def load_stages(*stages: Iterable[LoadModelFn]):
+def load_stages(*stages: LoadModelFn):
     def closure(scenario_commands: ScenarioCommands, context: dict):
         for stage in stages:
             stage(scenario_commands, context)

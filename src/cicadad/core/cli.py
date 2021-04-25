@@ -6,10 +6,10 @@ import os
 import shutil
 
 from google.protobuf.empty_pb2 import Empty
-from blessed import Terminal
+from blessed import Terminal  # type: ignore
 import click
-import docker
-import grpc
+import docker  # type: ignore
+import grpc  # type: ignore
 
 from cicadad.core import containers
 from cicadad.protos import hub_pb2_grpc, hub_pb2
@@ -88,20 +88,20 @@ def start_cluster(ctx, network, create_network):
 def stop_cluster(ctx):
     docker_client = docker.from_env()
 
-    containers.docker_zookeeper_down(docker_client)
+    containers.docker_manager_down(docker_client)
 
     if ctx.obj["DEBUG"]:
-        click.echo(f"Stopped Zookeeper")
+        click.echo("Stopped Manager")
 
     containers.docker_kafka_down(docker_client)
 
     if ctx.obj["DEBUG"]:
-        click.echo(f"Stopped Kafka")
+        click.echo("Stopped Kafka")
 
-    containers.docker_manager_down(docker_client)
+    containers.docker_zookeeper_down(docker_client)
 
     if ctx.obj["DEBUG"]:
-        click.echo(f"Stopped Manager")
+        click.echo("Stopped Zookeeper")
 
     containers.clean_docker_containers(
         docker_client,
@@ -169,6 +169,7 @@ def run(ctx, image, build_path, dockerfile, network, tag, no_exit_unsuccessful):
         with grpc.insecure_channel("[::]:8282") as channel:
             stub = hub_pb2_grpc.HubStub(channel)
 
+            # FIXME: integrate with util.backoff
             ready = False
             tries = 0
             period = 2
@@ -276,7 +277,7 @@ def run(ctx, image, build_path, dockerfile, network, tag, no_exit_unsuccessful):
 
     # FEATURE: report results in static site
     click.echo(
-        term.bold + term.center(f" Test Complete ", fillchar="=") + "\n" + term.normal
+        term.bold + term.center(" Test Complete ", fillchar="=") + "\n" + term.normal
     )
 
     if len(passed) > 0:
