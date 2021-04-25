@@ -169,6 +169,7 @@ def run(ctx, image, build_path, dockerfile, network, tag, no_exit_unsuccessful):
         with grpc.insecure_channel("[::]:8282") as channel:
             stub = hub_pb2_grpc.HubStub(channel)
 
+            # FIXME: integrate with util.backoff
             ready = False
             tries = 0
             period = 2
