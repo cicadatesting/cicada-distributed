@@ -20,7 +20,7 @@ engine = Engine()
 
 
 @scenario(engine)
-@load_model(n_iterations(10000, 20, timeout=None))
+@load_model(n_iterations(100, 1, timeout=None))
 # @load_model(
 #     load_stages(
 #         n_seconds(30, 10, skip_scaledown=True),

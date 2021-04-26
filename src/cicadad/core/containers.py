@@ -333,7 +333,7 @@ def docker_zookeeper_up(client: docker.DockerClient, network: str):
         Container: Zookeeper container
     """
     args = DockerServerArgs(
-        image="bitnami/zookeeper:latest",
+        image="bitnami/zookeeper:3.7",
         name="cicada-distributed-zookeeper",
         in_cluster=False,
         labels=["cicada-distributed-zookeeper"],
@@ -367,10 +367,10 @@ def docker_kafka_up(client: docker.DockerClient, network: str):
     Returns:
         Container: Kafka container
     """
+    # FEATURE: log docker pull
 
     args = DockerServerArgs(
-        # TODO: pin to specific version, include docker pull
-        image="bitnami/kafka:latest",
+        image="bitnami/kafka:2",
         name="cicada-distributed-kafka",
         in_cluster=False,
         labels=["cicada-distributed-kafka"],

@@ -1,13 +1,19 @@
 
-# This fails when setup.py is available
 package:
-	python3 -m build
+	python3 setup.py sdist bdist_wheel
 
+# NOTE: may need to use sudo
 install-local:
-	sudo python3 -m pip install -e .
+	python3 -m pip install -e .
 
-build-manager:
-	docker build -f dockerfiles/manager.dockerfile -t cicada-distributed-manager .
+build-manager-local:
+	docker build -f dockerfiles/manager.local.dockerfile -t cicada-distributed-manager .
+
+build-manager-dev:
+	docker build -f dockerfiles/manager.dev.dockerfile -t cicada-distributed-manager .
+
+build-base-local:
+	docker build -f dockerfiles/base-image.local.dockerfile -t cicadatesting/cicada-distributed-base-image:latest .
 
 build-base-dev:
 	docker build -f dockerfiles/base-image.dev.dockerfile -t cicadatesting/cicada-distributed-base-image:latest .
