@@ -333,7 +333,7 @@ def docker_zookeeper_up(client: docker.DockerClient, network: str):
         Container: Zookeeper container
     """
     args = DockerServerArgs(
-        image="bitnami/zookeeper:3.7",
+        image="bitnami/zookeeper:3",
         name="cicada-distributed-zookeeper",
         in_cluster=False,
         labels=["cicada-distributed-zookeeper"],
