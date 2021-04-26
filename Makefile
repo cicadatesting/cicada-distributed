@@ -12,7 +12,10 @@ install-dev:
 		pydantic \
 		kafka-python \
 		grpcio \
-		protobuf
+		protobuf \
+		dask \
+		distributed \
+		blessed
 	python3 -m pip install --index-url https://test.pypi.org/simple/ --no-deps cicadad
 
 build-manager-local:
