@@ -13,7 +13,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install bandit mypy flake8 
-          python3 -m pip install -e .
+          make install-local
       - name: Securtity
         run: |
           bandit src/cicadad -r -c bandit.yaml
@@ -35,7 +35,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install pytest
-          python3 -m pip install -e .
+          make install-local
       - name: Test with pytest
         run: |
           pytest src/tests
@@ -60,7 +60,7 @@ jobs:
           make build-manager-local
       - name: smoke-test
         run: |
-          python3 -m pip install -e .
+          make install-local
           mkdir smoke-test
           cicada-distributed --debug init ./smoke-test
           cd smoke-test
