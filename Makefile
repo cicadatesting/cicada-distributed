@@ -1,6 +1,12 @@
 
+# NOTE: may need to use sudo
 package:
+	rm -r build
+	rm -r dist
 	python3 setup.py sdist bdist_wheel
+
+upload-dev:
+	python3 -m twine upload --repository testpypi dist/*
 
 # NOTE: may need to use sudo
 install-local:
