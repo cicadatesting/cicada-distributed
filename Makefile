@@ -6,6 +6,9 @@ package:
 install-local:
 	python3 -m pip install -e .
 
+install-dev:
+	python3 -m pip install --index-url https://test.pypi.org/simple/ cicadad
+
 build-manager-local:
 	docker build -f dockerfiles/manager.local.dockerfile -t cicada-distributed-manager .
 

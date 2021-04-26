@@ -7,4 +7,5 @@ RUN pip install docker \
     grpcio \
     protobuf
 
+# RUN python3 -c "import cicadad; print(cicadad.__file__)"
 RUN python3 -m pip install --index-url https://test.pypi.org/simple/ --no-deps cicadad

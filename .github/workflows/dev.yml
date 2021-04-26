@@ -1,0 +1,34 @@
+name: Code Check
+on: push
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Set up Python 3.6
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.6
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      - name: build-base-image
+        run: |
+          make build-base-dev
+      - name: build-manager
+        run: |
+          make build-manager-dev
+      - name: smoke-test
+        run: |
+          make install-dev
+          mkdir smoke-test
+          cicada-distributed --debug init ./smoke-test
+          cd smoke-test
+          ls
+          cicada-distributed --debug start-cluster
+          docker ps
+          cicada-distributed --debug run
+          cicada-distributed --debug stop-cluster
+          docker ps
