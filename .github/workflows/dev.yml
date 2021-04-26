@@ -1,4 +1,4 @@
-name: Code Check
+name: Push to Dev
 on: push
 jobs:
   smoke-test:
