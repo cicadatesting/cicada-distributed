@@ -21,7 +21,7 @@ install-dev:
 		dask \
 		distributed \
 		blessed
-	python3 -m pip install --index-url https://test.pypi.org/simple/ --no-deps cicadad
+	python3 -m pip install --index-url https://test.pypi.org/simple/ --no-deps cicadad==0.0.4
 
 build-manager-local:
 	docker build -f dockerfiles/manager.local.dockerfile -t cicadatesting/cicada-distributed-manager:latest .
