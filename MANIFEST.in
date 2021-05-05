@@ -1,1 +1,2 @@
 include src/cicadad/templates/Dockerfile
+include src/cicadad/templates/dev.dockerfile
