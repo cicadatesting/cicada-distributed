@@ -11,6 +11,7 @@ upload-dev:
 install-local:
 	python3 -m pip install -e .
 
+# NOTE: to install from dist folder: python3 setup.py install
 install-dev:
 	pip install docker \
 		click \
