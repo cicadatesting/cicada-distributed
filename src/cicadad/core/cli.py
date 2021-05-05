@@ -33,9 +33,15 @@ def init(ctx, build_path):
     # Create dockerfile from template if not exists
     if not os.path.exists(os.path.join(build_path, "Dockerfile")):
 
-        dockerfile_path = os.path.join(
-            os.path.dirname(templates_module.__file__), "Dockerfile"
-        )
+        if os.getenv("ENV") == "dev":
+            dockerfile_path = os.path.join(
+                os.path.dirname(templates_module.__file__), "dev.dockerfile"
+            )
+        else:
+            # TODO: will need tagged base image for prod
+            dockerfile_path = os.path.join(
+                os.path.dirname(templates_module.__file__), "Dockerfile"
+            )
 
         # NOTE: Does not build subdirs to copy file
         shutil.copyfile(dockerfile_path, os.path.join(build_path, "Dockerfile"))

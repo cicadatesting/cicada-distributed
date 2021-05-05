@@ -24,16 +24,16 @@ install-dev:
 	python3 -m pip install --index-url https://test.pypi.org/simple/ --no-deps cicadad
 
 build-manager-local:
-	docker build -f dockerfiles/manager.local.dockerfile -t cicada-distributed-manager .
+	docker build -f dockerfiles/manager.local.dockerfile -t cicadatesting/cicada-distributed-manager:latest .
 
 build-manager-dev:
-	docker build -f dockerfiles/manager.dev.dockerfile -t cicada-distributed-manager .
+	docker build -f dockerfiles/manager.dev.dockerfile -t cicadatesting/cicada-distributed-manager:pre-release .
 
 build-base-local:
 	docker build -f dockerfiles/base-image.local.dockerfile -t cicadatesting/cicada-distributed-base-image:latest .
 
 build-base-dev:
-	docker build -f dockerfiles/base-image.dev.dockerfile -t cicadatesting/cicada-distributed-base-image:latest .
+	docker build -f dockerfiles/base-image.dev.dockerfile -t cicadatesting/cicada-distributed-base-image:pre-release .
 
 run-manager:
 	docker run \

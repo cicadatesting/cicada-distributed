@@ -1,3 +1,4 @@
+import os
 from typing import Any, Dict, List, Optional
 import uuid
 import socket
@@ -423,9 +424,14 @@ def docker_manager_up(client: docker.DockerClient, network: str):
     Returns:
         Container: Manager container
     """
+    if os.getenv("ENV") == "dev":
+        image = "cicadatesting/cicada-distributed-manager:pre-release"
+    else:
+        # TODO: Use latest for local, specific tag otherwise
+        image = "cicadatesting/cicada-distributed-manager:latest"
+
     args = DockerServerArgs(
-        # TODO: change to real docker image
-        image="cicada-distributed-manager",
+        image=image,
         name="cicada-distributed-manager",
         in_cluster=False,
         labels=["cicada-distributed-manager"],
