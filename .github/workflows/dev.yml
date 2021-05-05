@@ -44,13 +44,13 @@ jobs:
         run: |
           make install-dev
           mkdir smoke-test
-          cicada-distributed --debug init ./smoke-test
+          ENV=dev cicada-distributed --debug init ./smoke-test
           cd smoke-test
           ls
-          cicada-distributed --debug start-cluster
+          ENV=dev cicada-distributed --debug start-cluster
           docker ps
-          cicada-distributed --debug run
-          cicada-distributed --debug stop-cluster
+          ENV=dev cicada-distributed --debug run
+          ENV=dev cicada-distributed --debug stop-cluster
           docker ps
   push-base-image:
     runs-on: ubuntu-latest
