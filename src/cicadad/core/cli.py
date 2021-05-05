@@ -265,15 +265,26 @@ def run(ctx, image, build_path, dockerfile, network, tag, no_exit_unsuccessful):
                         + term.normal
                     )
     finally:
+        if ctx.obj["DEBUG"]:
+            click.echo("Cleaning Test Runners")
+
         containers.stop_docker_container_by_name(docker_client, test_container.id)
-        containers.clean_docker_containers(
-            docker_client,
-            [
-                "cicada-distributed-test",
-                "cicada-distributed-scenario",
-                "cicada-distributed-user",
-            ],
-        )
+        containers.clean_docker_containers(docker_client, "cicada-distributed-test")
+
+        if ctx.obj["DEBUG"]:
+            click.echo("Cleaned Test Runners")
+            click.echo("Cleaning Scenarios")
+
+        containers.clean_docker_containers(docker_client, "cicada-distributed-scenario")
+
+        if ctx.obj["DEBUG"]:
+            click.echo("Cleaned Scenarios")
+            click.echo("Cleaning Users")
+
+        containers.clean_docker_containers(docker_client, "cicada-distributed-user")
+
+        if ctx.obj["DEBUG"]:
+            click.echo("Cleaned Users")
 
     # FEATURE: report results in static site
     click.echo(

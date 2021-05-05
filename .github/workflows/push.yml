@@ -20,14 +20,9 @@ jobs:
       - name: Types
         run: |
           mypy src/cicadad
-      - name: LintCode Check
+      - name: Lint
         run: |
-          python -m pip install --upgrade pip
-          pip install pytest
-          make install-local
-      - name: Test with pytest
-        run: |
-          pytest src/tests
+          flake8 src/cicadad
   smoke-test:
     runs-on: ubuntu-latest
     steps:

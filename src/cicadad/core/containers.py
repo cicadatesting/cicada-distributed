@@ -294,7 +294,7 @@ def docker_container_up(client: docker.DockerClient, name: str, args: DockerServ
     return container
 
 
-def docker_container_down(client: docker.DockerClient, name: str):
+def docker_container_down_by_name(client: docker.DockerClient, name: str):
     """Stop and remove container if it is found
 
     Args:
@@ -303,23 +303,33 @@ def docker_container_down(client: docker.DockerClient, name: str):
     """
     container = get_docker_container(client, name)
 
+    docker_container_down(container)
+
+
+def docker_container_down(container: Any):
+    """Stop provided container
+
+    Args:
+        container (Any): Container to stop and remove
+    """
     # NOTE: should it check if running too?
     if container is not None:
         stop_docker_container(container)
         remove_docker_container(container)
 
 
-def clean_docker_containers(client: docker.DockerClient, labels: List[str]):
+def clean_docker_containers(client: docker.DockerClient, label: str):
     """Stop and remove containers given a list of labels
 
     Args:
         client (docker.DockerClient): Docker client
-        labels (List[str]): List of labels to match containers against
+        label (str): labels to match containers against
     """
-    containers = client.containers.list(filters={"label": labels})
+    containers = client.containers.list(filters={"label": label})
 
+    # FIXME: may need performance enhancement
     for container in containers:
-        docker_container_down(client, container)
+        docker_container_down(container)
 
 
 def docker_zookeeper_up(client: docker.DockerClient, network: str):
@@ -354,7 +364,7 @@ def docker_zookeeper_down(client: docker.DockerClient):
     Args:
         client (docker.DockerClient): Docker client
     """
-    docker_container_down(client, "cicada-distributed-zookeeper")
+    docker_container_down_by_name(client, "cicada-distributed-zookeeper")
 
 
 def docker_kafka_up(client: docker.DockerClient, network: str):
@@ -400,7 +410,7 @@ def docker_kafka_down(client: docker.DockerClient):
     Args:
         client (docker.DockerClient): Docker client
     """
-    docker_container_down(client, "cicada-distributed-kafka")
+    docker_container_down_by_name(client, "cicada-distributed-kafka")
 
 
 def docker_manager_up(client: docker.DockerClient, network: str):
@@ -435,4 +445,4 @@ def docker_manager_down(client: docker.DockerClient):
     Args:
         client (docker.DockerClient): Docker client
     """
-    docker_container_down(client, "cicada-distributed-manager")
+    docker_container_down_by_name(client, "cicada-distributed-manager")
