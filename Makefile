@@ -1,8 +1,7 @@
 
 # NOTE: may need to use sudo
+# NOTE: may be helpful to run make clean
 package:
-	rm -r build
-	rm -r dist
 	python3 setup.py sdist bdist_wheel
 
 upload-dev:
