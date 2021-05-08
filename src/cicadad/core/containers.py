@@ -429,7 +429,7 @@ def docker_manager_up(client: docker.DockerClient, network: str):
     elif os.getenv("ENV") == "dev":
         image = "cicadatesting/cicada-distributed-manager:pre-release"
     else:
-        image = "cicadatesting/cicada-distributed-manager:0.1.0"
+        image = "cicadatesting/cicada-distributed-manager:0.1.1"
 
     args = DockerServerArgs(
         image=image,

@@ -1,4 +1,4 @@
-FROM cicadatesting/cicada-distributed-base-image:0.1.0
+FROM cicadatesting/cicada-distributed-base-image:0.1.1
 
 RUN pip install dask \
     distributed
