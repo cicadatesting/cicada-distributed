@@ -6,10 +6,10 @@ import os
 import shutil
 
 from google.protobuf.empty_pb2 import Empty
-from blessed import Terminal
+from blessed import Terminal  # type: ignore
 import click
-import docker
-import grpc
+import docker  # type: ignore
+import grpc  # type: ignore
 
 from cicadad.core import containers
 from cicadad.protos import hub_pb2_grpc, hub_pb2
@@ -33,9 +33,19 @@ def init(ctx, build_path):
     # Create dockerfile from template if not exists
     if not os.path.exists(os.path.join(build_path, "Dockerfile")):
 
-        dockerfile_path = os.path.join(
-            os.path.dirname(templates_module.__file__), "Dockerfile"
-        )
+        if os.getenv("ENV") == "local":
+            dockerfile_path = os.path.join(
+                os.path.dirname(templates_module.__file__), "local.dockerfile"
+            )
+        elif os.getenv("ENV") == "dev":
+            dockerfile_path = os.path.join(
+                os.path.dirname(templates_module.__file__), "dev.dockerfile"
+            )
+        else:
+            # TODO: will need tagged base image for prod
+            dockerfile_path = os.path.join(
+                os.path.dirname(templates_module.__file__), "Dockerfile"
+            )
 
         # NOTE: Does not build subdirs to copy file
         shutil.copyfile(dockerfile_path, os.path.join(build_path, "Dockerfile"))
@@ -88,20 +98,20 @@ def start_cluster(ctx, network, create_network):
 def stop_cluster(ctx):
     docker_client = docker.from_env()
 
-    containers.docker_zookeeper_down(docker_client)
+    containers.docker_manager_down(docker_client)
 
     if ctx.obj["DEBUG"]:
-        click.echo(f"Stopped Zookeeper")
+        click.echo("Stopped Manager")
 
     containers.docker_kafka_down(docker_client)
 
     if ctx.obj["DEBUG"]:
-        click.echo(f"Stopped Kafka")
+        click.echo("Stopped Kafka")
 
-    containers.docker_manager_down(docker_client)
+    containers.docker_zookeeper_down(docker_client)
 
     if ctx.obj["DEBUG"]:
-        click.echo(f"Stopped Manager")
+        click.echo("Stopped Zookeeper")
 
     containers.clean_docker_containers(
         docker_client,
@@ -169,6 +179,7 @@ def run(ctx, image, build_path, dockerfile, network, tag, no_exit_unsuccessful):
         with grpc.insecure_channel("[::]:8282") as channel:
             stub = hub_pb2_grpc.HubStub(channel)
 
+            # FIXME: integrate with util.backoff
             ready = False
             tries = 0
             period = 2
@@ -264,19 +275,30 @@ def run(ctx, image, build_path, dockerfile, network, tag, no_exit_unsuccessful):
                         + term.normal
                     )
     finally:
+        if ctx.obj["DEBUG"]:
+            click.echo("Cleaning Test Runners")
+
         containers.stop_docker_container_by_name(docker_client, test_container.id)
-        containers.clean_docker_containers(
-            docker_client,
-            [
-                "cicada-distributed-test",
-                "cicada-distributed-scenario",
-                "cicada-distributed-user",
-            ],
-        )
+        containers.clean_docker_containers(docker_client, "cicada-distributed-test")
+
+        if ctx.obj["DEBUG"]:
+            click.echo("Cleaned Test Runners")
+            click.echo("Cleaning Scenarios")
+
+        containers.clean_docker_containers(docker_client, "cicada-distributed-scenario")
+
+        if ctx.obj["DEBUG"]:
+            click.echo("Cleaned Scenarios")
+            click.echo("Cleaning Users")
+
+        containers.clean_docker_containers(docker_client, "cicada-distributed-user")
+
+        if ctx.obj["DEBUG"]:
+            click.echo("Cleaned Users")
 
     # FEATURE: report results in static site
     click.echo(
-        term.bold + term.center(f" Test Complete ", fillchar="=") + "\n" + term.normal
+        term.bold + term.center(" Test Complete ", fillchar="=") + "\n" + term.normal
     )
 
     if len(passed) > 0:

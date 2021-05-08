@@ -1,0 +1,56 @@
+name: Code Check
+on: push
+jobs:
+  code-quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python 3.6
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.6
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install bandit mypy flake8 
+          make install-local
+      - name: Securtity
+        run: |
+          bandit src/cicadad -r -c bandit.yaml
+      - name: Types
+        run: |
+          mypy src/cicadad
+      - name: Lint
+        run: |
+          flake8 src/cicadad
+  smoke-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Set up Python 3.6
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.6
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      - name: build-base-image
+        run: |
+          make build-base-local
+      - name: build-manager
+        run: |
+          make build-manager-local
+      - name: smoke-test
+        run: |
+          make install-local
+          mkdir smoke-test
+          ENV=local cicada-distributed --debug init ./smoke-test
+          cd smoke-test
+          ls
+          ENV=local cicada-distributed --debug start-cluster
+          docker ps
+          ENV=local cicada-distributed --debug run
+          ENV=local cicada-distributed --debug stop-cluster
+          docker ps

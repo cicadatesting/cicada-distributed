@@ -1,4 +1,4 @@
-from typing import Callable, Union
+from typing import Any, Callable, Union
 
 from cicadad.core.scenario import (
     Scenario,
@@ -156,8 +156,8 @@ def tag(tag: str):
 
 def make_scenario(name: str, fn: Callable):
     if hasattr(fn, "__scenario_attribute__"):
-        scenario_kwargs = fn.__scenario_attribute__
-        del fn.__scenario_attribute__
+        scenario_kwargs = fn.__scenario_attribute__  # type: ignore
+        del fn.__scenario_attribute__  # type: ignore
     else:
         scenario_kwargs = {}
 
@@ -169,17 +169,17 @@ def get_scenario_attribute(obj: Union[Scenario, Callable], name: str):
         return getattr(obj, name)
 
     if hasattr(obj, "__scenario_attribute__"):
-        return obj.__scenario_attribute__.get(name)
+        return obj.__scenario_attribute__.get(name)  # type: ignore
 
     return None
 
 
-def set_scenario_attribute(obj: Union[Scenario, Callable], name: str, value: any):
+def set_scenario_attribute(obj: Union[Scenario, Callable], name: str, value: Any):
     if hasattr(obj, name):
         return setattr(obj, name, value)
 
     if hasattr(obj, "__scenario_attribute__"):
-        obj.__scenario_attribute__[name] = value
+        obj.__scenario_attribute__[name] = value  # type: ignore
         return
 
-    obj.__scenario_attribute__ = {name: value}
+    obj.__scenario_attribute__ = {name: value}  # type: ignore

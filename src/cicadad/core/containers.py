@@ -1,10 +1,11 @@
-from typing import Dict, List, Optional
+import os
+from typing import Any, Dict, List, Optional
 import uuid
 import socket
 
 from pydantic import BaseModel
-from docker.errors import APIError, NotFound
-import docker
+from docker.errors import APIError, NotFound  # type: ignore
+import docker  # type: ignore
 
 from cicadad.util.constants import DEFAULT_DOCKER_NETWORK
 
@@ -176,7 +177,7 @@ def get_docker_container(client: docker.DockerClient, name: str):
         return None
 
 
-def container_is_running(container: any):
+def container_is_running(container: Any):
     """Check if container is running by running top
 
     Args:
@@ -192,7 +193,7 @@ def container_is_running(container: any):
         return False
 
 
-def container_logs(container: any) -> str:
+def container_logs(container: Any) -> str:
     """Get logs for a container
 
     Args:
@@ -216,7 +217,7 @@ def stop_docker_container_by_name(client: docker.DockerClient, container_id: str
     stop_docker_container(container)
 
 
-def stop_docker_container(container: any):
+def stop_docker_container(container: Any):
     """Stop a docker container
 
     Args:
@@ -238,7 +239,7 @@ def remove_docker_container_by_name(client: docker.DockerClient, container_id: s
     remove_docker_container(container)
 
 
-def remove_docker_container(container: any):
+def remove_docker_container(container: Any):
     """Remove a docker container
 
     Args:
@@ -294,7 +295,7 @@ def docker_container_up(client: docker.DockerClient, name: str, args: DockerServ
     return container
 
 
-def docker_container_down(client: docker.DockerClient, name: str):
+def docker_container_down_by_name(client: docker.DockerClient, name: str):
     """Stop and remove container if it is found
 
     Args:
@@ -303,21 +304,31 @@ def docker_container_down(client: docker.DockerClient, name: str):
     """
     container = get_docker_container(client, name)
 
+    docker_container_down(container)
+
+
+def docker_container_down(container: Any):
+    """Stop provided container
+
+    Args:
+        container (Any): Container to stop and remove
+    """
     # NOTE: should it check if running too?
     if container is not None:
         stop_docker_container(container)
         remove_docker_container(container)
 
 
-def clean_docker_containers(client: docker.DockerClient, labels: List[str]):
+def clean_docker_containers(client: docker.DockerClient, label: str):
     """Stop and remove containers given a list of labels
 
     Args:
         client (docker.DockerClient): Docker client
-        labels (List[str]): List of labels to match containers against
+        label (str): labels to match containers against
     """
-    containers = client.containers.list(filters={"label": labels})
+    containers = client.containers.list(filters={"label": label})
 
+    # FIXME: may need performance enhancement
     for container in containers:
         docker_container_down(container)
 
@@ -333,7 +344,7 @@ def docker_zookeeper_up(client: docker.DockerClient, network: str):
         Container: Zookeeper container
     """
     args = DockerServerArgs(
-        image="bitnami/zookeeper:latest",
+        image="bitnami/zookeeper:3",
         name="cicada-distributed-zookeeper",
         in_cluster=False,
         labels=["cicada-distributed-zookeeper"],
@@ -354,7 +365,7 @@ def docker_zookeeper_down(client: docker.DockerClient):
     Args:
         client (docker.DockerClient): Docker client
     """
-    docker_container_down(client, "cicada-distributed-zookeeper")
+    docker_container_down_by_name(client, "cicada-distributed-zookeeper")
 
 
 def docker_kafka_up(client: docker.DockerClient, network: str):
@@ -367,8 +378,10 @@ def docker_kafka_up(client: docker.DockerClient, network: str):
     Returns:
         Container: Kafka container
     """
+    # FEATURE: log docker pull
+
     args = DockerServerArgs(
-        image="bitnami/kafka:latest",
+        image="bitnami/kafka:2",
         name="cicada-distributed-kafka",
         in_cluster=False,
         labels=["cicada-distributed-kafka"],
@@ -377,7 +390,9 @@ def docker_kafka_up(client: docker.DockerClient, network: str):
             "ALLOW_PLAINTEXT_LISTENER": "yes",
             "KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP": "PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT",
             "KAFKA_CFG_LISTENERS": "PLAINTEXT://:9092,PLAINTEXT_HOST://:29092",
-            "KAFKA_CFG_ADVERTISED_LISTENERS": "PLAINTEXT://cicada-distributed-kafka:9092,PLAINTEXT_HOST://localhost:29092",
+            "KAFKA_CFG_ADVERTISED_LISTENERS": (
+                "PLAINTEXT://cicada-distributed-kafka:9092,PLAINTEXT_HOST://localhost:29092"
+            ),
         },
         # volumes: Optional[List[Volume]]
         # FEATURE: support for multiple ports
@@ -396,7 +411,7 @@ def docker_kafka_down(client: docker.DockerClient):
     Args:
         client (docker.DockerClient): Docker client
     """
-    docker_container_down(client, "cicada-distributed-kafka")
+    docker_container_down_by_name(client, "cicada-distributed-kafka")
 
 
 def docker_manager_up(client: docker.DockerClient, network: str):
@@ -409,9 +424,15 @@ def docker_manager_up(client: docker.DockerClient, network: str):
     Returns:
         Container: Manager container
     """
+    if os.getenv("ENV") == "local":
+        image = "cicadatesting/cicada-distributed-manager:latest"
+    elif os.getenv("ENV") == "dev":
+        image = "cicadatesting/cicada-distributed-manager:pre-release"
+    else:
+        image = "cicadatesting/cicada-distributed-manager:0.1.1"
+
     args = DockerServerArgs(
-        # TODO: change to real docker image
-        image="cicada-distributed-manager",
+        image=image,
         name="cicada-distributed-manager",
         in_cluster=False,
         labels=["cicada-distributed-manager"],
@@ -431,4 +452,4 @@ def docker_manager_down(client: docker.DockerClient):
     Args:
         client (docker.DockerClient): Docker client
     """
-    docker_container_down(client, "cicada-distributed-manager")
+    docker_container_down_by_name(client, "cicada-distributed-manager")

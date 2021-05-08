@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, Iterable, List, Optional, Set
+from typing import Any, Callable, Dict, List, Optional, Set
 from datetime import datetime, timedelta
 import uuid
 import time
@@ -41,7 +41,7 @@ class UserCommands(object):
         self.result_producer = result_producer
 
         self.available_work = 0
-        self.work_event_ids = set()
+        self.work_event_ids: Set[str] = set()
 
     def is_up(self):
         """Check if user is still running
@@ -65,7 +65,9 @@ class UserCommands(object):
         if self.available_work < 1:
             new_work = eventing.get_work(
                 self.work_consumer,
-                int(hashlib.sha1(self.user_id.encode("ascii")).hexdigest(), 16),
+                int(
+                    hashlib.sha1(self.user_id.encode("ascii")).hexdigest(), 16  # nosec
+                ),
                 self.work_event_ids,
                 timeout_ms,
             )
@@ -164,11 +166,13 @@ class ScenarioCommands(object):
         self.context = context
 
         self.scenario_id = scenario_id
-        self.user_group_ids = {}  # NOTE: maybe make this an ordered dict
+        self.user_group_ids: Dict[
+            str, List[str]
+        ] = {}  # NOTE: maybe make this an ordered dict
         self.num_users = 0
         self.buffered_work = 0
         self.aggregated_results = None
-        self.errors = []
+        self.errors: List[str] = []
 
     def scale_users(self, n: int):
         """Change number of running users
@@ -192,9 +196,13 @@ class ScenarioCommands(object):
         if n < 0:
             raise ValueError("Must supply a positive number of users to start")
 
+        if n == 0:
+            return
+
         user_group_id = str(uuid.uuid4())
         user_ids = []
 
+        # FEATURE: mount env and volumes for user
         for _ in range(n):
             user_id = f"user-{self.scenario.name}-{str(uuid.uuid4())[:8]}"
             encoded_context = encode_context(self.context)
@@ -245,6 +253,9 @@ class ScenarioCommands(object):
 
         if n < 0:
             raise ValueError("Must supply a positive number of users to stop")
+
+        if n == 0:
+            return
 
         remaining = n
         removed_users = 0
@@ -313,7 +324,10 @@ class ScenarioCommands(object):
                     # give one work unit to some of users to meet remaining work
                     # essentially, this is the last group to get work
                     user_id_hashes = sorted(
-                        int(hashlib.sha1(user_id.encode("ascii")).hexdigest(), 16)
+                        int(
+                            hashlib.sha1(user_id.encode("ascii")).hexdigest(),  # nosec
+                            16,
+                        )
                         for user_id in self.user_group_ids[group_id]
                     )
 
@@ -404,6 +418,8 @@ class ScenarioCommands(object):
             self.errors.extend(errors)
             return errors
 
+        return None
+
     # FEATURE: get number of healthy users in scenario, healthy users per group
 
     # def create_metric(
@@ -454,7 +470,7 @@ def test_runner(
     event_broker_address: str,
 ):
     started: Set[str] = set()
-    results: Dict[str, Result] = {}
+    results: Dict[str, dict] = {}
 
     # Start scenarios with no dependencies
     for scenario in scenarios:
@@ -491,13 +507,13 @@ def test_runner(
             yield TestStatus(
                 type="SCENARIO_STARTED",
                 scenario=scenario.name,
-                message=f"Started scenario: {scenario.name}",
+                message=f"Started scenario: {scenario.name} ({container_id})",
                 context=json.dumps(results),
             )
 
     # listen to completed events and start scenarios with dependencies
     while len(results) != len(scenarios):
-        events = eventing.get_events(result_consumer)
+        events: List[eventing.ResultEvent] = eventing.get_events(result_consumer)  # type: ignore
 
         for event in events:
             # HACK: address jankiness?
@@ -550,7 +566,7 @@ def test_runner(
                 yield TestStatus(
                     type="SCENARIO_STARTED",
                     scenario=scenario.name,
-                    message=f"Started scenario: {scenario.name}",
+                    message=f"Started scenario: {scenario.name} ({container_id})",
                     context=json.dumps(results),
                 )
             elif all(dep.name in results for dep in scenario.dependencies):
@@ -615,10 +631,12 @@ def scenario_runner(
     buffer = io.StringIO()
 
     start = datetime.now()
+    output: Optional[Any] = None
+    exception: Optional[Exception] = None
 
     with printing.stdout_redirect(buffer):
         try:
-            scenario.load_model(scenario_commands, context)
+            scenario.load_model(scenario_commands, context)  # type: ignore
 
             if scenario.output_transformer is not None:
                 output = scenario.output_transformer(
@@ -686,7 +704,7 @@ def user_runner(
         event_producer,
     )
 
-    scenario.user_loop(user_commands, context)
+    scenario.user_loop(user_commands, context)  # type: ignore
 
 
 # FIXME: move these to another module
@@ -731,6 +749,44 @@ def while_alive():
                 logs,
                 time_taken=(end - start).seconds,
             )
+
+    return closure
+
+
+def iterations_per_second_limited(limit: int):
+    """Allows a user to run a limited number of iterations per second
+
+    Args:
+        limit (int): Max iterations per second for user
+    """
+
+    def closure(user_commands: UserCommands, context: dict):
+        remaining_iterations = limit
+        second_start_time = datetime.now()
+
+        while user_commands.is_up():
+            if remaining_iterations > 0:
+                start = datetime.now()
+
+                output, exception, logs = user_commands.run(context=context)
+
+                end = datetime.now()
+
+                remaining_iterations -= 1
+                user_commands.report_result(
+                    output,
+                    exception,
+                    logs,
+                    time_taken=(end - start).seconds,
+                )
+            else:
+                td = (second_start_time + timedelta(seconds=1)) - datetime.now()
+
+                time.sleep(td.seconds + (td.microseconds / 1000000))
+
+            if datetime.now() >= second_start_time + timedelta(seconds=1):
+                remaining_iterations = limit
+                second_start_time = datetime.now()
 
     return closure
 
@@ -822,7 +878,6 @@ def n_seconds(
         scenario_commands.scale_users(users)
 
         # collect results for specified seconds
-        num_results = 0
         start_time = datetime.now()
 
         while datetime.now() < start_time + timedelta(seconds=seconds):
@@ -832,9 +887,135 @@ def n_seconds(
 
             scenario_commands.aggregate_results(latest_results)
             scenario_commands.verify_results(latest_results)
-            num_results += len(latest_results)
 
             time.sleep(wait_period)
+
+        if skip_scaledown:
+            return
+
+        scenario_commands.scale_users(0)
+
+    return closure
+
+
+def n_users_ramping(
+    seconds: int,
+    target_users: int,
+    wait_period: int = 1,
+    max_results_per_period: int = 1000,
+    skip_scaledown: bool = True,
+):
+    """Scale users to target over the duration of the time specified. Use this
+    to scale users smoothly.
+
+    Args:
+        seconds (int): Amount of time to spend ramping users
+        target_users (int): Number of users to ramp to.
+        wait_period (int, optional): Time in seconds to wait between scaling batch of users. Defaults to 1.
+        max_results_per_period (int, optional): Max number of results to return when polling. Defaults to 1000.
+        skip_scaledown (bool, optional): Do not scale down users after load model completes. Defaults to True.
+    """
+
+    def closure(scenario_commands: ScenarioCommands, context: dict):
+        start_time = datetime.now()
+        starting_users = scenario_commands.num_users
+        buffered_users = float(0)
+
+        while datetime.now() <= start_time + timedelta(seconds=seconds):
+            if starting_users > target_users:
+                users_to_stop = (starting_users - target_users) / int(
+                    seconds / wait_period
+                )
+
+                buffered_users += users_to_stop
+
+                if int(buffered_users) > 0:
+                    scenario_commands.stop_users(int(buffered_users))
+                    buffered_users -= int(buffered_users)
+            else:
+                users_to_start = (target_users - starting_users) / int(
+                    seconds / wait_period
+                )
+
+                buffered_users += users_to_start
+
+                if int(buffered_users) > 0:
+                    scenario_commands.start_users(int(buffered_users))
+                    buffered_users -= int(buffered_users)
+
+            latest_results = scenario_commands.get_latest_results(
+                max_results=max_results_per_period
+            )
+
+            scenario_commands.aggregate_results(latest_results)
+            scenario_commands.verify_results(latest_results)
+
+            time.sleep(wait_period)
+
+        if skip_scaledown:
+            scenario_commands.scale_users(target_users)
+            return
+
+        scenario_commands.scale_users(0)
+
+    return closure
+
+
+def ramp_users_to_threshold(
+    initial_users: int,
+    threshold_fn: Callable[[Any], bool],
+    next_users_fn: Callable[[int], int] = lambda n: n + 10,
+    update_aggregate: Callable[[int, Any], Any] = lambda n, agg: f"Users: {n}",
+    period_duration: int = 30,
+    period_limit: Optional[int] = None,
+    wait_period: int = 1,
+    max_results_per_period: int = 1000,
+    skip_scaledown: bool = False,
+):
+    """Increase number of users in scenario until a threshold based on the
+    aggregated results is reached. Update aggregate with number of users determined
+    by scenario.
+
+    Args:
+        initial_users (int): Users to start stage with.
+        threshold_fn (Callable[[Any], bool]): Checks aggregate and returns True if threshold reached.
+        next_users_fn (Callable[[int], int]): Scale number of users given current number of users.
+        update_aggregate (Callable[[int, Any], Any], optional): Update scenario aggregate with result of load model.
+        period_duration (int, optional): Time in seconds to wait before scaling test. Defaults to 30.
+        period_limit (Optional[int], optional): Amount of scaling events before stopping stage. Defaults to None.
+        wait_period (int, optional): Time in seconds to wait before polling for results. Defaults to 1.
+        max_results_per_period (int, optional): Max results to fetch at one time. Defaults to 1000.
+        skip_scaledown (bool): Skip scaledown of users after running load function
+    """
+
+    def closure(scenario_commands: ScenarioCommands, context: dict):
+        scenario_commands.scale_users(initial_users)
+        period_count = 0
+        period_start = datetime.now()
+
+        while not threshold_fn(scenario_commands.aggregated_results) and (
+            period_limit is None or period_limit < period_count
+        ):
+            latest_results = scenario_commands.get_latest_results(
+                max_results=max_results_per_period
+            )
+
+            scenario_commands.aggregate_results(latest_results)
+            scenario_commands.verify_results(latest_results)
+
+            time.sleep(wait_period)
+
+            if datetime.now() >= period_start + timedelta(seconds=period_duration):
+                scenario_commands.scale_users(
+                    next_users_fn(scenario_commands.num_users)
+                )
+
+                period_count += 1
+                period_start = datetime.now()
+
+        scenario_commands.aggregated_results = update_aggregate(
+            scenario_commands.num_users, scenario_commands.aggregated_results
+        )
 
         if skip_scaledown:
             return
@@ -884,7 +1065,7 @@ class Scenario(BaseModel):
 Scenario.update_forward_refs()
 
 
-def load_stages(*stages: Iterable[LoadModelFn]):
+def load_stages(*stages: LoadModelFn):
     def closure(scenario_commands: ScenarioCommands, context: dict):
         for stage in stages:
             stage(scenario_commands, context)
@@ -892,3 +1073,6 @@ def load_stages(*stages: Iterable[LoadModelFn]):
         scenario_commands.scale_users(0)
 
     return closure
+
+
+# FEATURE: signal user loop that stage has changed from scenario commands

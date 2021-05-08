@@ -1,4 +1,5 @@
 from contextlib import contextmanager
+from typing import TextIO
 import io
 import sys
 
@@ -29,15 +30,15 @@ def get_logger(name: str = "logger"):
 
 
 class CopiedStdout(io.TextIOBase):
-    def __init__(self, terminal: io.TextIOBase, buffer: io.TextIOBase):
+    def __init__(self, terminal: TextIO, copy: io.TextIOBase):
         """Copy stdout for a terminal to a buffer
 
         Args:
-            terminal (io.TextIOBase): Terminal printing stdout to (like sys.stdout)
-            buffer (io.TextIOBase): Buffer to copy stdout to
+            terminal (TextIO): Terminal printing stdout to (like sys.stdout)
+            copy (TextIOBase): Buffer to copy stdout to
         """
         self.terminal = terminal
-        self.buffer = buffer
+        self.copy = copy
 
     def write(self, message: str):
         """Write message to terminal and buffer
@@ -46,7 +47,7 @@ class CopiedStdout(io.TextIOBase):
             message (str): Message to print
         """
         self.terminal.write(message)
-        self.buffer.write(message)
+        self.copy.write(message)
 
 
 @contextmanager
@@ -54,13 +55,13 @@ def stdout_redirect(buffer: io.TextIOBase):
     """Copy sys.stdout to a buffer while in context
 
     Args:
-        buffer (io.TextIOBase): Buffer to write stdout to
+        buffer (TextIOBase): Buffer to write stdout to
     """
     old_stdout = sys.stdout
     new_stdout = CopiedStdout(old_stdout, buffer)
 
     try:
-        sys.stdout = new_stdout
+        sys.stdout = new_stdout  # type: ignore
         yield
     finally:
         sys.stdout = old_stdout
