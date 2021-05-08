@@ -34,11 +34,17 @@ build-base-local:
 build-base-dev:
 	docker build -f dockerfiles/base-image.dev-a.dockerfile -t cicadatesting/cicada-distributed-base-image:pre-release .
 
+build-base:
+	docker build -f dockerfiles/base-image.dockerfile -t cicadatesting/cicada-distributed-base-image:latest .
+
 build-manager-local:
 	docker build -f dockerfiles/manager.local.dockerfile -t cicadatesting/cicada-distributed-manager:latest .
 
 build-manager-dev:
 	docker build -f dockerfiles/manager.dev-a.dockerfile -t cicadatesting/cicada-distributed-manager:pre-release .
+
+build-manager:
+	docker build -f dockerfiles/manager.dockerfile -t cicadatesting/cicada-distributed-manager:latest .
 
 run-manager:
 	docker run \
