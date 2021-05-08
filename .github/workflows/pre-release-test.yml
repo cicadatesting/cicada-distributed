@@ -1,13 +1,13 @@
 name: Pre-Release-Test
-on: push
-  # pull_request:
-  #   branches:
-  #     - pre-release
-  #   types:
-  #     - opened
-  #     - reopened
-  #     - edited
-  #     - synchronize
+on:
+  pull_request:
+    branches:
+      - pre-release
+    types:
+      - opened
+      - reopened
+      - edited
+      - synchronize
 jobs:
   smoke-test:
     runs-on: ubuntu-latest
