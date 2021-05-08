@@ -11,8 +11,7 @@ upload-dev:
 install-local:
 	python3 -m pip install -e .
 
-# NOTE: to install from dist folder: python3 setup.py install
-install-dev:
+install-dev-dependencies:
 	pip install docker \
 		click \
 		pydantic \
@@ -22,6 +21,11 @@ install-dev:
 		dask \
 		distributed \
 		blessed
+
+install-dev-local:
+	python3 setup.py install
+
+install-dev-remote: install-dev-dependencies
 	python3 -m pip install --index-url https://test.pypi.org/simple/ --no-deps cicadad==0.0.7
 
 build-base-local:

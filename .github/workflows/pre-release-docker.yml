@@ -71,7 +71,7 @@ jobs:
         uses: docker/setup-buildx-action@v1
       - name: smoke-test
         run: |
-          make install-dev
+          make install-dev-remote
           mkdir smoke-test
           ENV=dev cicada-distributed --debug init ./smoke-test
           cd smoke-test
