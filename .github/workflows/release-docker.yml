@@ -3,8 +3,8 @@ on:
   workflow_run:
     workflows:
       - Release-PyPi
-    branches:
-      - main
+    # branches:
+    #   - main
     types:
       - completed
 jobs:
