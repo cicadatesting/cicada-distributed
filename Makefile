@@ -26,7 +26,7 @@ install-dev-local:
 	python3 setup.py install
 
 install-dev-remote: install-dev-dependencies
-	python3 -m pip install --index-url https://test.pypi.org/simple/ --no-deps cicadad==0.0.7
+	python3 -m pip install --index-url https://test.pypi.org/simple/ --no-deps cicadad==0.1.0
 
 build-base-local:
 	docker build -f dockerfiles/base-image.local.dockerfile -t cicadatesting/cicada-distributed-base-image:latest .
