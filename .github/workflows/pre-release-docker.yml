@@ -4,7 +4,7 @@ on:
     workflows:
       - Pre-Release-PyPi
     branches:
-      - pre-release
+      - main
     types:
       - completed
 jobs:

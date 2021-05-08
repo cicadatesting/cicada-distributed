@@ -2,7 +2,7 @@ name: Pre-Release-PyPi
 on:
   push:
     branches:
-      - pre-release
+      - main
 jobs:
   push-to-pypi:
     runs-on: ubuntu-latest

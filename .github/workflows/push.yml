@@ -46,11 +46,11 @@ jobs:
         run: |
           make install-local
           mkdir smoke-test
-          cicada-distributed --debug init ./smoke-test
+          ENV=local cicada-distributed --debug init ./smoke-test
           cd smoke-test
           ls
-          cicada-distributed --debug start-cluster
+          ENV=local cicada-distributed --debug start-cluster
           docker ps
-          cicada-distributed --debug run
-          cicada-distributed --debug stop-cluster
+          ENV=local cicada-distributed --debug run
+          ENV=local cicada-distributed --debug stop-cluster
           docker ps

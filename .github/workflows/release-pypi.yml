@@ -1,8 +1,8 @@
 name: Release-PyPi
-on: push
-  # release:
-  #   types:
-  #     - released
+on:
+  release:
+    types:
+      - released
 jobs:
   push-to-pypi:
     runs-on: ubuntu-latest

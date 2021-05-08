@@ -424,11 +424,12 @@ def docker_manager_up(client: docker.DockerClient, network: str):
     Returns:
         Container: Manager container
     """
-    if os.getenv("ENV") == "dev":
+    if os.getenv("ENV") == "local":
+        image = "cicadatesting/cicada-distributed-manager:latest"
+    elif os.getenv("ENV") == "dev":
         image = "cicadatesting/cicada-distributed-manager:pre-release"
     else:
-        # TODO: Use latest for local, specific tag otherwise
-        image = "cicadatesting/cicada-distributed-manager:latest"
+        image = "cicadatesting/cicada-distributed-manager:0.1.0"
 
     args = DockerServerArgs(
         image=image,

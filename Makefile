@@ -1,4 +1,7 @@
 
+BASE_IMAGE_NAME=cicadatesting/cicada-distributed-base-image
+MANAGER_IMAGE_NAME=cicadatesting/cicada-distributed-manager
+
 # NOTE: may need to use sudo
 # NOTE: may be helpful to run make clean
 package:
@@ -29,29 +32,22 @@ install-dev-remote: install-dev-dependencies
 	python3 -m pip install --index-url https://test.pypi.org/simple/ --no-deps cicadad==0.1.0
 
 build-base-local:
-	docker build -f dockerfiles/base-image.local.dockerfile -t cicadatesting/cicada-distributed-base-image:latest .
+	docker build -f dockerfiles/base-image.local.dockerfile -t ${BASE_IMAGE_NAME}:latest .
 
 build-base-dev:
-	docker build -f dockerfiles/base-image.dev-a.dockerfile -t cicadatesting/cicada-distributed-base-image:pre-release .
+	docker build -f dockerfiles/base-image.dev-a.dockerfile -t ${BASE_IMAGE_NAME}:pre-release .
 
 build-base:
-	docker build -f dockerfiles/base-image.dockerfile -t cicadatesting/cicada-distributed-base-image:latest .
+	docker build -f dockerfiles/base-image.dockerfile -t ${BASE_IMAGE_NAME}:0.1.0 .
 
 build-manager-local:
-	docker build -f dockerfiles/manager.local.dockerfile -t cicadatesting/cicada-distributed-manager:latest .
+	docker build -f dockerfiles/manager.local.dockerfile -t ${MANAGER_IMAGE_NAME}:latest .
 
 build-manager-dev:
-	docker build -f dockerfiles/manager.dev-a.dockerfile -t cicadatesting/cicada-distributed-manager:pre-release .
+	docker build -f dockerfiles/manager.dev-a.dockerfile -t ${MANAGER_IMAGE_NAME}:pre-release .
 
 build-manager:
-	docker build -f dockerfiles/manager.dockerfile -t cicadatesting/cicada-distributed-manager:latest .
-
-run-manager:
-	docker run \
-		--rm \
-		--network cicada-distributed_default \
-		-v /var/run/docker.sock:/var/run/docker.sock \
-		cicada-distributed-manager
+	docker build -f dockerfiles/manager.dockerfile -t ${MANAGER_IMAGE_NAME}:0.1.0 .
 
 clean:
 	rm -r dist
@@ -61,12 +57,6 @@ clean:
 clean-containers:
 	docker container stop $(shell docker ps -q --filter "label=cicada-distributed") \
 	&& docker container rm $(shell docker ps -q --filter "label=cicada-distributed")
-
-services:
-	docker-compose up -d
-
-services-down:
-	docker-compose down --remove-orphans
 
 proto-compile:
 	cd src && python3 -m grpc_tools.protoc -I . \
