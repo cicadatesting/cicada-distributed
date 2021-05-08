@@ -898,7 +898,6 @@ def n_seconds(
     return closure
 
 
-# TODO: swap target user and seconds order
 def n_users_ramping(
     seconds: int,
     target_users: int,
