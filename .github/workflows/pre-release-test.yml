@@ -2,7 +2,7 @@ name: Pre-Release-Test
 on:
   pull_request:
     branches:
-      - pre-release
+      - main
     types:
       - opened
       - reopened

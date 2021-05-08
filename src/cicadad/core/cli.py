@@ -33,7 +33,11 @@ def init(ctx, build_path):
     # Create dockerfile from template if not exists
     if not os.path.exists(os.path.join(build_path, "Dockerfile")):
 
-        if os.getenv("ENV") == "dev":
+        if os.getenv("ENV") == "local":
+            dockerfile_path = os.path.join(
+                os.path.dirname(templates_module.__file__), "local.dockerfile"
+            )
+        elif os.getenv("ENV") == "dev":
             dockerfile_path = os.path.join(
                 os.path.dirname(templates_module.__file__), "dev.dockerfile"
             )
