@@ -1,16 +1,44 @@
 
-# This fails when setup.py is available
+# NOTE: may need to use sudo
+# NOTE: may be helpful to run make clean
 package:
-	python3 -m build
+	python3 setup.py sdist bdist_wheel
 
+upload-dev:
+	python3 -m twine upload --repository testpypi dist/*
+
+# NOTE: may need to use sudo
 install-local:
-	sudo python3 -m pip install -e .
+	python3 -m pip install -e .
 
-build-manager:
-	docker build -f dockerfiles/manager.dockerfile -t cicada-distributed-manager .
+install-dev-dependencies:
+	pip install docker \
+		click \
+		pydantic \
+		kafka-python \
+		grpcio \
+		protobuf \
+		dask \
+		distributed \
+		blessed
+
+install-dev-local:
+	python3 setup.py install
+
+install-dev-remote: install-dev-dependencies
+	python3 -m pip install --index-url https://test.pypi.org/simple/ --no-deps cicadad==0.0.7
+
+build-base-local:
+	docker build -f dockerfiles/base-image.local.dockerfile -t cicadatesting/cicada-distributed-base-image:latest .
 
 build-base-dev:
-	docker build -f dockerfiles/base-image.dev.dockerfile -t cicadatesting/cicada-distributed-base-image:latest .
+	docker build -f dockerfiles/base-image.dev-a.dockerfile -t cicadatesting/cicada-distributed-base-image:pre-release .
+
+build-manager-local:
+	docker build -f dockerfiles/manager.local.dockerfile -t cicadatesting/cicada-distributed-manager:latest .
+
+build-manager-dev:
+	docker build -f dockerfiles/manager.dev-a.dockerfile -t cicadatesting/cicada-distributed-manager:pre-release .
 
 run-manager:
 	docker run \

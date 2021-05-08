@@ -580,6 +580,7 @@ def test_run_scenario(report_scenario_result_mock):
 
     def load_model(sc, c):
         sc.aggregated_results = 42
+        sc.stop_users = Mock()
 
     s.load_model = load_model
     s.output_transformer = None
@@ -614,6 +615,7 @@ def test_run_scenario_result_transformer(report_scenario_result_mock):
 
     def load_model(sc, c):
         sc.aggregated_results = 42
+        sc.stop_users = Mock()
 
     def double_result(ar):
         return ar * 2
@@ -652,6 +654,7 @@ def test_run_scenario_exception(report_scenario_result_mock):
     def load_model(sc, c):
         sc.aggregated_results = None
         sc.errors = ["some error"]
+        sc.stop_users = Mock()
 
     s.load_model = load_model
     s.output_transformer = None
@@ -711,7 +714,22 @@ def test_while_alive():
     assert uc.report_result.call_count == 2
 
 
-def test_n_iterations():
+def test_iterations_per_second_limited():
+    closure = scenario_module.iterations_per_second_limited(3)
+
+    uc = Mock()
+    ctx = {}
+
+    uc.is_up.side_effect = [True, True, True, True, False]
+    uc.run.return_value = 42, None, ""
+
+    closure(uc, ctx)
+
+    assert uc.report_result.call_count == 3
+
+
+@patch("cicadad.core.scenario.time")
+def test_n_iterations(time_mock):
     closure = scenario_module.n_iterations(3, 2)
 
     sc = Mock()
@@ -750,6 +768,62 @@ def test_n_seconds():
 
     assert sc.scale_users.call_count == 2
     assert sc.scale_users.mock_calls[0] == call(2)
+
+
+def test_n_users_ramping_add_users():
+    closure = scenario_module.n_users_ramping(6, 5)
+
+    class ScenarioCommandsMock:
+        def __init__(self):
+            self.num_users = 0
+            self.start_users_calls = 0
+
+        def start_users(self, n):
+            self.num_users += n
+            self.start_users_calls += 1
+
+        def scale_users(self, n):
+            self.num_users = n
+
+    sc = ScenarioCommandsMock()
+    ctx = {}
+
+    sc.get_latest_results = Mock()
+    sc.aggregate_results = Mock()
+    sc.verify_results = Mock()
+
+    closure(sc, ctx)
+
+    assert sc.num_users == 5
+    assert sc.start_users_calls == 5
+
+
+def test_n_users_ramping_stop_users():
+    closure = scenario_module.n_users_ramping(5, 6)
+
+    class ScenarioCommandsMock:
+        def __init__(self):
+            self.num_users = 10
+            self.stop_users_calls = 0
+
+        def stop_users(self, n):
+            self.num_users -= n
+            self.stop_users_calls += 1
+
+        def scale_users(self, n):
+            self.num_users = n
+
+    sc = ScenarioCommandsMock()
+    ctx = {}
+
+    sc.get_latest_results = Mock()
+    sc.aggregate_results = Mock()
+    sc.verify_results = Mock()
+
+    closure(sc, ctx)
+
+    assert sc.num_users == 6
+    assert sc.stop_users_calls == 4
 
 
 def test_load_stages():

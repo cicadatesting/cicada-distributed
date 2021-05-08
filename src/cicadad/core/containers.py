@@ -1,3 +1,4 @@
+import os
 from typing import Any, Dict, List, Optional
 import uuid
 import socket
@@ -294,7 +295,7 @@ def docker_container_up(client: docker.DockerClient, name: str, args: DockerServ
     return container
 
 
-def docker_container_down(client: docker.DockerClient, name: str):
+def docker_container_down_by_name(client: docker.DockerClient, name: str):
     """Stop and remove container if it is found
 
     Args:
@@ -303,23 +304,33 @@ def docker_container_down(client: docker.DockerClient, name: str):
     """
     container = get_docker_container(client, name)
 
+    docker_container_down(container)
+
+
+def docker_container_down(container: Any):
+    """Stop provided container
+
+    Args:
+        container (Any): Container to stop and remove
+    """
     # NOTE: should it check if running too?
     if container is not None:
         stop_docker_container(container)
         remove_docker_container(container)
 
 
-def clean_docker_containers(client: docker.DockerClient, labels: List[str]):
+def clean_docker_containers(client: docker.DockerClient, label: str):
     """Stop and remove containers given a list of labels
 
     Args:
         client (docker.DockerClient): Docker client
-        labels (List[str]): List of labels to match containers against
+        label (str): labels to match containers against
     """
-    containers = client.containers.list(filters={"label": labels})
+    containers = client.containers.list(filters={"label": label})
 
+    # FIXME: may need performance enhancement
     for container in containers:
-        docker_container_down(client, container)
+        docker_container_down(container)
 
 
 def docker_zookeeper_up(client: docker.DockerClient, network: str):
@@ -333,7 +344,7 @@ def docker_zookeeper_up(client: docker.DockerClient, network: str):
         Container: Zookeeper container
     """
     args = DockerServerArgs(
-        image="bitnami/zookeeper:latest",
+        image="bitnami/zookeeper:3",
         name="cicada-distributed-zookeeper",
         in_cluster=False,
         labels=["cicada-distributed-zookeeper"],
@@ -354,7 +365,7 @@ def docker_zookeeper_down(client: docker.DockerClient):
     Args:
         client (docker.DockerClient): Docker client
     """
-    docker_container_down(client, "cicada-distributed-zookeeper")
+    docker_container_down_by_name(client, "cicada-distributed-zookeeper")
 
 
 def docker_kafka_up(client: docker.DockerClient, network: str):
@@ -367,10 +378,10 @@ def docker_kafka_up(client: docker.DockerClient, network: str):
     Returns:
         Container: Kafka container
     """
+    # FEATURE: log docker pull
 
     args = DockerServerArgs(
-        # TODO: pin to specific version, include docker pull
-        image="bitnami/kafka:latest",
+        image="bitnami/kafka:2",
         name="cicada-distributed-kafka",
         in_cluster=False,
         labels=["cicada-distributed-kafka"],
@@ -400,7 +411,7 @@ def docker_kafka_down(client: docker.DockerClient):
     Args:
         client (docker.DockerClient): Docker client
     """
-    docker_container_down(client, "cicada-distributed-kafka")
+    docker_container_down_by_name(client, "cicada-distributed-kafka")
 
 
 def docker_manager_up(client: docker.DockerClient, network: str):
@@ -413,9 +424,14 @@ def docker_manager_up(client: docker.DockerClient, network: str):
     Returns:
         Container: Manager container
     """
+    if os.getenv("ENV") == "dev":
+        image = "cicadatesting/cicada-distributed-manager:pre-release"
+    else:
+        # TODO: Use latest for local, specific tag otherwise
+        image = "cicadatesting/cicada-distributed-manager:latest"
+
     args = DockerServerArgs(
-        # TODO: change to real docker image
-        image="cicada-distributed-manager",
+        image=image,
         name="cicada-distributed-manager",
         in_cluster=False,
         labels=["cicada-distributed-manager"],
@@ -435,4 +451,4 @@ def docker_manager_down(client: docker.DockerClient):
     Args:
         client (docker.DockerClient): Docker client
     """
-    docker_container_down(client, "cicada-distributed-manager")
+    docker_container_down_by_name(client, "cicada-distributed-manager")

@@ -1,0 +1,50 @@
+name: Pre-Release-Test
+on:
+  pull_request:
+    branches:
+      - pre-release
+    types:
+      - opened
+      - reopened
+      - edited
+      - synchronize
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Set up Python 3.6
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.6
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade build wheel
+          python3 -m pip install --user --upgrade twine
+          make install-dev-dependencies
+      - name: build-library
+        run: |
+          make package
+          make install-dev-local
+      - name: build-base-image
+        run: |
+          make build-base-dev
+      - name: build-manager
+        run: |
+          make build-manager-dev
+      - name: smoke-test
+        run: |
+          mkdir smoke-test
+          ENV=dev cicada-distributed --debug init ./smoke-test
+          cd smoke-test
+          ls
+          ENV=dev cicada-distributed --debug start-cluster
+          docker ps
+          ENV=dev cicada-distributed --debug run
+          ENV=dev cicada-distributed --debug stop-cluster
+          docker ps

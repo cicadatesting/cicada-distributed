@@ -33,9 +33,15 @@ def init(ctx, build_path):
     # Create dockerfile from template if not exists
     if not os.path.exists(os.path.join(build_path, "Dockerfile")):
 
-        dockerfile_path = os.path.join(
-            os.path.dirname(templates_module.__file__), "Dockerfile"
-        )
+        if os.getenv("ENV") == "dev":
+            dockerfile_path = os.path.join(
+                os.path.dirname(templates_module.__file__), "dev.dockerfile"
+            )
+        else:
+            # TODO: will need tagged base image for prod
+            dockerfile_path = os.path.join(
+                os.path.dirname(templates_module.__file__), "Dockerfile"
+            )
 
         # NOTE: Does not build subdirs to copy file
         shutil.copyfile(dockerfile_path, os.path.join(build_path, "Dockerfile"))
@@ -265,15 +271,26 @@ def run(ctx, image, build_path, dockerfile, network, tag, no_exit_unsuccessful):
                         + term.normal
                     )
     finally:
+        if ctx.obj["DEBUG"]:
+            click.echo("Cleaning Test Runners")
+
         containers.stop_docker_container_by_name(docker_client, test_container.id)
-        containers.clean_docker_containers(
-            docker_client,
-            [
-                "cicada-distributed-test",
-                "cicada-distributed-scenario",
-                "cicada-distributed-user",
-            ],
-        )
+        containers.clean_docker_containers(docker_client, "cicada-distributed-test")
+
+        if ctx.obj["DEBUG"]:
+            click.echo("Cleaned Test Runners")
+            click.echo("Cleaning Scenarios")
+
+        containers.clean_docker_containers(docker_client, "cicada-distributed-scenario")
+
+        if ctx.obj["DEBUG"]:
+            click.echo("Cleaned Scenarios")
+            click.echo("Cleaning Users")
+
+        containers.clean_docker_containers(docker_client, "cicada-distributed-user")
+
+        if ctx.obj["DEBUG"]:
+            click.echo("Cleaned Users")
 
     # FEATURE: report results in static site
     click.echo(
