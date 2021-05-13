@@ -15,21 +15,18 @@ install-local:
 	python3 -m pip install -e .
 
 install-dev-dependencies:
-	pip install docker \
-		click \
-		pydantic \
-		kafka-python \
-		grpcio \
-		protobuf \
-		dask \
-		distributed \
-		blessed
+	pip install -r requirements.txt
 
+# NOTE: may need to use sudo
 install-dev-local:
 	python3 setup.py install
 
 install-dev-remote: install-dev-dependencies
 	python3 -m pip install --index-url https://test.pypi.org/simple/ --no-deps cicadad==0.1.1
+
+# NOTE: may need to use sudo
+uninstall:
+	python3 -m pip uninstall cicadad
 
 build-base-local:
 	docker build -f dockerfiles/base-image.local.dockerfile -t ${BASE_IMAGE_NAME}:latest .

@@ -42,7 +42,6 @@ def init(ctx, build_path):
                 os.path.dirname(templates_module.__file__), "dev.dockerfile"
             )
         else:
-            # TODO: will need tagged base image for prod
             dockerfile_path = os.path.join(
                 os.path.dirname(templates_module.__file__), "Dockerfile"
             )
