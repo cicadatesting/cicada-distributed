@@ -1,6 +1,0 @@
-fastapi
-uvicorn[standard]
-psycopg2
-sqlalchemy
-pymysql
-starlette-prometheus
