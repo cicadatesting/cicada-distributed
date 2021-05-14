@@ -7,4 +7,4 @@ COPY requirements.txt .
 RUN pip install -r requirements.txt
 
 # RUN python3 -c "import cicadad; print(cicadad.__file__)"
-RUN python3 -m pip install --index-url https://test.pypi.org/simple/ --no-deps cicadad==0.1.1
+RUN python3 -m pip install --index-url https://test.pypi.org/simple/ --no-deps cicadad==1.0.0
