@@ -881,6 +881,7 @@ def n_seconds(
         start_time = datetime.now()
 
         while datetime.now() < start_time + timedelta(seconds=seconds):
+            # FIXME: ensure remaining results are collected
             latest_results = scenario_commands.get_latest_results(
                 max_results=max_results_per_period
             )

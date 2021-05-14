@@ -1,0 +1,9 @@
+docker
+click
+pydantic
+kafka-python
+grpcio
+protobuf
+dask
+distributed
+blessed

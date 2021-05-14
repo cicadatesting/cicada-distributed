@@ -15,21 +15,18 @@ install-local:
 	python3 -m pip install -e .
 
 install-dev-dependencies:
-	pip install docker \
-		click \
-		pydantic \
-		kafka-python \
-		grpcio \
-		protobuf \
-		dask \
-		distributed \
-		blessed
+	pip install -r requirements.txt
 
+# NOTE: may need to use sudo
 install-dev-local:
 	python3 setup.py install
 
 install-dev-remote: install-dev-dependencies
-	python3 -m pip install --index-url https://test.pypi.org/simple/ --no-deps cicadad==0.1.1
+	python3 -m pip install --index-url https://test.pypi.org/simple/ --no-deps cicadad==1.0.0
+
+# NOTE: may need to use sudo
+uninstall:
+	python3 -m pip uninstall cicadad
 
 build-base-local:
 	docker build -f dockerfiles/base-image.local.dockerfile -t ${BASE_IMAGE_NAME}:latest .
@@ -38,7 +35,7 @@ build-base-dev:
 	docker build -f dockerfiles/base-image.dev-a.dockerfile -t ${BASE_IMAGE_NAME}:pre-release .
 
 build-base:
-	docker build -f dockerfiles/base-image.dockerfile -t ${BASE_IMAGE_NAME}:0.1.1 .
+	docker build -f dockerfiles/base-image.dockerfile -t ${BASE_IMAGE_NAME}:1.0.0 .
 
 build-manager-local:
 	docker build -f dockerfiles/manager.local.dockerfile -t ${MANAGER_IMAGE_NAME}:latest .
@@ -47,7 +44,7 @@ build-manager-dev:
 	docker build -f dockerfiles/manager.dev-a.dockerfile -t ${MANAGER_IMAGE_NAME}:pre-release .
 
 build-manager:
-	docker build -f dockerfiles/manager.dockerfile -t ${MANAGER_IMAGE_NAME}:0.1.1 .
+	docker build -f dockerfiles/manager.dockerfile -t ${MANAGER_IMAGE_NAME}:1.0.0 .
 
 clean:
 	rm -r dist

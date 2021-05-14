@@ -1,12 +1,11 @@
 FROM python:3.6.13-slim-buster
 
+WORKDIR /cicada-distributed
+
+COPY requirements.txt .
+
+RUN pip install -r requirements.txt
 RUN pip install --user --upgrade setuptools wheel
-RUN pip install docker \
-    click \
-    pydantic \
-    kafka-python \
-    grpcio \
-    protobuf
 
 COPY dist dist
 COPY build build

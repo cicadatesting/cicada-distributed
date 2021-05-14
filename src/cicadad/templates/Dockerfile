@@ -1,4 +1,4 @@
-FROM cicadatesting/cicada-distributed-base-image:0.1.1
+FROM cicadatesting/cicada-distributed-base-image:1.0.0
 
 COPY . .
 
