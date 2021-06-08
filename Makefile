@@ -55,6 +55,7 @@ clean-containers:
 	docker container stop $(shell docker ps -q --filter "label=cicada-distributed") \
 	&& docker container rm $(shell docker ps -q --filter "label=cicada-distributed")
 
+# NOTE: requires `pip install grpcio-tools`
 proto-compile:
 	cd src && python3 -m grpc_tools.protoc -I . \
 		--python_out=. \

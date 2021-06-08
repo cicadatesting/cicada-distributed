@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+package datastore;
+option go_package = "github.com/cicadatesting/datastore-client/api";
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/wrappers.proto";
+
+service Datastore {
+    rpc AddUserResult (AddUserResultRequest) returns (google.protobuf.Empty);
+    rpc SetScenarioResult (SetScenarioResultRequest) returns (google.protobuf.Empty);
+    rpc MoveUserResults (MoveUserResultsRequest) returns (MoveUserResultsResponse);
+    rpc MoveScenarioResult (MoveScenarioResultRequest) returns (MoveScenarioResultResponse);
+    rpc DistributeWork (DistributeWorkRequest) returns (google.protobuf.Empty);
+    rpc GetUserWork (GetUserWorkRequest) returns (GetUserWorkResponse);
+}
+
+message AddUserResultRequest {
+    string userID = 1;
+    bytes result = 2;
+}
+
+message SetScenarioResultRequest {
+    string scenarioID = 1;
+    google.protobuf.StringValue output = 2;
+    google.protobuf.StringValue exception = 3;
+    string logs = 4;
+    double timeTaken = 5;
+}
+
+message MoveUserResultsRequest {
+    repeated string userIDs = 1;
+}
+
+message MoveUserResultsResponse {
+    repeated bytes results = 1;
+}
+
+message MoveScenarioResultRequest {
+    string scenarioID = 1;
+}
+
+message MoveScenarioResultResponse {
+    string id = 1;
+    google.protobuf.StringValue output = 2;
+    google.protobuf.StringValue exception = 3;
+    string logs = 4;
+    string timestamp = 5;
+    double timeTaken = 6;
+}
+
+message DistributeWorkRequest {
+    int32 work = 1;
+    repeated string userIDs = 2;
+}
+
+message GetUserWorkRequest {
+    string userID = 1;
+}
+
+message GetUserWorkResponse {
+    int32 work = 1;
+}

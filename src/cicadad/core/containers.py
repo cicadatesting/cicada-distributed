@@ -8,6 +8,7 @@ from docker.errors import APIError, NotFound  # type: ignore
 import docker  # type: ignore
 
 from cicadad.util.constants import DEFAULT_DOCKER_NETWORK
+from cicadad import configs as configs_module
 
 
 class Volume(BaseModel):
@@ -17,7 +18,7 @@ class Volume(BaseModel):
 
 class DockerServerArgs(BaseModel):
     docker_client_args: dict = {}
-    image: Optional[str]
+    image: str
     name: Optional[str]
     command: Optional[str]
     in_cluster: bool = True
@@ -98,6 +99,21 @@ def configure_docker_network(
             raise ValueError(f"Docker network {network} not configured")
 
 
+def pull_docker_image(client: docker.DockerClient, image: str):
+    """Pulls image from remote
+
+    Args:
+        client (docker.DockerClient): Docker client
+        image (str): image to pull (ex: redis:6)
+    """
+    parts = image.split(":")
+
+    repository = parts[0]
+    tag = parts[1] if len(parts) > 1 else "latest"
+
+    client.images.pull(repository, tag)
+
+
 def create_docker_container(
     client: docker.DockerClient,
     args: DockerServerArgs,
@@ -144,7 +160,7 @@ def create_docker_container(
         port_map = {}
 
     try:
-        # Start container (will pull image if necessary)
+        # Start container
         # LOGGER.debug("Starting Docker container with image %s", image)
         return client.containers.run(
             args.image,
@@ -343,8 +359,10 @@ def docker_zookeeper_up(client: docker.DockerClient, network: str):
     Returns:
         Container: Zookeeper container
     """
+    image = "bitnami/zookeeper:3"
+
     args = DockerServerArgs(
-        image="bitnami/zookeeper:3",
+        image=image,
         name="cicada-distributed-zookeeper",
         in_cluster=False,
         labels=["cicada-distributed-zookeeper"],
@@ -356,6 +374,7 @@ def docker_zookeeper_up(client: docker.DockerClient, network: str):
         # create_network: bool=True
     )
 
+    pull_docker_image(client, image)
     return docker_container_up(client, "cicada-distributed-zookeeper", args)
 
 
@@ -378,10 +397,10 @@ def docker_kafka_up(client: docker.DockerClient, network: str):
     Returns:
         Container: Kafka container
     """
-    # FEATURE: log docker pull
+    image = "bitnami/kafka:2"
 
     args = DockerServerArgs(
-        image="bitnami/kafka:2",
+        image=image,
         name="cicada-distributed-kafka",
         in_cluster=False,
         labels=["cicada-distributed-kafka"],
@@ -402,6 +421,7 @@ def docker_kafka_up(client: docker.DockerClient, network: str):
         # create_network: bool=True
     )
 
+    pull_docker_image(client, image)
     return docker_container_up(client, "cicada-distributed-kafka", args)
 
 
@@ -412,6 +432,87 @@ def docker_kafka_down(client: docker.DockerClient):
         client (docker.DockerClient): Docker client
     """
     docker_container_down_by_name(client, "cicada-distributed-kafka")
+
+
+def docker_redis_up(client: docker.DockerClient, network: str):
+    """Start Redis container
+
+    Args:
+        client (docker.DockerClient): Docker client
+        network (str): Network to add Redis container to
+
+    Returns:
+        Redis container: Created redis container
+    """
+    image = "redis:6"
+
+    args = DockerServerArgs(
+        image=image,
+        name="cicada-distributed-redis",
+        in_cluster=False,
+        labels=["cicada-distributed-redis"],
+        volumes=[
+            Volume(
+                source=os.path.dirname(configs_module.__file__),
+                destination="/usr/local/etc/redis",
+            )
+        ],
+        host_port=6379,
+        container_port=6379,
+        network=network,
+    )
+
+    pull_docker_image(client, image)
+    return docker_container_up(client, "cicada-distributed-redis", args)
+
+
+def docker_redis_down(client: docker.DockerClient):
+    """Stop redis container
+
+    Args:
+        client (docker.DockerClient): Docker client
+    """
+    docker_container_down_by_name(client, "cicada-distributed-redis")
+
+
+def docker_datastore_client_up(client: docker.DockerClient, network: str):
+    """Start Datastore CLient container
+
+    Args:
+        client (docker.DockerClient): Docker client
+        network (str): Network to add Datastore CLient container to
+
+    Returns:
+        Datastore client container: Created datastore client container
+    """
+    if os.getenv("ENV") == "local":
+        image = "cicadatesting/cicada-distributed-datastore-client:latest"
+    elif os.getenv("ENV") == "dev":
+        image = "cicadatesting/cicada-distributed-datastore-client:pre-release"
+    else:
+        image = "cicadatesting/cicada-distributed-datastore-client:1.0.0"
+        pull_docker_image(client, image)
+
+    args = DockerServerArgs(
+        image=image,
+        name="cicada-distributed-datastore-client",
+        in_cluster=False,
+        labels=["cicada-distributed-datastore-client"],
+        host_port=50052,
+        container_port=50052,
+        network=network,
+    )
+
+    return docker_container_up(client, "cicada-distributed-datastore-client", args)
+
+
+def docker_datastore_client_down(client: docker.DockerClient):
+    """Stop datastore client container
+
+    Args:
+        client (docker.DockerClient): Docker client
+    """
+    docker_container_down_by_name(client, "cicada-distributed-datastore-client")
 
 
 def docker_manager_up(client: docker.DockerClient, network: str):
@@ -430,6 +531,7 @@ def docker_manager_up(client: docker.DockerClient, network: str):
         image = "cicadatesting/cicada-distributed-manager:pre-release"
     else:
         image = "cicadatesting/cicada-distributed-manager:1.0.0"
+        pull_docker_image(client, image)
 
     args = DockerServerArgs(
         image=image,

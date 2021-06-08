@@ -86,6 +86,16 @@ def start_cluster(ctx, network, create_network):
     if ctx.obj["DEBUG"]:
         click.echo(f"Created Kafka: {kafka_container.id}")
 
+    redis_container = containers.docker_redis_up(docker_client, network)
+
+    if ctx.obj["DEBUG"]:
+        click.echo(f"Created Redis: {redis_container.id}")
+
+    datastore_client = containers.docker_datastore_client_up(docker_client, network)
+
+    if ctx.obj["DEBUG"]:
+        click.echo(f"Created Datastore Client: {datastore_client.id}")
+
     manager_container = containers.docker_manager_up(docker_client, network)
 
     if ctx.obj["DEBUG"]:
@@ -101,6 +111,16 @@ def stop_cluster(ctx):
 
     if ctx.obj["DEBUG"]:
         click.echo("Stopped Manager")
+
+    containers.docker_datastore_client_down(docker_client)
+
+    if ctx.obj["DEBUG"]:
+        click.echo("Stopped Datastore Client")
+
+    containers.docker_redis_down(docker_client)
+
+    if ctx.obj["DEBUG"]:
+        click.echo("Stopped Redis")
 
     containers.docker_kafka_down(docker_client)
 

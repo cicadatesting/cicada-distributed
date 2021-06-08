@@ -8,6 +8,7 @@ import grpc  # type: ignore
 from cicadad.services.eventing import get_event_consumer, get_event_producer
 from cicadad.core.scenario import Scenario, scenario_runner, user_runner
 from cicadad.util.constants import (
+    DEFAULT_DATASTORE_ADDRESS,
     DEFAULT_CONTEXT_STRING,
     DEFAULT_EVENT_ADDRESS,
     DEFAULT_DOCKER_NETWORK,
@@ -40,6 +41,7 @@ class Engine:
         image: str,
         network: str,
         event_broker_address: str,
+        datastore_address: str,
     ):
         """Startup function when test container is created. Starts hub server.
 
@@ -48,14 +50,7 @@ class Engine:
             network (str): Network to start scenarios in
             event_broker_address (str): Address of event broker to connect to scenarios
         """
-        test_id = str(uuid.uuid4())[:8]
-
         event_producer = get_event_producer(event_broker_address)
-        result_consumer = get_event_consumer(
-            f"{test_id}-results",
-            event_broker_address,
-            "latest",
-        )
 
         server = grpc.server(futures.ThreadPoolExecutor())
 
@@ -64,14 +59,14 @@ class Engine:
                 scenarios=self.scenarios.values(),
                 image=image,
                 network=network,
-                test_id=test_id,
                 event_producer=event_producer,
-                result_consumer=result_consumer,
+                datastore_address=datastore_address,
                 event_broker_address=event_broker_address,
             ),
             server,
         )
 
+        # TODO: supply port
         server.add_insecure_port("[::]:50051")
         server.start()
         server.wait_for_termination()
@@ -79,10 +74,11 @@ class Engine:
     def run_scenario(
         self,
         scenario_name: str,
+        scenario_id: str,
         image: str,
         network: str,
-        test_id: str,
         event_broker_address: str,
+        datastore_address: str,
         encoded_context: str,
     ):
         """Startup function when scenario is started. Begins running scenario's
@@ -94,11 +90,10 @@ class Engine:
             network (str): Network to start users in
             test_id (str): ID of test run
             event_broker_address (str): Address of event broker to connect to test container and users
+            datastore_address (str): Address of datastore client to test container and users
             encoded_context (str): Context from test containing previous results
         """
         scenario = self.scenarios[scenario_name]
-        scenario_id = str(uuid.uuid4())[:8]
-
         event_producer = get_event_producer(event_broker_address)
         result_consumer = get_event_consumer(
             f"{scenario_name}-{scenario_id}-results",
@@ -114,10 +109,9 @@ class Engine:
                 image,
                 network,
                 scenario_id,
-                test_id,
                 event_producer,
                 result_consumer,
-                event_broker_address,
+                datastore_address,
                 context,
             )
         finally:
@@ -130,10 +124,8 @@ class Engine:
     def run_user(
         self,
         scenario_name: str,
-        group_id: str,
         user_id: str,
-        scenario_id: str,
-        event_broker_address: str,
+        datastore_address: str,
         encoded_context: str,
     ):
         """Startup function when user is started. Runs scenario user loop.
@@ -147,26 +139,14 @@ class Engine:
             encoded_context (str): Context from test containing previous results
         """
         scenario = self.scenarios[scenario_name]
-        work_consumer = get_event_consumer(f"work-{group_id}", event_broker_address)
-        event_producer = get_event_producer(event_broker_address)
-
         context = decode_context(encoded_context)
 
-        try:
-            user_runner(
-                scenario,
-                user_id,
-                scenario_id,
-                work_consumer,
-                event_producer,
-                context,
-            )
-        finally:
-            # NOTE: do we need to commit here?
-            work_consumer.close()
-
-            event_producer.flush()
-            event_producer.close()
+        user_runner(
+            scenario,
+            user_id,
+            datastore_address,
+            context,
+        )
 
 
 @click.group()
@@ -177,44 +157,29 @@ def engine_cli(ctx):
 
 @engine_cli.command()
 @click.pass_context
-@click.option("--name", type=str, required=True)
-@click.option("--group-id", type=str, required=True)
-@click.option("--user-id", type=str, required=True)
-@click.option("--scenario-id", type=str, required=True)
+@click.option("--image", type=str, required=True)
+@click.option("--network", type=str, default=DEFAULT_DOCKER_NETWORK)
 @click.option("--event-broker-address", type=str, default=DEFAULT_EVENT_ADDRESS)
-@click.option(
-    "--encoded-context",
-    type=str,
-    default=DEFAULT_CONTEXT_STRING,
-)
-def run_user(
-    ctx,
-    name,
-    group_id,
-    user_id,
-    scenario_id,
-    event_broker_address,
-    encoded_context,
-):
+@click.option("--datastore-address", type=str, default=DEFAULT_DATASTORE_ADDRESS)
+def run_test(ctx, image, network, event_broker_address, datastore_address):
     engine: Engine = ctx.obj
 
-    engine.run_user(
-        name,
-        group_id,
-        user_id,
-        scenario_id,
+    engine.run_test(
+        image,
+        network,
         event_broker_address,
-        encoded_context,
+        datastore_address,
     )
 
 
 @engine_cli.command()
 @click.pass_context
 @click.option("--name", type=str, required=True)
+@click.option("--scenario-id", type=str, required=True)
 @click.option("--image", type=str, required=True)
 @click.option("--network", type=str, default=DEFAULT_DOCKER_NETWORK)
-@click.option("--test-id", type=str, required=True)
 @click.option("--event-broker-address", type=str, default=DEFAULT_EVENT_ADDRESS)
+@click.option("--datastore-address", type=str, default=DEFAULT_DATASTORE_ADDRESS)
 @click.option(
     "--encoded-context",
     type=str,
@@ -223,34 +188,48 @@ def run_user(
 def run_scenario(
     ctx,
     name,
+    scenario_id,
     image,
     network,
-    test_id,
     event_broker_address,
+    datastore_address,
     encoded_context,
 ):
     engine: Engine = ctx.obj
 
     engine.run_scenario(
         name,
+        scenario_id,
         image,
         network,
-        test_id,
         event_broker_address,
+        datastore_address,
         encoded_context,
     )
 
 
 @engine_cli.command()
 @click.pass_context
-@click.option("--image", type=str, required=True)
-@click.option("--network", type=str, default=DEFAULT_DOCKER_NETWORK)
-@click.option("--event-broker-address", type=str, default=DEFAULT_EVENT_ADDRESS)
-def run_test(ctx, image, network, event_broker_address):
+@click.option("--name", type=str, required=True)
+@click.option("--user-id", type=str, required=True)
+@click.option("--datastore-address", type=str, default=DEFAULT_DATASTORE_ADDRESS)
+@click.option(
+    "--encoded-context",
+    type=str,
+    default=DEFAULT_CONTEXT_STRING,
+)
+def run_user(
+    ctx,
+    name,
+    user_id,
+    datastore_address,
+    encoded_context,
+):
     engine: Engine = ctx.obj
 
-    engine.run_test(
-        image,
-        network,
-        event_broker_address,
+    engine.run_user(
+        name,
+        user_id,
+        datastore_address,
+        encoded_context,
     )

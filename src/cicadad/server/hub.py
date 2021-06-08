@@ -1,7 +1,7 @@
 from typing import Iterable
 
 from cicadad.core.scenario import Scenario, filter_scenarios_by_tag, test_runner
-from cicadad.services.eventing import KafkaProducer, KafkaConsumer
+from cicadad.services.eventing import KafkaProducer
 from cicadad.protos import hub_pb2, hub_pb2_grpc
 
 
@@ -11,17 +11,15 @@ class HubServer(hub_pb2_grpc.HubServicer):
         scenarios: Iterable[Scenario],
         image: str,
         network: str,
-        test_id: str,
         event_producer: KafkaProducer,
-        result_consumer: KafkaConsumer,
+        datastore_address: str,
         event_broker_address: str,
     ) -> None:
         self.scenarios = scenarios
         self.image = image
         self.network = network
-        self.test_id = test_id
         self.event_producer = event_producer
-        self.result_consumer = result_consumer
+        self.datastore_address = datastore_address
         self.event_broker_address = event_broker_address
 
     def Run(self, request, context):
@@ -36,9 +34,8 @@ class HubServer(hub_pb2_grpc.HubServicer):
             valid_scenarios,
             self.image,
             self.network,
-            self.test_id,
             self.event_producer,
-            self.result_consumer,
+            self.datastore_address,
             self.event_broker_address,
         ):
             yield hub_pb2.TestStatus(
