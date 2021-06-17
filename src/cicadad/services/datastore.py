@@ -105,7 +105,6 @@ def move_scenario_result(
 def distribute_work(
     work: int, user_ids: List[str], address: str = DEFAULT_DATASTORE_ADDRESS
 ):
-    # TODO: address configurable
     with grpc.insecure_channel(address) as channel:
         stub = datastore_pb2_grpc.DatastoreStub(channel)
         request = datastore_pb2.DistributeWorkRequest(work=work, userIDs=user_ids)

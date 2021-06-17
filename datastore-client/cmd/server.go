@@ -32,12 +32,6 @@ func (s *Server) SetScenarioResult(ctx context.Context, in *api.SetScenarioResul
 	var output *string
 	var exception *string
 
-	fmt.Println("starting output:", output)
-	fmt.Println("starting exception:", exception)
-
-	fmt.Println("output:", in.GetOutput())
-	fmt.Println("exception:", in.GetException())
-
 	if in.GetOutput() != nil {
 		output = &in.GetOutput().Value
 	}
@@ -45,9 +39,6 @@ func (s *Server) SetScenarioResult(ctx context.Context, in *api.SetScenarioResul
 	if in.GetException() != nil {
 		exception = &in.GetException().Value
 	}
-
-	fmt.Println("final output:", output)
-	fmt.Println("final exception:", exception)
 
 	err := s.datastore.SetScenarioResult(
 		context.Background(),
@@ -90,8 +81,6 @@ func (s *Server) MoveScenarioResult(ctx context.Context, in *api.MoveScenarioRes
 		return nil, err
 	}
 
-	fmt.Println("result:", result)
-
 	response := api.MoveScenarioResultResponse{
 		Id:        result.ID,
 		Output:    wrapperspb.String(*result.Output),
@@ -117,12 +106,6 @@ func (s *Server) GetUserWork(ctx context.Context, in *api.GetUserWorkRequest) (*
 }
 
 func NewServer(redisClient *redis.Client) *Server {
-	// redis.NewClient(&redis.Options{
-	// 	Addr:     "localhost:6379",
-	// 	Password: "", // no password set
-	// 	DB:       0,  // use default DB
-	// })
-
 	datastore := pkg.Datastore{Rds: redisClient}
 
 	return &Server{datastore: &datastore}

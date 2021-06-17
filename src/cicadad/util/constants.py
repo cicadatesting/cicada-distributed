@@ -17,4 +17,6 @@ DEFAULT_CONTEXT_STRING = base64.b64encode(json.dumps({}).encode("ascii")).decode
 LOG_FORMAT = "%(asctime)s | %(levelname)-8s | %(name)s:%(funcName)s -- %(message)s"
 DATE_FORMAT = "%m-%d %H:%M"
 
-DEFAULT_DATASTORE_ADDRESS = "cicada-distributed-datastore-client:50052"
+DEFAULT_DATASTORE_ADDRESS = "cicada-distributed-datastore-client:8283"
+
+DEFAULT_CONTAINER_SERVICE_ADDRESS = "cicada-distributed-container-service:8284"

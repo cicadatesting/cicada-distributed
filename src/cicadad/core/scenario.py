@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 
 from cicadad.util.context import encode_context
 from cicadad.core import containers
-from cicadad.services import eventing, datastore
+from cicadad.services import datastore, container_service
 from cicadad.util import printing
 
 
@@ -21,7 +21,7 @@ class UserCommands(object):
         user_id: str,
         datastore_address: str,
     ):
-        """Commands available to user functions
+        """Commands available to user functions.
 
         Args:
             scenario (Scenario): Scenario being run
@@ -120,9 +120,8 @@ class ScenarioCommands(object):
         image: str,
         network: str,
         scenario_id: str,
-        event_producer: eventing.KafkaProducer,
-        result_consumer: eventing.KafkaConsumer,
         datastore_address: str,
+        container_service_address: str,
         context: dict,
     ):
         """Commands available to a scenario
@@ -132,17 +131,15 @@ class ScenarioCommands(object):
             image (str): Docker image for scenario
             network (str): Docker network for scenario
             scenario_id (str): ID of scenario run
-            event_producer (eventing.KafkaProducer): Event client to send events to users and to test runner
-            result_consumer (eventing.KafkaConsumer): Event client to receive results from users
             datastore_address (str): Address of datastore to pass to users
+            container_service (str): Address of container service to start and stop users
             context (dict): Context data to pass to users
         """
         self.scenario = scenario
         self.image = image
         self.network = network
-        self.event_producer = event_producer
-        self.result_consumer = result_consumer
         self.datastore_address = datastore_address
+        self.container_service_address = container_service_address
         self.context = context
 
         self.scenario_id = scenario_id
@@ -185,14 +182,17 @@ class ScenarioCommands(object):
             args = containers.DockerServerArgs(
                 image=self.image,
                 name=user_id,
-                command=f"""
-                run-user
-                    --name {self.scenario.name}
-                    --user-id {user_id}
-                    --datastore-address {self.datastore_address}
-                    --encoded-context {encoded_context}
-                """,
-                # in_cluster: bool=True
+                command=[
+                    "run-user",
+                    "--name",
+                    self.scenario.name,
+                    "--user-id",
+                    user_id,
+                    "--datastore-address",
+                    self.datastore_address,
+                    "--encoded-context",
+                    encoded_context,
+                ],
                 labels=["cicada-distributed-user", self.scenario.name],
                 # env: Dict[str, str]={}
                 # volumes: Optional[List[Volume]]
@@ -203,7 +203,7 @@ class ScenarioCommands(object):
             )
 
             self.user_ids.add(user_id)
-            eventing.start_container(self.event_producer, user_id, args)
+            container_service.start_container(args, self.container_service_address)
 
         self.num_users += n
 
@@ -234,7 +234,7 @@ class ScenarioCommands(object):
             if remaining < 1:
                 break
 
-            eventing.stop_user(self.event_producer, user_id)
+            container_service.stop_container(user_id, self.container_service_address)
             self.user_ids.remove(user_id)
             self.num_users -= 1
             remaining -= 1
@@ -352,9 +352,8 @@ def test_runner(
     scenarios: List["Scenario"],
     image: str,
     network: str,
-    event_producer: eventing.KafkaProducer,
     datastore_address: str,
-    event_broker_address: str,
+    container_service_address: str,
 ):
     started: Dict[str, str] = {}
     results: Dict[str, dict] = {}
@@ -370,17 +369,23 @@ def test_runner(
             args = containers.DockerServerArgs(
                 image=image,
                 name=container_id,
-                command=f"""
-                run-scenario
-                    --name {scenario.name}
-                    --scenario-id {scenario_id}
-                    --image {image}
-                    --network {network}
-                    --encoded-context {encoded_context}
-                    --event-broker-address {event_broker_address}
-                    --datastore-address {datastore_address}
-                """,
-                # in_cluster: bool=True
+                command=[
+                    "run-scenario",
+                    "--name",
+                    scenario.name,
+                    "--scenario-id",
+                    scenario_id,
+                    "--image",
+                    image,
+                    "--network",
+                    network,
+                    "--encoded-context",
+                    encoded_context,
+                    "--datastore-address",
+                    datastore_address,
+                    "--container-service-address",
+                    container_service_address,
+                ],
                 labels=["cicada-distributed-scenario", scenario.name],
                 # env: Dict[str, str]={}
                 # volumes: Optional[List[Volume]]
@@ -390,7 +395,7 @@ def test_runner(
                 # create_network: bool=True
             )
 
-            eventing.start_container(event_producer, container_id, args)
+            container_service.start_container(args, container_service_address)
             started[scenario.name] = scenario_id
 
             yield TestStatus(
@@ -434,17 +439,23 @@ def test_runner(
                 args = containers.DockerServerArgs(
                     image=image,
                     name=container_id,
-                    command=f"""
-                    run-scenario
-                        --name {scenario.name}
-                        --scenario-id {scenario_id}
-                        --image {image}
-                        --network {network}
-                        --encoded-context {encoded_context}
-                        --event-broker-address {event_broker_address}
-                        --datastore-address {datastore_address}
-                    """,
-                    # in_cluster: bool=True
+                    command=[
+                        "run-scenario",
+                        "--name",
+                        scenario.name,
+                        "--scenario-id",
+                        scenario_id,
+                        "--image",
+                        image,
+                        "--network",
+                        network,
+                        "--encoded-context",
+                        encoded_context,
+                        "--datastore-address",
+                        datastore_address,
+                        "--container-service-address",
+                        container_service_address,
+                    ],
                     labels=["cicada-distributed-scenario", scenario.name],
                     # env: Dict[str, str]={}
                     # volumes: Optional[List[Volume]]
@@ -454,7 +465,7 @@ def test_runner(
                     # create_network: bool=True
                 )
 
-                eventing.start_container(event_producer, container_id, args)
+                container_service.start_container(args, container_service_address)
                 started[scenario.name] = scenario_id
 
                 yield TestStatus(
@@ -492,9 +503,8 @@ def scenario_runner(
     image: str,
     network: str,
     scenario_id: str,
-    event_producer: eventing.KafkaProducer,
-    result_consumer: eventing.KafkaConsumer,
     datastore_address: str,
+    container_service_address: str,
     context: dict,
 ):
     """Set up scenario environment and run scenario. Capture output and exceptions
@@ -504,10 +514,8 @@ def scenario_runner(
         image (str): Image for scenario
         network (str): Network to run scenario containers in
         scenario_id (str): ID generated for scenario run
-        test_id (str): ID generated for test run
-        event_producer (eventing.KafkaProducer): Client to produce result event
-        result_consumer (eventing.KafkaConsumer): Client to receive results from users
         datastore_address (str): Address of datastore passed to users
+        container_service (str): Address of container service to start and stop users
         context (dict): Test context to pass to users
     """
     scenario_commands = ScenarioCommands(
@@ -515,9 +523,8 @@ def scenario_runner(
         image,
         network,
         scenario_id,
-        event_producer,
-        result_consumer,
         datastore_address,
+        container_service_address,
         context,
     )
 
@@ -580,9 +587,7 @@ def user_runner(
     Args:
         scenario (Scenario): Scenario being run
         user_id (str): ID generated for user
-        scenario_id (str): ID generated for scenario
-        work_consumer (eventing.KafkaConsumer): Client to receive work events
-        event_producer (eventing.KafkaProducer): Client to send results back to scenario
+        datastore_address (str): Address of datastore client to save results
         context (dict): Test context containing previous scenario results
     """
     user_commands = UserCommands(
@@ -641,7 +646,7 @@ def while_alive():
 
 
 def iterations_per_second_limited(limit: int):
-    """Allows a user to run a limited number of iterations per second
+    """Allows a user to run a limited number of iterations per second.
 
     Args:
         limit (int): Max iterations per second for user
@@ -685,7 +690,7 @@ def n_iterations(
     timeout: Optional[int] = 15,
     skip_scaledown: bool = False,
 ):
-    """Creates a load model where a pool of users is called n times
+    """Create a load model where a pool of users is called n times.
 
     Args:
         iterations (int): Number of shared iterations for users to run
@@ -731,7 +736,7 @@ def n_iterations(
 
 
 def run_scenario_once(wait_period: int = 1, timeout: Optional[int] = 15):
-    """Runs scenario one time with one user
+    """Run scenario one time with one user.
 
     Args:
         wait_period (int, optional): Time in seconds to wait before polling for results. Defaults to 1.
@@ -751,7 +756,7 @@ def n_seconds(
     skip_scaledown=False,
 ):
     """Run the scenario for a specified duration. Should be used with the
-    'while_alive' user loop
+    'while_alive' user loop.
 
     Args:
         seconds (int): Number of seconds to run scenario
@@ -793,8 +798,9 @@ def n_users_ramping(
     max_results_per_period: int = 1000,
     skip_scaledown: bool = True,
 ):
-    """Scale users to target over the duration of the time specified. Use this
-    to scale users smoothly.
+    """Scale users to target over the duration of the time specified.
+
+    Use this to scale users smoothly.
 
     Args:
         seconds (int): Amount of time to spend ramping users
@@ -861,8 +867,9 @@ def ramp_users_to_threshold(
     skip_scaledown: bool = False,
 ):
     """Increase number of users in scenario until a threshold based on the
-    aggregated results is reached. Update aggregate with number of users determined
-    by scenario.
+    aggregated results is reached.
+
+    Update aggregate with number of users determined by scenario.
 
     Args:
         initial_users (int): Users to start stage with.
@@ -914,7 +921,8 @@ def ramp_users_to_threshold(
 
 
 def basic_verification(latest_results: List[datastore.Result]):
-    """Creates error strings for each errored result
+    """Create error strings for each errored result.
+
     Format:
     * {type}: {error}
 

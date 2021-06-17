@@ -1,77 +1,54 @@
-from collections import OrderedDict
+from datetime import datetime
 from unittest.mock import Mock, patch, call
 from pytest import raises
-import hashlib
 
 from cicadad.core import scenario as scenario_module
-from cicadad.services import datastore, eventing
+from cicadad.services import datastore
 
 
-@patch("cicadad.services.eventing.get_work")
+@patch("cicadad.services.datastore.get_work")
 def test_has_work(get_work_mock):
     user_id = "abc"
-    scenario_id = "def"
+    address = "some address"
     s = Mock()
-    c = Mock()
-    p = Mock()
-    get_work_mock.return_value = eventing.NewWork(amount=1, ids=set("1"))
+    get_work_mock.return_value = 1
 
-    uc = scenario_module.UserCommands(s, user_id, scenario_id, c, p)
+    uc = scenario_module.UserCommands(s, user_id, address)
 
     assert uc.has_work()
     assert uc.available_work == 0
 
-    get_work_mock.assert_called_with(
-        c,
-        int(hashlib.sha1(user_id.encode("ascii")).hexdigest(), 16),
-        set(),
-        1000,
-    )
+    get_work_mock.assert_called_with(user_id, address)
 
 
-@patch("cicadad.services.eventing.get_work")
+@patch("cicadad.services.datastore.get_work")
 def test_has_more_work(get_work_mock):
     user_id = "abc"
-    scenario_id = "def"
+    address = "some address"
     s = Mock()
-    c = Mock()
-    p = Mock()
-    get_work_mock.return_value = eventing.NewWork(amount=2, ids=set("1"))
+    get_work_mock.return_value = 2
 
-    uc = scenario_module.UserCommands(s, user_id, scenario_id, c, p)
+    uc = scenario_module.UserCommands(s, user_id, address)
 
     assert uc.has_work(500)
     assert uc.has_work(500)
     assert uc.available_work == 0
 
-    get_work_mock.assert_called_once_with(
-        c,
-        int(hashlib.sha1(user_id.encode("ascii")).hexdigest(), 16),
-        set(),
-        500,
-    )
+    get_work_mock.assert_called_once_with(user_id, address)
 
 
-@patch("cicadad.services.eventing.get_work")
+@patch("cicadad.services.datastore.get_work")
 def test_has_no_work(get_work_mock):
     user_id = "abc"
-    scenario_id = "def"
+    address = "some address"
     s = Mock()
-    c = Mock()
-    p = Mock()
-    get_work_mock.return_value = eventing.NewWork(amount=0, ids=set())
+    get_work_mock.return_value = 0
 
-    uc = scenario_module.UserCommands(s, user_id, scenario_id, c, p)
+    uc = scenario_module.UserCommands(s, user_id, address)
 
     assert not uc.has_work()
-    assert uc.work_event_ids == set()
 
-    get_work_mock.assert_called_once_with(
-        c,
-        int(hashlib.sha1(user_id.encode("ascii")).hexdigest(), 16),
-        set(),
-        1000,
-    )
+    get_work_mock.assert_called_once_with(user_id, address)
 
 
 def test_run_logs():
@@ -79,14 +56,12 @@ def test_run_logs():
         print("foo")
 
     user_id = "abc"
-    scenario_id = "def"
+    address = "some address"
     s = Mock()
-    c = Mock()
-    p = Mock()
 
     s.fn = test_fn
 
-    uc = scenario_module.UserCommands(s, user_id, scenario_id, c, p)
+    uc = scenario_module.UserCommands(s, user_id, address)
 
     output, exception, logs = uc.run()
 
@@ -100,14 +75,12 @@ def test_run_output():
         return 42
 
     user_id = "abc"
-    scenario_id = "def"
+    address = "some address"
     s = Mock()
-    c = Mock()
-    p = Mock()
 
     s.fn = test_fn
 
-    uc = scenario_module.UserCommands(s, user_id, scenario_id, c, p)
+    uc = scenario_module.UserCommands(s, user_id, address)
 
     output, exception, logs = uc.run()
 
@@ -121,14 +94,12 @@ def test_run_exception():
         raise ValueError("some error")
 
     user_id = "abc"
-    scenario_id = "def"
+    address = "some address"
     s = Mock()
-    c = Mock()
-    p = Mock()
 
     s.fn = test_fn
 
-    uc = scenario_module.UserCommands(s, user_id, scenario_id, c, p)
+    uc = scenario_module.UserCommands(s, user_id, address)
 
     output, exception, logs = uc.run(log_traceback=False)
 
@@ -143,9 +114,8 @@ def test_scale_users_up():
     image = "foo"
     network = "bar"
     sid = "abc"
-    ep = Mock()
-    rc = Mock()
-    addr = "fizz"
+    datastore_addr = "fizz"
+    container_service_addr = "buzz"
     ctx = {}
 
     sc = scenario_module.ScenarioCommands(
@@ -153,9 +123,8 @@ def test_scale_users_up():
         image,
         network,
         sid,
-        ep,
-        rc,
-        addr,
+        datastore_addr,
+        container_service_addr,
         ctx,
     )
 
@@ -172,9 +141,8 @@ def test_scale_users_down():
     image = "foo"
     network = "bar"
     sid = "abc"
-    ep = Mock()
-    rc = Mock()
-    addr = "fizz"
+    datastore_addr = "fizz"
+    container_service_addr = "buzz"
     ctx = {}
 
     sc = scenario_module.ScenarioCommands(
@@ -182,9 +150,8 @@ def test_scale_users_down():
         image,
         network,
         sid,
-        ep,
-        rc,
-        addr,
+        datastore_addr,
+        container_service_addr,
         ctx,
     )
 
@@ -198,15 +165,14 @@ def test_scale_users_down():
     sc.stop_users.assert_called_once_with(10)
 
 
-@patch("cicadad.services.eventing.start_container")
+@patch("cicadad.services.container_service.start_container")
 def test_start_users(start_container_mock):
     s = Mock()
     image = "foo"
     network = "bar"
     sid = "abc"
-    ep = Mock()
-    rc = Mock()
-    addr = "fizz"
+    datastore_addr = "fizz"
+    container_service_addr = "buzz"
     ctx = {}
 
     s.name = "s"
@@ -216,9 +182,8 @@ def test_start_users(start_container_mock):
         image,
         network,
         sid,
-        ep,
-        rc,
-        addr,
+        datastore_addr,
+        container_service_addr,
         ctx,
     )
 
@@ -238,9 +203,8 @@ def test_start_users_negative():
     image = "foo"
     network = "bar"
     sid = "abc"
-    ep = Mock()
-    rc = Mock()
-    addr = "fizz"
+    datastore_addr = "fizz"
+    container_service_addr = "buzz"
     ctx = {}
 
     sc = scenario_module.ScenarioCommands(
@@ -248,9 +212,8 @@ def test_start_users_negative():
         image,
         network,
         sid,
-        ep,
-        rc,
-        addr,
+        datastore_addr,
+        container_service_addr,
         ctx,
     )
 
@@ -258,15 +221,14 @@ def test_start_users_negative():
         sc.start_users(-1)
 
 
-@patch("cicadad.services.eventing.stop_user")
-def test_stop_users(stop_user_mock):
+@patch("cicadad.services.container_service.stop_container")
+def test_stop_users(stop_container_mock):
     s = Mock()
     image = "foo"
     network = "bar"
     sid = "abc"
-    ep = Mock()
-    rc = Mock()
-    addr = "fizz"
+    datastore_addr = "fizz"
+    container_service_addr = "buzz"
     ctx = {}
 
     sc = scenario_module.ScenarioCommands(
@@ -274,21 +236,20 @@ def test_stop_users(stop_user_mock):
         image,
         network,
         sid,
-        ep,
-        rc,
-        addr,
+        datastore_addr,
+        container_service_addr,
         ctx,
     )
 
-    stop_user_mock.return_value = None
+    stop_container_mock.return_value = None
 
     sc.num_users = 4
-    sc.user_group_ids = OrderedDict([("a", ["1", "2"]), ("b", ["3", "4"])])
+    sc.user_ids = ["1", "2", "3", "4"]
 
     sc.stop_users(3)
 
     assert sc.num_users == 1
-    assert sc.user_group_ids == OrderedDict([("b", ["4"])])
+    assert sc.user_ids == ["4"]
 
 
 def test_stop_users_too_many():
@@ -296,9 +257,8 @@ def test_stop_users_too_many():
     image = "foo"
     network = "bar"
     sid = "abc"
-    ep = Mock()
-    rc = Mock()
-    addr = "fizz"
+    datastore_addr = "fizz"
+    container_service_addr = "buzz"
     ctx = {}
 
     sc = scenario_module.ScenarioCommands(
@@ -306,9 +266,8 @@ def test_stop_users_too_many():
         image,
         network,
         sid,
-        ep,
-        rc,
-        addr,
+        datastore_addr,
+        container_service_addr,
         ctx,
     )
 
@@ -321,9 +280,8 @@ def test_stop_users_negative():
     image = "foo"
     network = "bar"
     sid = "abc"
-    ep = Mock()
-    rc = Mock()
-    addr = "fizz"
+    datastore_addr = "fizz"
+    container_service_addr = "buzz"
     ctx = {}
 
     sc = scenario_module.ScenarioCommands(
@@ -331,9 +289,8 @@ def test_stop_users_negative():
         image,
         network,
         sid,
-        ep,
-        rc,
-        addr,
+        datastore_addr,
+        container_service_addr,
         ctx,
     )
 
@@ -341,15 +298,14 @@ def test_stop_users_negative():
         sc.stop_users(-1)
 
 
-@patch("cicadad.services.eventing.add_work")
-def test_add_work(add_work_mock):
+@patch("cicadad.services.datastore.distribute_work")
+def test_add_work(distribute_work_mock):
     s = Mock()
     image = "foo"
     network = "bar"
     sid = "abc"
-    ep = Mock()
-    rc = Mock()
-    addr = "fizz"
+    datastore_addr = "fizz"
+    container_service_addr = "buzz"
     ctx = {}
 
     sc = scenario_module.ScenarioCommands(
@@ -357,30 +313,19 @@ def test_add_work(add_work_mock):
         image,
         network,
         sid,
-        ep,
-        rc,
-        addr,
+        datastore_addr,
+        container_service_addr,
         ctx,
     )
 
-    add_work_mock.return_value = None
+    distribute_work_mock.return_value = None
 
     sc.num_users = 3
-    sc.user_group_ids = OrderedDict([("a", ["1"]), ("b", ["2", "3"])])
+    sc.user_ids = ["1", "2", "3"]
 
     sc.add_work(11)
 
-    assert add_work_mock.call_count == 4
-
-    # NOTE: hash for "3" is less than has for "2"
-    calls = [
-        call(ep, "work-a", None, 3),
-        call(ep, "work-b", None, 3),
-        call(ep, "work-a", None, 1),
-        call(ep, "work-b", int(hashlib.sha1("3".encode("ascii")).hexdigest(), 16), 1),
-    ]
-
-    add_work_mock.assert_has_calls(calls)
+    assert distribute_work_mock.call_count == 1
 
 
 def test_has_work_buffered():
@@ -388,9 +333,8 @@ def test_has_work_buffered():
     image = "foo"
     network = "bar"
     sid = "abc"
-    ep = Mock()
-    rc = Mock()
-    addr = "fizz"
+    datastore_addr = "fizz"
+    container_service_addr = "buzz"
     ctx = {}
 
     sc = scenario_module.ScenarioCommands(
@@ -398,9 +342,8 @@ def test_has_work_buffered():
         image,
         network,
         sid,
-        ep,
-        rc,
-        addr,
+        datastore_addr,
+        container_service_addr,
         ctx,
     )
 
@@ -414,9 +357,8 @@ def test_aggregate_results():
     image = "foo"
     network = "bar"
     sid = "abc"
-    ep = Mock()
-    rc = Mock()
-    addr = "fizz"
+    datastore_addr = "fizz"
+    container_service_addr = "buzz"
     ctx = {}
 
     sc = scenario_module.ScenarioCommands(
@@ -424,9 +366,8 @@ def test_aggregate_results():
         image,
         network,
         sid,
-        ep,
-        rc,
-        addr,
+        datastore_addr,
+        container_service_addr,
         ctx,
     )
 
@@ -452,9 +393,8 @@ def test_aggregate_results_default():
     image = "foo"
     network = "bar"
     sid = "abc"
-    ep = Mock()
-    rc = Mock()
-    addr = "fizz"
+    datastore_addr = "fizz"
+    container_service_addr = "buzz"
     ctx = {}
 
     sc = scenario_module.ScenarioCommands(
@@ -462,9 +402,8 @@ def test_aggregate_results_default():
         image,
         network,
         sid,
-        ep,
-        rc,
-        addr,
+        datastore_addr,
+        container_service_addr,
         ctx,
     )
 
@@ -482,9 +421,8 @@ def test_verify_results():
     image = "foo"
     network = "bar"
     sid = "abc"
-    ep = Mock()
-    rc = Mock()
-    addr = "fizz"
+    datastore_addr = "fizz"
+    container_service_addr = "buzz"
     ctx = {}
 
     sc = scenario_module.ScenarioCommands(
@@ -492,9 +430,8 @@ def test_verify_results():
         image,
         network,
         sid,
-        ep,
-        rc,
-        addr,
+        datastore_addr,
+        container_service_addr,
         ctx,
     )
 
@@ -523,9 +460,9 @@ def test_filter_scenarios_empty():
     assert scenario_module.filter_scenarios_by_tag([s1, s2], []) == [s1, s2]
 
 
-@patch("cicadad.services.eventing.get_events")
-@patch("cicadad.services.eventing.start_container")
-def test_test_runner(start_container_mock, get_events_mock):
+@patch("cicadad.services.datastore.move_scenario_result")
+@patch("cicadad.services.container_service.start_container")
+def test_test_runner(start_container_mock, move_scenario_event_mock):
     s1 = Mock()
     s2 = Mock()
     s3 = Mock()
@@ -541,41 +478,48 @@ def test_test_runner(start_container_mock, get_events_mock):
     ss = [s1, s2, s3]
     img = "foo"
     n = "bar"
-    tid = "123"
-    ep = Mock()
-    rc = Mock()
-    addr = "abc"
+    datastore_addr = "fizz"
+    container_service_addr = "buzz"
 
-    e1 = eventing.ResultEvent(
-        action="result",
-        event_id="1",
-        scenario_name="s1",
-        result=datastore.Result(output=42),
+    r1 = {
+        "output": "42",
+        "exception": None,
+        "logs": "",
+        "timestamp": str(datetime.now()),
+        "time_taken": 3,
+    }
+
+    r2 = {
+        "output": None,
+        "exception": "some error",
+        "logs": "",
+        "timestamp": str(datetime.now()),
+        "time_taken": 3,
+    }
+
+    move_scenario_event_mock.side_effect = [r1, r2]
+
+    assert (
+        len(
+            list(
+                scenario_module.test_runner(
+                    ss, img, n, datastore_addr, container_service_addr
+                )
+            )
+        )
+        == 5
     )
-
-    e2 = eventing.ResultEvent(
-        action="result",
-        event_id="2",
-        scenario_name="s2",
-        result=datastore.Result(exception=ValueError("some error")),
-    )
-
-    get_events_mock.side_effect = [[e1], [e2]]
-
-    assert len(list(scenario_module.test_runner(ss, img, n, tid, ep, rc, addr))) == 5
     assert start_container_mock.call_count == 2
 
 
-@patch("cicadad.services.eventing.report_scenario_result")
-def test_run_scenario(report_scenario_result_mock):
+@patch("cicadad.services.datastore.set_scenario_result")
+def test_run_scenario(set_scenario_result_mock):
     s = Mock()
     image = "foo"
     network = "bar"
     sid = "abc"
-    tid = "def"
-    ep = Mock()
-    rc = Mock()
-    addr = "fizz"
+    datastore_addr = "fizz"
+    container_service_addr = "buzz"
     ctx = {}
 
     def load_model(sc, c):
@@ -590,27 +534,23 @@ def test_run_scenario(report_scenario_result_mock):
         image,
         network,
         sid,
-        tid,
-        ep,
-        rc,
-        addr,
+        datastore_addr,
+        container_service_addr,
         ctx,
     )
 
-    # Get first call, then args of call, then 4th arg of call
-    assert report_scenario_result_mock.mock_calls[0][1][3].output == 42
+    # Get kwargs of first call
+    assert set_scenario_result_mock.mock_calls[0].kwargs["output"] == 42
 
 
-@patch("cicadad.services.eventing.report_scenario_result")
-def test_run_scenario_result_transformer(report_scenario_result_mock):
+@patch("cicadad.services.datastore.set_scenario_result")
+def test_run_scenario_result_transformer(set_scenario_result_mock):
     s = Mock()
     image = "foo"
     network = "bar"
     sid = "abc"
-    tid = "def"
-    ep = Mock()
-    rc = Mock()
-    addr = "fizz"
+    datastore_addr = "fizz"
+    container_service_addr = "buzz"
     ctx = {}
 
     def load_model(sc, c):
@@ -628,27 +568,23 @@ def test_run_scenario_result_transformer(report_scenario_result_mock):
         image,
         network,
         sid,
-        tid,
-        ep,
-        rc,
-        addr,
+        datastore_addr,
+        container_service_addr,
         ctx,
     )
 
-    # Get first call, then args of call, then 4th arg of call
-    assert report_scenario_result_mock.mock_calls[0][1][3].output == 84
+    # Get kwargs of first call
+    assert set_scenario_result_mock.mock_calls[0].kwargs["output"] == 84
 
 
-@patch("cicadad.services.eventing.report_scenario_result")
-def test_run_scenario_exception(report_scenario_result_mock):
+@patch("cicadad.services.datastore.set_scenario_result")
+def test_run_scenario_exception(set_scenario_result_mock):
     s = Mock()
     image = "foo"
     network = "bar"
     sid = "abc"
-    tid = "def"
-    ep = Mock()
-    rc = Mock()
-    addr = "fizz"
+    datastore_addr = "fizz"
+    container_service_addr = "buzz"
     ctx = {}
 
     def load_model(sc, c):
@@ -665,21 +601,19 @@ def test_run_scenario_exception(report_scenario_result_mock):
         image,
         network,
         sid,
-        tid,
-        ep,
-        rc,
-        addr,
+        datastore_addr,
+        container_service_addr,
         ctx,
     )
 
     # Get first call, then args of call, then 4th arg of call
     assert (
-        str(report_scenario_result_mock.mock_calls[0][1][3].exception)
+        str(set_scenario_result_mock.mock_calls[0].kwargs["exception"])
         == "1 error(s) were raised in scenario s:\nsome error"
     )
 
     assert (
-        type(report_scenario_result_mock.mock_calls[0][1][3].exception)
+        type(set_scenario_result_mock.mock_calls[0].kwargs["exception"])
         == AssertionError
     )
 

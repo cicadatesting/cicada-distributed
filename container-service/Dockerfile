@@ -6,6 +6,6 @@ COPY . .
 
 RUN go mod download
 RUN go build -o main .
-EXPOSE 8283
+EXPOSE 8284
 
 ENTRYPOINT [ "/app/main" ]

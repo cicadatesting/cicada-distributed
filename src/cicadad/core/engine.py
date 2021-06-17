@@ -1,16 +1,14 @@
 from typing import Dict
 from concurrent import futures
-import uuid
 
 import click
 import grpc  # type: ignore
 
-from cicadad.services.eventing import get_event_consumer, get_event_producer
 from cicadad.core.scenario import Scenario, scenario_runner, user_runner
 from cicadad.util.constants import (
+    DEFAULT_CONTAINER_SERVICE_ADDRESS,
     DEFAULT_DATASTORE_ADDRESS,
     DEFAULT_CONTEXT_STRING,
-    DEFAULT_EVENT_ADDRESS,
     DEFAULT_DOCKER_NETWORK,
 )
 from cicadad.util.context import decode_context
@@ -40,18 +38,17 @@ class Engine:
         self,
         image: str,
         network: str,
-        event_broker_address: str,
         datastore_address: str,
+        container_service_address: str,
     ):
         """Startup function when test container is created. Starts hub server.
 
         Args:
             image (str): Image containing test code. Passed to scenarios
             network (str): Network to start scenarios in
-            event_broker_address (str): Address of event broker to connect to scenarios
+            datastore_address (str): Address of datastore client to receive scenario results
+            container_service_address (str): Address of container service to start scenarios
         """
-        event_producer = get_event_producer(event_broker_address)
-
         server = grpc.server(futures.ThreadPoolExecutor())
 
         hub_pb2_grpc.add_HubServicer_to_server(
@@ -59,14 +56,12 @@ class Engine:
                 scenarios=self.scenarios.values(),
                 image=image,
                 network=network,
-                event_producer=event_producer,
                 datastore_address=datastore_address,
-                event_broker_address=event_broker_address,
+                container_service_address=container_service_address,
             ),
             server,
         )
 
-        # TODO: supply port
         server.add_insecure_port("[::]:50051")
         server.start()
         server.wait_for_termination()
@@ -77,8 +72,8 @@ class Engine:
         scenario_id: str,
         image: str,
         network: str,
-        event_broker_address: str,
         datastore_address: str,
+        container_service_address: str,
         encoded_context: str,
     ):
         """Startup function when scenario is started. Begins running scenario's
@@ -86,40 +81,25 @@ class Engine:
 
         Args:
             scenario_name (str): Name of scenario being run
+            scenario_id (str): ID of scenario run
             image (str): Image containing test code
             network (str): Network to start users in
-            test_id (str): ID of test run
-            event_broker_address (str): Address of event broker to connect to test container and users
-            datastore_address (str): Address of datastore client to test container and users
+            datastore_address (str): Address of datastore client to save and receive results
+            container_service_address (str): Address of container service to start and stop users
             encoded_context (str): Context from test containing previous results
         """
         scenario = self.scenarios[scenario_name]
-        event_producer = get_event_producer(event_broker_address)
-        result_consumer = get_event_consumer(
-            f"{scenario_name}-{scenario_id}-results",
-            event_broker_address,
-            "latest",
-        )
-
         context = decode_context(encoded_context)
 
-        try:
-            scenario_runner(
-                scenario,
-                image,
-                network,
-                scenario_id,
-                event_producer,
-                result_consumer,
-                datastore_address,
-                context,
-            )
-        finally:
-            # NOTE: do we need to commit here?
-            result_consumer.close()
-
-            event_producer.flush()
-            event_producer.close()
+        scenario_runner(
+            scenario,
+            image,
+            network,
+            scenario_id,
+            datastore_address,
+            container_service_address,
+            context,
+        )
 
     def run_user(
         self,
@@ -132,10 +112,8 @@ class Engine:
 
         Args:
             scenario_name (str): Name of scenario being run
-            group_id (str): ID of group of users this user belongs to
             user_id (str): Unique ID of user assigned by scenario
-            scenario_id (str): ID of scenario this user was started by
-            event_broker_address (str): Address of event broker to connect to test container and users
+            datastore_address (str): Address of datastore client to receive work and save results
             encoded_context (str): Context from test containing previous results
         """
         scenario = self.scenarios[scenario_name]
@@ -159,16 +137,18 @@ def engine_cli(ctx):
 @click.pass_context
 @click.option("--image", type=str, required=True)
 @click.option("--network", type=str, default=DEFAULT_DOCKER_NETWORK)
-@click.option("--event-broker-address", type=str, default=DEFAULT_EVENT_ADDRESS)
 @click.option("--datastore-address", type=str, default=DEFAULT_DATASTORE_ADDRESS)
-def run_test(ctx, image, network, event_broker_address, datastore_address):
+@click.option(
+    "--container-service-address", type=str, default=DEFAULT_CONTAINER_SERVICE_ADDRESS
+)
+def run_test(ctx, image, network, datastore_address, container_service_address):
     engine: Engine = ctx.obj
 
     engine.run_test(
         image,
         network,
-        event_broker_address,
         datastore_address,
+        container_service_address,
     )
 
 
@@ -178,8 +158,10 @@ def run_test(ctx, image, network, event_broker_address, datastore_address):
 @click.option("--scenario-id", type=str, required=True)
 @click.option("--image", type=str, required=True)
 @click.option("--network", type=str, default=DEFAULT_DOCKER_NETWORK)
-@click.option("--event-broker-address", type=str, default=DEFAULT_EVENT_ADDRESS)
 @click.option("--datastore-address", type=str, default=DEFAULT_DATASTORE_ADDRESS)
+@click.option(
+    "--container-service-address", type=str, default=DEFAULT_CONTAINER_SERVICE_ADDRESS
+)
 @click.option(
     "--encoded-context",
     type=str,
@@ -191,8 +173,8 @@ def run_scenario(
     scenario_id,
     image,
     network,
-    event_broker_address,
     datastore_address,
+    container_service_address,
     encoded_context,
 ):
     engine: Engine = ctx.obj
@@ -202,8 +184,8 @@ def run_scenario(
         scenario_id,
         image,
         network,
-        event_broker_address,
         datastore_address,
+        container_service_address,
         encoded_context,
     )
 

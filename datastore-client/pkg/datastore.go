@@ -12,7 +12,15 @@ import (
 )
 
 type Datastore struct {
-	Rds *redis.Client
+	Rds RedisClient
+}
+
+type RedisClient interface {
+	LLen(ctx context.Context, key string) *redis.IntCmd
+	LPop(ctx context.Context, key string) *redis.StringCmd
+	RPush(ctx context.Context, key string, values ...interface{}) *redis.IntCmd
+	Get(ctx context.Context, key string) *redis.StringCmd
+	Set(ctx context.Context, key string, value interface{}, expiration time.Duration) *redis.StatusCmd
 }
 
 func userResultKey(userID string) string {
@@ -26,13 +34,6 @@ func userWorkKey(userID string) string {
 func scenarioResultKey(scenarioID string) string {
 	return fmt.Sprintf("%s-result", scenarioID)
 }
-
-// string id = 1;
-// string output = 2;
-// string exception = 3;
-// string logs = 4;
-// string timestamp = 5;
-// double timeTaken = 6;
 
 type ScenarioResult struct {
 	ID        string
@@ -143,7 +144,7 @@ func (datastore *Datastore) DistributeWork(ctx context.Context, amount int, user
 	})
 
 	for i := 0; i < withRemainingWork; i++ {
-		err := datastore.Rds.RPush(ctx, userWorkKey(userIDs[i]), baseWork+1).Err()
+		_, err := datastore.Rds.RPush(ctx, userWorkKey(userIDs[i]), baseWork+1).Result()
 
 		if err != nil {
 			return err
@@ -151,7 +152,7 @@ func (datastore *Datastore) DistributeWork(ctx context.Context, amount int, user
 	}
 
 	for j := withRemainingWork; j < numUsers; j++ {
-		err := datastore.Rds.RPush(ctx, userWorkKey(userIDs[j]), baseWork).Err()
+		_, err := datastore.Rds.RPush(ctx, userWorkKey(userIDs[j]), baseWork).Result()
 
 		if err != nil {
 			return err

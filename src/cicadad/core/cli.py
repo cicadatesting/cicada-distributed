@@ -76,16 +76,6 @@ def start_cluster(ctx, network, create_network):
 
     containers.configure_docker_network(docker_client, network, create_network)
 
-    zookeeper_container = containers.docker_zookeeper_up(docker_client, network)
-
-    if ctx.obj["DEBUG"]:
-        click.echo(f"Created Zookeeper: {zookeeper_container.id}")
-
-    kafka_container = containers.docker_kafka_up(docker_client, network)
-
-    if ctx.obj["DEBUG"]:
-        click.echo(f"Created Kafka: {kafka_container.id}")
-
     redis_container = containers.docker_redis_up(docker_client, network)
 
     if ctx.obj["DEBUG"]:
@@ -96,10 +86,10 @@ def start_cluster(ctx, network, create_network):
     if ctx.obj["DEBUG"]:
         click.echo(f"Created Datastore Client: {datastore_client.id}")
 
-    manager_container = containers.docker_manager_up(docker_client, network)
+    container_service = containers.docker_container_service_up(docker_client, network)
 
     if ctx.obj["DEBUG"]:
-        click.echo(f"Created Manager: {manager_container.id}")
+        click.echo(f"Created Container Service: {container_service.id}")
 
 
 @cli.command()
@@ -107,10 +97,10 @@ def start_cluster(ctx, network, create_network):
 def stop_cluster(ctx):
     docker_client = docker.from_env()
 
-    containers.docker_manager_down(docker_client)
+    containers.docker_container_service_down(docker_client)
 
     if ctx.obj["DEBUG"]:
-        click.echo("Stopped Manager")
+        click.echo("Stopped Container Service")
 
     containers.docker_datastore_client_down(docker_client)
 
@@ -121,16 +111,6 @@ def stop_cluster(ctx):
 
     if ctx.obj["DEBUG"]:
         click.echo("Stopped Redis")
-
-    containers.docker_kafka_down(docker_client)
-
-    if ctx.obj["DEBUG"]:
-        click.echo("Stopped Kafka")
-
-    containers.docker_zookeeper_down(docker_client)
-
-    if ctx.obj["DEBUG"]:
-        click.echo("Stopped Zookeeper")
 
     containers.clean_docker_containers(
         docker_client,
@@ -175,11 +155,17 @@ def run(ctx, image, build_path, dockerfile, network, tag, no_exit_unsuccessful):
         + term.normal
     )
 
+    # FEATURE: override datastore client/container service address from CLI
     args = containers.DockerServerArgs(
         image=image_id,
         name=name,
-        command=f"run-test --image {image_id} --network {network}",
-        in_cluster=False,
+        command=[
+            "run-test",
+            "--image",
+            image_id,
+            "--network",
+            network,
+        ],
         labels=["cicada-distributed-test"],
         # env: Dict[str, str]={}
         # volumes: Optional[List[Volume]]
