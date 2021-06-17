@@ -606,16 +606,16 @@ def test_run_scenario_exception(set_scenario_result_mock):
         ctx,
     )
 
-    print(set_scenario_result_mock.mock_calls[0])
+    print(set_scenario_result_mock.mock_calls[0].call_args)
 
     # Get first call, then args of call, then 4th arg of call
     assert (
-        str(set_scenario_result_mock.mock_calls[0].kwargs["exception"])
+        str(set_scenario_result_mock.mock_calls[0].call_args.kwargs["exception"])
         == "1 error(s) were raised in scenario s:\nsome error"
     )
 
     assert (
-        type(set_scenario_result_mock.mock_calls[0].kwargs["exception"])
+        type(set_scenario_result_mock.mock_calls[0].call_args.kwargs["exception"])
         == AssertionError
     )
 
