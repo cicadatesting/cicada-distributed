@@ -1,6 +1,6 @@
 from typing import Any, List, Optional
 from datetime import datetime
-import pickle
+import pickle  # nosec
 import json
 
 import grpc
@@ -72,7 +72,7 @@ def move_user_results(
 
         response = stub.MoveUserResults(request)
 
-        return [pickle.loads(result) for result in response.results]
+        return [pickle.loads(result) for result in response.results]  # nosec
 
 
 def move_scenario_result(
