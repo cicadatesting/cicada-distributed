@@ -3,7 +3,7 @@ from datetime import datetime
 import pickle  # nosec
 import json
 
-import grpc
+import grpc  # type: ignore
 
 # from cassandra.cluster import Cluster, Session
 # from cassandra.auth import PlainTextAuthProvider

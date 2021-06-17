@@ -606,7 +606,7 @@ def test_run_scenario_exception(set_scenario_result_mock):
         ctx,
     )
 
-    print(set_scenario_result_mock.mock_calls[0].kwargs)
+    print(set_scenario_result_mock.mock_calls[0])
 
     # Get first call, then args of call, then 4th arg of call
     assert (

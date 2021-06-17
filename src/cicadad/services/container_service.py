@@ -1,23 +1,9 @@
 from google.protobuf import wrappers_pb2
-import grpc
+import grpc  # type: ignore
 
 from cicadad.core.containers import DockerServerArgs
 from cicadad.protos import container_service_pb2, container_service_pb2_grpc
 from cicadad.util.constants import DEFAULT_CONTAINER_SERVICE_ADDRESS
-
-
-# message StartContainerRequest {
-#     string image = 1;
-#     string name = 2;
-#     repeated string command = 3;
-#     repeated string labels = 4;
-#     map<string, string> env = 5;
-#     repeated DockerVolume volumes = 6;
-#     google.protobuf.Int32Value hostPort = 7;
-#     google.protobuf.Int32Value containerPort = 8;
-#     google.protobuf.StringValue network = 9;
-#     google.protobuf.BoolValue createNetwork = 10;
-# }
 
 
 def start_container(
