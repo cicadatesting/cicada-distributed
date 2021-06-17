@@ -574,7 +574,7 @@ def test_run_scenario_result_transformer(set_scenario_result_mock):
     )
 
     # Get kwargs of first call
-    assert set_scenario_result_mock.mock_calls[0].kwargs["output"] == 84
+    assert set_scenario_result_mock.mock_calls[0][2]["output"] == 84
 
 
 @patch("cicadad.services.datastore.set_scenario_result")
