@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+package container_service;
+option go_package = "github.com/cicadatesting/container-service/api";
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/wrappers.proto";
+
+service ContainerService {
+    rpc StartContainer (StartContainerRequest) returns (google.protobuf.Empty);
+    rpc StopContainer (StopContainerRequest) returns (google.protobuf.Empty);
+}
+
+// class DockerServerArgs(BaseModel):
+//     docker_client_args: dict = {}
+//     image: str
+//     name: Optional[str]
+//     command: Optional[str]
+//     in_cluster: bool = True
+//     container_id: Optional[str]
+//     labels: List[str] = []
+//     env: Dict[str, str] = {}
+//     volumes: Optional[List[Volume]]
+//     host_port: Optional[int]
+//     container_port: Optional[int]
+//     network: str = DEFAULT_DOCKER_NETWORK
+//     create_network: bool = True
+
+message StartContainerRequest {
+    string image = 1;
+    string name = 2;
+    repeated string command = 3;
+    repeated string labels = 4;
+    map<string, string> env = 5;
+    repeated DockerVolume volumes = 6;
+    google.protobuf.Int32Value hostPort = 7;
+    google.protobuf.Int32Value containerPort = 8;
+    google.protobuf.StringValue network = 9;
+    google.protobuf.BoolValue createNetwork = 10;
+}
+
+message DockerVolume {
+    string source = 1;
+    string destination = 2;
+}
+
+message StopContainerRequest {
+    string containerID = 1;
+}

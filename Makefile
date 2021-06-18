@@ -1,6 +1,5 @@
 
 BASE_IMAGE_NAME=cicadatesting/cicada-distributed-base-image
-MANAGER_IMAGE_NAME=cicadatesting/cicada-distributed-manager
 
 # NOTE: may need to use sudo
 # NOTE: may be helpful to run make clean
@@ -37,15 +36,6 @@ build-base-dev:
 build-base:
 	docker build -f dockerfiles/base-image.dockerfile -t ${BASE_IMAGE_NAME}:1.0.0 .
 
-build-manager-local:
-	docker build -f dockerfiles/manager.local.dockerfile -t ${MANAGER_IMAGE_NAME}:latest .
-
-build-manager-dev:
-	docker build -f dockerfiles/manager.dev-a.dockerfile -t ${MANAGER_IMAGE_NAME}:pre-release .
-
-build-manager:
-	docker build -f dockerfiles/manager.dockerfile -t ${MANAGER_IMAGE_NAME}:1.0.0 .
-
 clean:
 	rm -r dist
 	rm -r build
@@ -55,6 +45,7 @@ clean-containers:
 	docker container stop $(shell docker ps -q --filter "label=cicada-distributed") \
 	&& docker container rm $(shell docker ps -q --filter "label=cicada-distributed")
 
+# NOTE: requires `pip install grpcio-tools`
 proto-compile:
 	cd src && python3 -m grpc_tools.protoc -I . \
 		--python_out=. \

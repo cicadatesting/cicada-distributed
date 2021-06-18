@@ -5,14 +5,12 @@ import time
 import json
 import io
 import traceback
-import hashlib
 
 from pydantic import BaseModel, Field
 
-from cicadad.services.datastore import Result
 from cicadad.util.context import encode_context
 from cicadad.core import containers
-from cicadad.services import eventing
+from cicadad.services import datastore, container_service
 from cicadad.util import printing
 
 
@@ -21,27 +19,21 @@ class UserCommands(object):
         self,
         scenario: "Scenario",
         user_id: str,
-        scenario_id: str,
-        work_consumer: eventing.KafkaConsumer,
-        result_producer: eventing.KafkaProducer,
+        datastore_address: str,
     ):
-        """Commands available to user functions
+        """Commands available to user functions.
 
         Args:
             scenario (Scenario): Scenario being run
             user_id (str): ID of current user
             scenario_id (str): ID of current scenario
-            work_consumer (eventing.KafkaConsumer): Event client to consume work events from scenario
-            result_producer (eventing.KafkaProducer): Event client to send results back to scenario
+            datastore_address: Address of datastore client
         """
         self.scenario = scenario
         self.user_id = user_id
-        self.scenario_id = scenario_id
-        self.work_consumer = work_consumer
-        self.result_producer = result_producer
+        self.datastore_address = datastore_address
 
         self.available_work = 0
-        self.work_event_ids: Set[str] = set()
 
     def is_up(self):
         """Check if user is still running
@@ -53,7 +45,7 @@ class UserCommands(object):
         # tell user to stop to allow for a graceful user-defined exit
         return True
 
-    def has_work(self, timeout_ms: int = 1000):
+    def has_work(self, timeout_ms: Optional[int] = 1000):
         """Check if user has remaining invocations
 
         Args:
@@ -63,17 +55,15 @@ class UserCommands(object):
             bool: User has work
         """
         if self.available_work < 1:
-            new_work = eventing.get_work(
-                self.work_consumer,
-                int(
-                    hashlib.sha1(self.user_id.encode("ascii")).hexdigest(), 16  # nosec
-                ),
-                self.work_event_ids,
-                timeout_ms,
+            self.available_work = datastore.get_work(
+                self.user_id, self.datastore_address
             )
 
-            self.available_work = new_work.amount
-            self.work_event_ids.union(new_work.ids)
+            if self.available_work < 1 and timeout_ms is not None:
+                time.sleep(timeout_ms / 1000)
+                self.available_work = datastore.get_work(
+                    self.user_id, self.datastore_address
+                )
 
         has_available_work = self.available_work > 0
 
@@ -116,7 +106,7 @@ class UserCommands(object):
             logs (Optional[str]): Function logs
             time_taken (int): Time taken in seconds to call function once
         """
-        result = Result(
+        result = datastore.Result(
             id=str(uuid.uuid4()),
             output=output,
             exception=exception,
@@ -125,12 +115,7 @@ class UserCommands(object):
             time_taken=time_taken,
         )
 
-        eventing.report_user_result(
-            self.result_producer,
-            self.scenario.name,
-            self.scenario_id,
-            result,
-        )
+        datastore.add_user_result(self.user_id, result, self.datastore_address)
 
 
 class ScenarioCommands(object):
@@ -140,9 +125,8 @@ class ScenarioCommands(object):
         image: str,
         network: str,
         scenario_id: str,
-        event_producer: eventing.KafkaProducer,
-        result_consumer: eventing.KafkaConsumer,
-        event_broker_address: str,
+        datastore_address: str,
+        container_service_address: str,
         context: dict,
     ):
         """Commands available to a scenario
@@ -152,23 +136,19 @@ class ScenarioCommands(object):
             image (str): Docker image for scenario
             network (str): Docker network for scenario
             scenario_id (str): ID of scenario run
-            event_producer (eventing.KafkaProducer): Event client to send events to users and to test runner
-            result_consumer (eventing.KafkaConsumer): Event client to receive results from users
-            event_broker_address (str): Address of event broker
+            datastore_address (str): Address of datastore to pass to users
+            container_service (str): Address of container service to start and stop users
             context (dict): Context data to pass to users
         """
         self.scenario = scenario
         self.image = image
         self.network = network
-        self.event_producer = event_producer
-        self.result_consumer = result_consumer
-        self.event_broker_address = event_broker_address
+        self.datastore_address = datastore_address
+        self.container_service_address = container_service_address
         self.context = context
 
         self.scenario_id = scenario_id
-        self.user_group_ids: Dict[
-            str, List[str]
-        ] = {}  # NOTE: maybe make this an ordered dict
+        self.user_ids: Set[str] = set()
         self.num_users = 0
         self.buffered_work = 0
         self.aggregated_results = None
@@ -199,9 +179,6 @@ class ScenarioCommands(object):
         if n == 0:
             return
 
-        user_group_id = str(uuid.uuid4())
-        user_ids = []
-
         # FEATURE: mount env and volumes for user
         for _ in range(n):
             user_id = f"user-{self.scenario.name}-{str(uuid.uuid4())[:8]}"
@@ -210,16 +187,17 @@ class ScenarioCommands(object):
             args = containers.DockerServerArgs(
                 image=self.image,
                 name=user_id,
-                command=f"""
-                run-user
-                    --name {self.scenario.name}
-                    --group-id {user_group_id}
-                    --user-id {user_id}
-                    --scenario-id {self.scenario_id}
-                    --encoded-context {encoded_context}
-                    --event-broker-address {self.event_broker_address}
-                """,
-                # in_cluster: bool=True
+                command=[
+                    "run-user",
+                    "--name",
+                    self.scenario.name,
+                    "--user-id",
+                    user_id,
+                    "--datastore-address",
+                    self.datastore_address,
+                    "--encoded-context",
+                    encoded_context,
+                ],
                 labels=["cicada-distributed-user", self.scenario.name],
                 # env: Dict[str, str]={}
                 # volumes: Optional[List[Volume]]
@@ -229,11 +207,9 @@ class ScenarioCommands(object):
                 # create_network: bool=True
             )
 
-            user_ids.append(user_id)
-            # eventing.start_user(self.user_producer, container_id, args)
-            eventing.start_container(self.event_producer, user_id, args)
+            self.user_ids.add(user_id)
+            container_service.start_container(args, self.container_service_address)
 
-        self.user_group_ids[user_group_id] = user_ids
         self.num_users += n
 
         # If called add_work before start_users, flush the saved work to the
@@ -258,39 +234,15 @@ class ScenarioCommands(object):
             return
 
         remaining = n
-        removed_users = 0
-        users_to_remove = []
-        groups_to_remove = []
 
-        for group_id in self.user_group_ids:
+        for user_id in self.user_ids.copy():
             if remaining < 1:
                 break
 
-            num_users_in_group = len(self.user_group_ids[group_id])
-
-            if remaining >= num_users_in_group:
-                # remove all users in group
-                # delete group
-                users_to_remove.extend(self.user_group_ids[group_id])
-                groups_to_remove.append(group_id)
-                remaining -= num_users_in_group
-                removed_users += num_users_in_group
-            else:
-                # delete some users in this group
-                users_to_remove.extend(self.user_group_ids[group_id][:remaining])
-                self.user_group_ids[group_id] = self.user_group_ids[group_id][
-                    remaining:
-                ]
-                removed_users += remaining
-                remaining = 0
-
-        for user_id in users_to_remove:
-            eventing.stop_user(self.event_producer, user_id)
-
-        for group_id in groups_to_remove:
-            self.user_group_ids.pop(group_id, None)
-
-        self.num_users -= removed_users
+            container_service.stop_container(user_id, self.container_service_address)
+            self.user_ids.remove(user_id)
+            self.num_users -= 1
+            remaining -= 1
 
     def add_work(self, n: int):
         """Distribute work to all users in scenario
@@ -299,91 +251,33 @@ class ScenarioCommands(object):
             n (int): Amount of work to distribute across user pool
         """
         # If no users exist, save in a buffer
-        if self.user_group_ids == {}:
+        if self.user_ids == set():
             self.buffered_work += n
             return
 
-        # distribute as much work as can possibly be evenly distributed to users
-        work_per_user = int(n / self.num_users)
-
-        if work_per_user > 0:
-            for group_id in self.user_group_ids:
-                eventing.add_work(
-                    self.event_producer,
-                    f"work-{group_id}",
-                    None,
-                    work_per_user,
-                )
-
-        # Distribute remaining work to users
-        remaining_work = n % self.num_users
-
-        if remaining_work > 0:
-            for group_id in self.user_group_ids:
-                if len(self.user_group_ids[group_id]) > remaining_work:
-                    # give one work unit to some of users to meet remaining work
-                    # essentially, this is the last group to get work
-                    user_id_hashes = sorted(
-                        int(
-                            hashlib.sha1(user_id.encode("ascii")).hexdigest(),  # nosec
-                            16,
-                        )
-                        for user_id in self.user_group_ids[group_id]
-                    )
-
-                    user_id_limit = user_id_hashes[remaining_work - 1]
-
-                    eventing.add_work(
-                        self.event_producer,
-                        f"work-{group_id}",
-                        user_id_limit,
-                        1,
-                    )
-
-                    # should be no remaining work after this group
-                    return
-                else:
-                    # give one work unit to all users in this group
-                    eventing.add_work(
-                        self.event_producer,
-                        f"work-{group_id}",
-                        None,
-                        1,
-                    )
-
-                    remaining_work -= len(self.user_group_ids[group_id])
-
-                if remaining_work < 1:
-                    return
+        datastore.distribute_work(n, list(self.user_ids), self.datastore_address)
 
     def get_latest_results(
         self,
-        timeout_ms=1000,
-        max_results=500,
+        timeout_ms: Optional[int] = 1000,
     ):
         """Gathers results produced by users
 
         Args:
             timeout_ms (int, optional): Time to wait for results. Defaults to 1000.
-            max_results (int, optional): Max amount of results to return. Defaults to 500.
 
         Returns:
             List[Result]: List of latest results collected
         """
-        # NOTE: chance of redelivery makes combining latest results without
-        # filtering unreliable
-        latest_results: List[Result] = [
-            event.result
-            for event in eventing.get_events(
-                self.result_consumer,
-                timeout_ms,
-                max_results,
-            )
-        ]
+        results = datastore.move_user_results(self.user_ids, self.datastore_address)
 
-        return latest_results
+        if results == [] and timeout_ms is not None:
+            time.sleep(timeout_ms / 1000)
+            results = datastore.move_user_results(self.user_ids, self.datastore_address)
 
-    def aggregate_results(self, latest_results: List[Result]) -> Any:
+        return results
+
+    def aggregate_results(self, latest_results: List[datastore.Result]) -> Any:
         """Run scenario aggregator function against latest gathered results and
         save aggregate
 
@@ -403,7 +297,9 @@ class ScenarioCommands(object):
 
         return self.aggregated_results
 
-    def verify_results(self, latest_results: List[Result]) -> Optional[List[str]]:
+    def verify_results(
+        self, latest_results: List[datastore.Result]
+    ) -> Optional[List[str]]:
         """Run scenario result verification function against latest results
 
         Args:
@@ -464,34 +360,40 @@ def test_runner(
     scenarios: List["Scenario"],
     image: str,
     network: str,
-    test_id: str,
-    event_producer: eventing.KafkaProducer,
-    result_consumer: eventing.KafkaConsumer,
-    event_broker_address: str,
+    datastore_address: str,
+    container_service_address: str,
 ):
-    started: Set[str] = set()
+    started: Dict[str, str] = {}
     results: Dict[str, dict] = {}
 
     # Start scenarios with no dependencies
     for scenario in scenarios:
         if scenario.dependencies == []:
             # FIXME: move to function
-            container_id = f"scenario-{scenario.name}-{str(uuid.uuid4())[:8]}"
+            scenario_id = str(uuid.uuid4())[:8]
+            container_id = f"scenario-{scenario.name}-{scenario_id}"
             encoded_context = encode_context(results)
 
             args = containers.DockerServerArgs(
                 image=image,
                 name=container_id,
-                command=f"""
-                run-scenario
-                    --name {scenario.name}
-                    --image {image}
-                    --network {network}
-                    --test-id {test_id}
-                    --encoded-context {encoded_context}
-                    --event-broker-address {event_broker_address}
-                """,
-                # in_cluster: bool=True
+                command=[
+                    "run-scenario",
+                    "--name",
+                    scenario.name,
+                    "--scenario-id",
+                    scenario_id,
+                    "--image",
+                    image,
+                    "--network",
+                    network,
+                    "--encoded-context",
+                    encoded_context,
+                    "--datastore-address",
+                    datastore_address,
+                    "--container-service-address",
+                    container_service_address,
+                ],
                 labels=["cicada-distributed-scenario", scenario.name],
                 # env: Dict[str, str]={}
                 # volumes: Optional[List[Volume]]
@@ -501,8 +403,8 @@ def test_runner(
                 # create_network: bool=True
             )
 
-            eventing.start_container(event_producer, container_id, args)
-            started.add(scenario.name)
+            container_service.start_container(args, container_service_address)
+            started[scenario.name] = scenario_id
 
             yield TestStatus(
                 type="SCENARIO_STARTED",
@@ -513,20 +415,23 @@ def test_runner(
 
     # listen to completed events and start scenarios with dependencies
     while len(results) != len(scenarios):
-        events: List[eventing.ResultEvent] = eventing.get_events(result_consumer)  # type: ignore
-
-        for event in events:
-            # HACK: address jankiness?
+        for scenario_name in [sn for sn in started if sn not in results]:
             # FIXME: move logic to eventing function
             # FEATURE: stream back metrics gathered from scenarios
-            results[event.scenario_name] = json.loads(event.result.json())
-
-            yield TestStatus(
-                type="SCENARIO_FINISHED",
-                scenario=event.scenario_name,
-                message=f"Finished Scenario: {event.scenario_name}",
-                context=json.dumps(results),
+            result = datastore.move_scenario_result(
+                started[scenario_name],
+                datastore_address,
             )
+
+            if result is not None:
+                results[scenario_name] = result
+
+                yield TestStatus(
+                    type="SCENARIO_FINISHED",
+                    scenario=scenario_name,
+                    message=f"Finished Scenario: {scenario_name}",
+                    context=json.dumps(results),
+                )
 
         for scenario in [s for s in scenarios if s.name not in started]:
             # FIXME: move filtering to function
@@ -534,23 +439,30 @@ def test_runner(
                 dep.name in results and results[dep.name]["exception"] is None
                 for dep in scenario.dependencies
             ):
-                container_id = f"scenario-{scenario.name}-{str(uuid.uuid4())[:8]}"
+                scenario_id = str(uuid.uuid4())[:8]
+                container_id = f"scenario-{scenario.name}-{scenario_id}"
                 encoded_context = encode_context(results)
 
-                # FEATURE: start scenarios through manager (to remove permissions from test container)
                 args = containers.DockerServerArgs(
                     image=image,
                     name=container_id,
-                    command=f"""
-                    run-scenario
-                        --name {scenario.name}
-                        --image {image}
-                        --network {network}
-                        --test-id {test_id}
-                        --encoded-context {encoded_context}
-                        --event-broker-address {event_broker_address}
-                    """,
-                    # in_cluster: bool=True
+                    command=[
+                        "run-scenario",
+                        "--name",
+                        scenario.name,
+                        "--scenario-id",
+                        scenario_id,
+                        "--image",
+                        image,
+                        "--network",
+                        network,
+                        "--encoded-context",
+                        encoded_context,
+                        "--datastore-address",
+                        datastore_address,
+                        "--container-service-address",
+                        container_service_address,
+                    ],
                     labels=["cicada-distributed-scenario", scenario.name],
                     # env: Dict[str, str]={}
                     # volumes: Optional[List[Volume]]
@@ -560,8 +472,8 @@ def test_runner(
                     # create_network: bool=True
                 )
 
-                eventing.start_container(event_producer, container_id, args)
-                started.add(scenario.name)
+                container_service.start_container(args, container_service_address)
+                started[scenario.name] = scenario_id
 
                 yield TestStatus(
                     type="SCENARIO_STARTED",
@@ -571,9 +483,9 @@ def test_runner(
                 )
             elif all(dep.name in results for dep in scenario.dependencies):
                 # has all dependencies but some are failed
-                started.add(scenario.name)
+                started[scenario.name] = str(uuid.uuid4())[:8]
                 results[scenario.name] = json.loads(
-                    Result(
+                    datastore.Result(
                         id=str(uuid.uuid4()),
                         output=None,
                         exception="Skipped",
@@ -598,10 +510,8 @@ def scenario_runner(
     image: str,
     network: str,
     scenario_id: str,
-    test_id: str,
-    event_producer: eventing.KafkaProducer,
-    result_consumer: eventing.KafkaConsumer,
-    event_broker_address: str,
+    datastore_address: str,
+    container_service_address: str,
     context: dict,
 ):
     """Set up scenario environment and run scenario. Capture output and exceptions
@@ -611,10 +521,8 @@ def scenario_runner(
         image (str): Image for scenario
         network (str): Network to run scenario containers in
         scenario_id (str): ID generated for scenario run
-        test_id (str): ID generated for test run
-        event_producer (eventing.KafkaProducer): Client to produce result event
-        result_consumer (eventing.KafkaConsumer): Client to receive results from users
-        event_broker_address (str): Address of event client to pass to users
+        datastore_address (str): Address of datastore passed to users
+        container_service (str): Address of container service to start and stop users
         context (dict): Test context to pass to users
     """
     scenario_commands = ScenarioCommands(
@@ -622,9 +530,8 @@ def scenario_runner(
         image,
         network,
         scenario_id,
-        event_producer,
-        result_consumer,
-        event_broker_address,
+        datastore_address,
+        container_service_address,
         context,
     )
 
@@ -666,24 +573,20 @@ def scenario_runner(
     # Clean up
     scenario_commands.scale_users(0)
 
-    result = Result(
-        id=str(uuid.uuid4()),
+    datastore.set_scenario_result(
+        scenario_id=scenario_id,
         output=output,
         exception=exception,
         logs=buffer.getvalue(),
-        timestamp=datetime.now(),
         time_taken=(end - start).seconds,
+        address=datastore_address,
     )
-
-    eventing.report_scenario_result(event_producer, scenario.name, test_id, result)
 
 
 def user_runner(
     scenario: "Scenario",
     user_id: str,
-    scenario_id: str,
-    work_consumer: eventing.KafkaConsumer,
-    event_producer: eventing.KafkaProducer,
+    datastore_address: str,
     context: dict,
 ):
     """Set up environment for user and run user
@@ -691,17 +594,13 @@ def user_runner(
     Args:
         scenario (Scenario): Scenario being run
         user_id (str): ID generated for user
-        scenario_id (str): ID generated for scenario
-        work_consumer (eventing.KafkaConsumer): Client to receive work events
-        event_producer (eventing.KafkaProducer): Client to send results back to scenario
+        datastore_address (str): Address of datastore client to save results
         context (dict): Test context containing previous scenario results
     """
     user_commands = UserCommands(
         scenario,
         user_id,
-        scenario_id,
-        work_consumer,
-        event_producer,
+        datastore_address,
     )
 
     scenario.user_loop(user_commands, context)  # type: ignore
@@ -754,7 +653,7 @@ def while_alive():
 
 
 def iterations_per_second_limited(limit: int):
-    """Allows a user to run a limited number of iterations per second
+    """Allows a user to run a limited number of iterations per second.
 
     Args:
         limit (int): Max iterations per second for user
@@ -798,7 +697,7 @@ def n_iterations(
     timeout: Optional[int] = 15,
     skip_scaledown: bool = False,
 ):
-    """Creates a load model where a pool of users is called n times
+    """Create a load model where a pool of users is called n times.
 
     Args:
         iterations (int): Number of shared iterations for users to run
@@ -825,9 +724,7 @@ def n_iterations(
                 scenario_commands.scale_users(0)
                 raise AssertionError("Timed out waiting for results")
 
-            latest_results = scenario_commands.get_latest_results(
-                max_results=iterations
-            )
+            latest_results = scenario_commands.get_latest_results()
 
             scenario_commands.aggregate_results(latest_results)
             scenario_commands.verify_results(latest_results)
@@ -844,7 +741,7 @@ def n_iterations(
 
 
 def run_scenario_once(wait_period: int = 1, timeout: Optional[int] = 15):
-    """Runs scenario one time with one user
+    """Run scenario one time with one user.
 
     Args:
         wait_period (int, optional): Time in seconds to wait before polling for results. Defaults to 1.
@@ -860,17 +757,15 @@ def n_seconds(
     seconds: int,
     users: int,
     wait_period: int = 1,
-    max_results_per_period: int = 1000,
     skip_scaledown=False,
 ):
     """Run the scenario for a specified duration. Should be used with the
-    'while_alive' user loop
+    'while_alive' user loop.
 
     Args:
         seconds (int): Number of seconds to run scenario
         users (int): Number of users to start for scenario
         wait_period (int, optional): Time in seconds to wait before polling for results. Defaults to 1.
-        max_results_per_period (int, optional): Max results to fetch at one time. Defaults to 1000.
         skip_scaledown (bool): Skip scaledown of users after running load function
     """
 
@@ -882,9 +777,7 @@ def n_seconds(
 
         while datetime.now() < start_time + timedelta(seconds=seconds):
             # FIXME: ensure remaining results are collected
-            latest_results = scenario_commands.get_latest_results(
-                max_results=max_results_per_period
-            )
+            latest_results = scenario_commands.get_latest_results()
 
             scenario_commands.aggregate_results(latest_results)
             scenario_commands.verify_results(latest_results)
@@ -903,17 +796,16 @@ def n_users_ramping(
     seconds: int,
     target_users: int,
     wait_period: int = 1,
-    max_results_per_period: int = 1000,
     skip_scaledown: bool = True,
 ):
-    """Scale users to target over the duration of the time specified. Use this
-    to scale users smoothly.
+    """Scale users to target over the duration of the time specified.
+
+    Use this to scale users smoothly.
 
     Args:
         seconds (int): Amount of time to spend ramping users
         target_users (int): Number of users to ramp to.
         wait_period (int, optional): Time in seconds to wait between scaling batch of users. Defaults to 1.
-        max_results_per_period (int, optional): Max number of results to return when polling. Defaults to 1000.
         skip_scaledown (bool, optional): Do not scale down users after load model completes. Defaults to True.
     """
 
@@ -944,9 +836,7 @@ def n_users_ramping(
                     scenario_commands.start_users(int(buffered_users))
                     buffered_users -= int(buffered_users)
 
-            latest_results = scenario_commands.get_latest_results(
-                max_results=max_results_per_period
-            )
+            latest_results = scenario_commands.get_latest_results()
 
             scenario_commands.aggregate_results(latest_results)
             scenario_commands.verify_results(latest_results)
@@ -970,12 +860,12 @@ def ramp_users_to_threshold(
     period_duration: int = 30,
     period_limit: Optional[int] = None,
     wait_period: int = 1,
-    max_results_per_period: int = 1000,
     skip_scaledown: bool = False,
 ):
     """Increase number of users in scenario until a threshold based on the
-    aggregated results is reached. Update aggregate with number of users determined
-    by scenario.
+    aggregated results is reached.
+
+    Update aggregate with number of users determined by scenario.
 
     Args:
         initial_users (int): Users to start stage with.
@@ -985,7 +875,6 @@ def ramp_users_to_threshold(
         period_duration (int, optional): Time in seconds to wait before scaling test. Defaults to 30.
         period_limit (Optional[int], optional): Amount of scaling events before stopping stage. Defaults to None.
         wait_period (int, optional): Time in seconds to wait before polling for results. Defaults to 1.
-        max_results_per_period (int, optional): Max results to fetch at one time. Defaults to 1000.
         skip_scaledown (bool): Skip scaledown of users after running load function
     """
 
@@ -997,9 +886,7 @@ def ramp_users_to_threshold(
         while not threshold_fn(scenario_commands.aggregated_results) and (
             period_limit is None or period_limit < period_count
         ):
-            latest_results = scenario_commands.get_latest_results(
-                max_results=max_results_per_period
-            )
+            latest_results = scenario_commands.get_latest_results()
 
             scenario_commands.aggregate_results(latest_results)
             scenario_commands.verify_results(latest_results)
@@ -1026,8 +913,9 @@ def ramp_users_to_threshold(
     return closure
 
 
-def basic_verification(latest_results: List[Result]):
-    """Creates error strings for each errored result
+def basic_verification(latest_results: List[datastore.Result]):
+    """Create error strings for each errored result.
+
     Format:
     * {type}: {error}
 
@@ -1046,8 +934,8 @@ def basic_verification(latest_results: List[Result]):
 
 UserLoopFn = Callable[[UserCommands, dict], None]
 LoadModelFn = Callable[[ScenarioCommands, dict], Any]
-ResultAggregatorFn = Callable[[Optional[Any], List[Result]], Any]
-ResultVerifierFn = Callable[[List[Result]], List[str]]
+ResultAggregatorFn = Callable[[Optional[Any], List[datastore.Result]], Any]
+ResultVerifierFn = Callable[[List[datastore.Result]], List[str]]
 OutputTransformerFn = Callable[[Optional[Any]], Any]
 
 
