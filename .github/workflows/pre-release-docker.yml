@@ -31,8 +31,9 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: cicadatesting/cicada-distributed-base-image:${{ github.sha }},cicadatesting/cicada-distributed-base-image:pre-release
-  push-container-service:
+  push-manager:
     runs-on: ubuntu-latest
+    needs: push-base-image
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -48,39 +49,14 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v2
         with:
-          context: container-service
-          file: Dockerfile
+          context: .
+          file: dockerfiles/manager.dev-b.dockerfile
           platforms: linux/amd64
           push: true
-          tags: cicadatesting/cicada-distributed-container-service:${{ github.sha }},cicadatesting/cicada-distributed-container-service:pre-release
-  push-datastore-client:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
-      - name: Login to DockerHub
-        uses: docker/login-action@v1
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-      - name: Build and push
-        uses: docker/build-push-action@v2
-        with:
-          context: datastore-client
-          file: Dockerfile
-          platforms: linux/amd64
-          push: true
-          tags: cicadatesting/cicada-distributed-datastore-client:${{ github.sha }},cicadatesting/cicada-distributed-datastore-client:pre-release
+          tags: cicadatesting/cicada-distributed-manager:${{ github.sha }},cicadatesting/cicada-distributed-manager:pre-release
   smoke-test:
     runs-on: ubuntu-latest
-    needs:
-      - push-base-image
-      - push-container-service
-      - push-datastore-client
+    needs: push-manager
     steps:
       - name: Checkout
         uses: actions/checkout@v2

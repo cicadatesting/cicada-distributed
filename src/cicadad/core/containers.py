@@ -8,7 +8,6 @@ from docker.errors import APIError, NotFound  # type: ignore
 import docker  # type: ignore
 
 from cicadad.util.constants import DEFAULT_DOCKER_NETWORK
-from cicadad import configs as configs_module
 
 
 class Volume(BaseModel):
@@ -18,9 +17,10 @@ class Volume(BaseModel):
 
 class DockerServerArgs(BaseModel):
     docker_client_args: dict = {}
-    image: str
+    image: Optional[str]
     name: Optional[str]
-    command: Optional[List[str]]
+    command: Optional[str]
+    in_cluster: bool = True
     container_id: Optional[str]
     labels: List[str] = []
     env: Dict[str, str] = {}
@@ -98,21 +98,6 @@ def configure_docker_network(
             raise ValueError(f"Docker network {network} not configured")
 
 
-def pull_docker_image(client: docker.DockerClient, image: str):
-    """Pulls image from remote
-
-    Args:
-        client (docker.DockerClient): Docker client
-        image (str): image to pull (ex: redis:6)
-    """
-    parts = image.split(":")
-
-    repository = parts[0]
-    tag = parts[1] if len(parts) > 1 else "latest"
-
-    client.images.pull(repository, tag)
-
-
 def create_docker_container(
     client: docker.DockerClient,
     args: DockerServerArgs,
@@ -144,7 +129,11 @@ def create_docker_container(
             vol.source: {"bind": vol.destination, "mode": "rw"} for vol in args.volumes
         }
 
-    if args.network != "host" and args.container_port is not None:
+    if (
+        not args.in_cluster
+        and args.network != "host"
+        and args.container_port is not None
+    ):
         if args.host_port is None:
             host_port = get_free_port()
         else:
@@ -155,7 +144,7 @@ def create_docker_container(
         port_map = {}
 
     try:
-        # Start container
+        # Start container (will pull image if necessary)
         # LOGGER.debug("Starting Docker container with image %s", image)
         return client.containers.run(
             args.image,
@@ -344,122 +333,123 @@ def clean_docker_containers(client: docker.DockerClient, label: str):
         docker_container_down(container)
 
 
-def docker_redis_up(client: docker.DockerClient, network: str):
-    """Start Redis container
+def docker_zookeeper_up(client: docker.DockerClient, network: str):
+    """Start Zookeeper container
 
     Args:
         client (docker.DockerClient): Docker client
-        network (str): Network to add Redis container to
+        network (str): Network to add Zookeeper container to
 
     Returns:
-        Redis container: Created redis container
+        Container: Zookeeper container
     """
-    image = "redis:6"
-
     args = DockerServerArgs(
-        image=image,
-        name="cicada-distributed-redis",
-        labels=["cicada-distributed-redis"],
-        volumes=[
-            Volume(
-                source=os.path.dirname(configs_module.__file__),
-                destination="/usr/local/etc/redis",
-            )
-        ],
-        host_port=6379,
-        container_port=6379,
+        image="bitnami/zookeeper:3",
+        name="cicada-distributed-zookeeper",
+        in_cluster=False,
+        labels=["cicada-distributed-zookeeper"],
+        env={"ALLOW_ANONYMOUS_LOGIN": "yes"},
+        # volumes: Optional[List[Volume]]
+        host_port=2181,
+        container_port=2181,
         network=network,
+        # create_network: bool=True
     )
 
-    pull_docker_image(client, image)
-    return docker_container_up(client, "cicada-distributed-redis", args)
+    return docker_container_up(client, "cicada-distributed-zookeeper", args)
 
 
-def docker_redis_down(client: docker.DockerClient):
-    """Stop redis container
+def docker_zookeeper_down(client: docker.DockerClient):
+    """Stop Zookeeper container
 
     Args:
         client (docker.DockerClient): Docker client
     """
-    docker_container_down_by_name(client, "cicada-distributed-redis")
+    docker_container_down_by_name(client, "cicada-distributed-zookeeper")
 
 
-def docker_datastore_client_up(client: docker.DockerClient, network: str):
-    """Start Datastore CLient container
+def docker_kafka_up(client: docker.DockerClient, network: str):
+    """Start Kafka container
 
     Args:
         client (docker.DockerClient): Docker client
-        network (str): Network to add Datastore CLient container to
+        network (str): Network to add Kafka container to
 
     Returns:
-        Datastore client container: Created datastore client container
+        Container: Kafka container
     """
-    if os.getenv("ENV") == "local":
-        image = "cicadatesting/cicada-distributed-datastore-client:latest"
-    elif os.getenv("ENV") == "dev":
-        image = "cicadatesting/cicada-distributed-datastore-client:pre-release"
-    else:
-        image = "cicadatesting/cicada-distributed-datastore-client:1.0.0"
-        pull_docker_image(client, image)
+    # FEATURE: log docker pull
 
     args = DockerServerArgs(
-        image=image,
-        name="cicada-distributed-datastore-client",
-        labels=["cicada-distributed-datastore-client"],
-        host_port=8283,
-        container_port=8283,
+        image="bitnami/kafka:2",
+        name="cicada-distributed-kafka",
+        in_cluster=False,
+        labels=["cicada-distributed-kafka"],
+        env={
+            "KAFKA_CFG_ZOOKEEPER_CONNECT": "cicada-distributed-zookeeper:2181",
+            "ALLOW_PLAINTEXT_LISTENER": "yes",
+            "KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP": "PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT",
+            "KAFKA_CFG_LISTENERS": "PLAINTEXT://:9092,PLAINTEXT_HOST://:29092",
+            "KAFKA_CFG_ADVERTISED_LISTENERS": (
+                "PLAINTEXT://cicada-distributed-kafka:9092,PLAINTEXT_HOST://localhost:29092"
+            ),
+        },
+        # volumes: Optional[List[Volume]]
+        # FEATURE: support for multiple ports
+        host_port=29092,
+        container_port=29092,
         network=network,
+        # create_network: bool=True
     )
 
-    return docker_container_up(client, "cicada-distributed-datastore-client", args)
+    return docker_container_up(client, "cicada-distributed-kafka", args)
 
 
-def docker_datastore_client_down(client: docker.DockerClient):
-    """Stop datastore client container
+def docker_kafka_down(client: docker.DockerClient):
+    """Stop Kafka container
 
     Args:
         client (docker.DockerClient): Docker client
     """
-    docker_container_down_by_name(client, "cicada-distributed-datastore-client")
+    docker_container_down_by_name(client, "cicada-distributed-kafka")
 
 
-def docker_container_service_up(client: docker.DockerClient, network: str):
-    """Start Container Service
+def docker_manager_up(client: docker.DockerClient, network: str):
+    """Start Manager container
 
     Args:
         client (docker.DockerClient): Docker client
-        network (str): Network to add Container Service to
+        network (str): Network to add Manager container to
 
     Returns:
-        Container: Container Service
+        Container: Manager container
     """
     if os.getenv("ENV") == "local":
-        image = "cicadatesting/cicada-distributed-container-service:latest"
+        image = "cicadatesting/cicada-distributed-manager:latest"
     elif os.getenv("ENV") == "dev":
-        image = "cicadatesting/cicada-distributed-container-service:pre-release"
+        image = "cicadatesting/cicada-distributed-manager:pre-release"
     else:
-        image = "cicadatesting/cicada-distributed-container-service:1.0.0"
-        pull_docker_image(client, image)
+        image = "cicadatesting/cicada-distributed-manager:1.0.0"
 
     args = DockerServerArgs(
         image=image,
-        name="cicada-distributed-container-service",
-        labels=["cicada-distributed-container-service"],
+        name="cicada-distributed-manager",
+        in_cluster=False,
+        labels=["cicada-distributed-manager"],
         volumes=[
             Volume(source="/var/run/docker.sock", destination="/var/run/docker.sock")
         ],
-        host_port=8284,
-        container_port=8284,
         network=network,
+        # create_network: bool=True
     )
 
-    return docker_container_up(client, "cicada-distributed-container-service", args)
+    return docker_container_up(client, "cicada-distributed-manager", args)
 
 
-def docker_container_service_down(client: docker.DockerClient):
-    """Stop Container Service
+def docker_manager_down(client: docker.DockerClient):
+    """Stop Manager container
 
     Args:
         client (docker.DockerClient): Docker client
     """
-    docker_container_down_by_name(client, "cicada-distributed-container-service")
+    docker_container_down_by_name(client, "cicada-distributed-manager")

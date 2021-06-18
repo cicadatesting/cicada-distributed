@@ -34,14 +34,9 @@ jobs:
       - name: build-base-image
         run: |
           make build-base-dev
-      - name: build-container-service
+      - name: build-manager
         run: |
-          cd container-service
-          make build-dev
-      - name: build-datastore-client
-        run: |
-          cd datastore-client
-          make build-dev
+          make build-manager-dev
       - name: smoke-test
         run: |
           mkdir smoke-test

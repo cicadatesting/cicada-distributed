@@ -16,7 +16,7 @@ Docker, visit https://docs.docker.com/get-docker/.
 
 # Example
 
-Before running tests, you must start `redis`, `datastore-client`, and the `container-service`
+Before running tests, you must start `zookeeper`, `kafka`, and the `manager`
 containers. To start the cluster, run:
 
 ```bash
