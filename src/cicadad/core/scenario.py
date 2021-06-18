@@ -443,7 +443,6 @@ def test_runner(
                 container_id = f"scenario-{scenario.name}-{scenario_id}"
                 encoded_context = encode_context(results)
 
-                # FEATURE: start scenarios through manager (to remove permissions from test container)
                 args = containers.DockerServerArgs(
                     image=image,
                     name=container_id,

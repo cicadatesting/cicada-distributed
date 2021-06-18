@@ -457,7 +457,7 @@ def docker_container_service_up(client: docker.DockerClient, network: str):
 
 
 def docker_container_service_down(client: docker.DockerClient):
-    """Stop Manager container
+    """Stop Container Service
 
     Args:
         client (docker.DockerClient): Docker client
