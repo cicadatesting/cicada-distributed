@@ -37,7 +37,7 @@ jobs:
       - name: build-container-service
         run: |
           cd container-service
-          make build-local
+          make build-dev
       - name: build-datastore-client
         run: |
           cd datastore-client
