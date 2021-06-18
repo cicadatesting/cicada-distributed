@@ -71,6 +71,7 @@ class Hub(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -79,7 +80,7 @@ class Hub(object):
             cicadad_dot_protos_dot_hub__pb2.RunTestRequest.SerializeToString,
             cicadad_dot_protos_dot_hub__pb2.TestStatus.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def Healthcheck(request,
@@ -87,6 +88,7 @@ class Hub(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -95,4 +97,4 @@ class Hub(object):
             google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
             cicadad_dot_protos_dot_hub__pb2.HealthcheckReply.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
