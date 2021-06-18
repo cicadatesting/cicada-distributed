@@ -79,7 +79,7 @@ cicada-distributed stop-cluster
 
 # Documentation
 
-Documentation is available at https://cicadatesting.github.io/cicada-distributed/
+Documentation is available at https://cicadatesting.github.io/cicada-distributed-docs/
 
 Demos are available at https://github.com/cicadatesting/cicada-distributed-demos
 

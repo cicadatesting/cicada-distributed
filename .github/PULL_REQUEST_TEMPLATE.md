@@ -41,3 +41,4 @@ _Link to docsite PR if necessary_
 - [ ] Dependencies have been updated in `requirements.txt` and `setup.cfg`
 - [ ] No git conflicts/updates coordinated with others
 - [ ] Git history cleaned up
+- [ ] PR is going into `dev` (unless special circumstances)
