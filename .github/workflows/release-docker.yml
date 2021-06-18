@@ -49,7 +49,7 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: container-service
-          file: Dockerfile
+          file: container-service/Dockerfile
           platforms: linux/amd64
           push: true
           tags: cicadatesting/cicada-distributed-container-service:${{ github.sha }},cicadatesting/cicada-distributed-container-service:1.0.0,cicadatesting/cicada-distributed-container-service:latest
@@ -71,7 +71,7 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: datastore-client
-          file: Dockerfile
+          file: datastore-client/Dockerfile
           platforms: linux/amd64
           push: true
           tags: cicadatesting/cicada-distributed-datastore-client:${{ github.sha }},cicadatesting/cicada-distributed-datastore-client:1.0.0,cicadatesting/cicada-distributed-datastore-client:latest
