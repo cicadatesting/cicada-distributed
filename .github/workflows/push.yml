@@ -12,7 +12,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install bandit mypy flake8 types-protobuf
+          pip install bandit mypy flake8 
           make install-local
       - name: Securtity
         run: |
@@ -23,33 +23,6 @@ jobs:
       - name: Lint
         run: |
           flake8 src/cicadad
-  unit-test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python 3.6
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.6
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install pytest
-          make install-local
-      - name: Unit Test
-        run: |
-          pytest src/tests
-  unit-test-datastore-client:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Setup go
-        uses: actions/setup-go@v1
-        with:
-          go-version: '1.16.4'
-      - run: |
-          cd datastore-client
-          go test -v ./...
   smoke-test:
     runs-on: ubuntu-latest
     steps:
@@ -63,20 +36,15 @@ jobs:
         uses: docker/setup-qemu-action@v1
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
-      - name: prepare-cicadad
+      - name: build-base-image
+        run: |
+          make build-base-local
+      - name: build-manager
+        run: |
+          make build-manager-local
+      - name: smoke-test
         run: |
           make install-local
-          make build-base-local
-      - name: build-container-service-local
-        run: |
-          cd container-service
-          make build-local
-      - name: build-datastore-client-local
-        run: |
-          cd datastore-client
-          make build-local
-      - name: run-smoke-test
-        run: |
           mkdir smoke-test
           ENV=local cicada-distributed --debug init ./smoke-test
           cd smoke-test
