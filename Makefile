@@ -21,7 +21,7 @@ install-dev-local:
 	python3 setup.py install
 
 install-dev-remote: install-dev-dependencies
-	python3 -m pip install --index-url https://test.pypi.org/simple/ --no-deps cicadad==1.1.0
+	python3 -m pip install --index-url https://test.pypi.org/simple/ --no-deps cicadad==1.0.0
 
 # NOTE: may need to use sudo
 uninstall:
@@ -34,7 +34,7 @@ build-base-dev:
 	docker build -f dockerfiles/base-image.dev-a.dockerfile -t ${BASE_IMAGE_NAME}:pre-release .
 
 build-base:
-	docker build -f dockerfiles/base-image.dockerfile -t ${BASE_IMAGE_NAME}:1.1.0 .
+	docker build -f dockerfiles/base-image.dockerfile -t ${BASE_IMAGE_NAME}:1.0.0 .
 
 clean:
 	rm -r dist
