@@ -45,7 +45,7 @@ class UserCommands(object):
         # tell user to stop to allow for a graceful user-defined exit
         return True
 
-    def has_work(self, timeout_ms: int = 1000):
+    def has_work(self, timeout_ms: Optional[int] = 1000):
         """Check if user has remaining invocations
 
         Args:
@@ -55,10 +55,15 @@ class UserCommands(object):
             bool: User has work
         """
         if self.available_work < 1:
-            # TODO: poll for work
             self.available_work = datastore.get_work(
                 self.user_id, self.datastore_address
             )
+
+            if self.available_work < 1 and timeout_ms is not None:
+                time.sleep(timeout_ms / 1000)
+                self.available_work = datastore.get_work(
+                    self.user_id, self.datastore_address
+                )
 
         has_available_work = self.available_work > 0
 
@@ -254,20 +259,23 @@ class ScenarioCommands(object):
 
     def get_latest_results(
         self,
-        timeout_ms=1000,
-        max_results=500,
+        timeout_ms: Optional[int] = 1000,
     ):
         """Gathers results produced by users
 
         Args:
             timeout_ms (int, optional): Time to wait for results. Defaults to 1000.
-            max_results (int, optional): Max amount of results to return. Defaults to 500.
 
         Returns:
             List[Result]: List of latest results collected
         """
-        # TODO: pass timeout and max results to server
-        return datastore.move_user_results(self.user_ids, self.datastore_address)
+        results = datastore.move_user_results(self.user_ids, self.datastore_address)
+
+        if results == [] and timeout_ms is not None:
+            time.sleep(timeout_ms / 1000)
+            results = datastore.move_user_results(self.user_ids, self.datastore_address)
+
+        return results
 
     def aggregate_results(self, latest_results: List[datastore.Result]) -> Any:
         """Run scenario aggregator function against latest gathered results and
@@ -717,9 +725,7 @@ def n_iterations(
                 scenario_commands.scale_users(0)
                 raise AssertionError("Timed out waiting for results")
 
-            latest_results = scenario_commands.get_latest_results(
-                max_results=iterations
-            )
+            latest_results = scenario_commands.get_latest_results()
 
             scenario_commands.aggregate_results(latest_results)
             scenario_commands.verify_results(latest_results)
@@ -752,7 +758,6 @@ def n_seconds(
     seconds: int,
     users: int,
     wait_period: int = 1,
-    max_results_per_period: int = 1000,
     skip_scaledown=False,
 ):
     """Run the scenario for a specified duration. Should be used with the
@@ -762,7 +767,6 @@ def n_seconds(
         seconds (int): Number of seconds to run scenario
         users (int): Number of users to start for scenario
         wait_period (int, optional): Time in seconds to wait before polling for results. Defaults to 1.
-        max_results_per_period (int, optional): Max results to fetch at one time. Defaults to 1000.
         skip_scaledown (bool): Skip scaledown of users after running load function
     """
 
@@ -774,9 +778,7 @@ def n_seconds(
 
         while datetime.now() < start_time + timedelta(seconds=seconds):
             # FIXME: ensure remaining results are collected
-            latest_results = scenario_commands.get_latest_results(
-                max_results=max_results_per_period
-            )
+            latest_results = scenario_commands.get_latest_results()
 
             scenario_commands.aggregate_results(latest_results)
             scenario_commands.verify_results(latest_results)
@@ -795,7 +797,6 @@ def n_users_ramping(
     seconds: int,
     target_users: int,
     wait_period: int = 1,
-    max_results_per_period: int = 1000,
     skip_scaledown: bool = True,
 ):
     """Scale users to target over the duration of the time specified.
@@ -806,7 +807,6 @@ def n_users_ramping(
         seconds (int): Amount of time to spend ramping users
         target_users (int): Number of users to ramp to.
         wait_period (int, optional): Time in seconds to wait between scaling batch of users. Defaults to 1.
-        max_results_per_period (int, optional): Max number of results to return when polling. Defaults to 1000.
         skip_scaledown (bool, optional): Do not scale down users after load model completes. Defaults to True.
     """
 
@@ -837,9 +837,7 @@ def n_users_ramping(
                     scenario_commands.start_users(int(buffered_users))
                     buffered_users -= int(buffered_users)
 
-            latest_results = scenario_commands.get_latest_results(
-                max_results=max_results_per_period
-            )
+            latest_results = scenario_commands.get_latest_results()
 
             scenario_commands.aggregate_results(latest_results)
             scenario_commands.verify_results(latest_results)
@@ -863,7 +861,6 @@ def ramp_users_to_threshold(
     period_duration: int = 30,
     period_limit: Optional[int] = None,
     wait_period: int = 1,
-    max_results_per_period: int = 1000,
     skip_scaledown: bool = False,
 ):
     """Increase number of users in scenario until a threshold based on the
@@ -879,7 +876,6 @@ def ramp_users_to_threshold(
         period_duration (int, optional): Time in seconds to wait before scaling test. Defaults to 30.
         period_limit (Optional[int], optional): Amount of scaling events before stopping stage. Defaults to None.
         wait_period (int, optional): Time in seconds to wait before polling for results. Defaults to 1.
-        max_results_per_period (int, optional): Max results to fetch at one time. Defaults to 1000.
         skip_scaledown (bool): Skip scaledown of users after running load function
     """
 
@@ -891,9 +887,7 @@ def ramp_users_to_threshold(
         while not threshold_fn(scenario_commands.aggregated_results) and (
             period_limit is None or period_limit < period_count
         ):
-            latest_results = scenario_commands.get_latest_results(
-                max_results=max_results_per_period
-            )
+            latest_results = scenario_commands.get_latest_results()
 
             scenario_commands.aggregate_results(latest_results)
             scenario_commands.verify_results(latest_results)

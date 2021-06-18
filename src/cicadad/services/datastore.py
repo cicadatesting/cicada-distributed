@@ -1,4 +1,4 @@
-from typing import Any, List, Optional
+from typing import Any, Iterable, List, Optional
 from datetime import datetime
 import pickle  # nosec
 import json
@@ -64,7 +64,7 @@ def set_scenario_result(
 
 
 def move_user_results(
-    user_ids: List[str], address: str = DEFAULT_DATASTORE_ADDRESS
+    user_ids: Iterable[str], address: str = DEFAULT_DATASTORE_ADDRESS
 ) -> List[Result]:
     with grpc.insecure_channel(address) as channel:
         stub = datastore_pb2_grpc.DatastoreStub(channel)

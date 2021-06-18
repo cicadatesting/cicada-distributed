@@ -47,8 +47,9 @@ def test_has_no_work(get_work_mock):
     uc = scenario_module.UserCommands(s, user_id, address)
 
     assert not uc.has_work()
+    assert get_work_mock.call_count == 2
 
-    get_work_mock.assert_called_once_with(user_id, address)
+    get_work_mock.assert_called_with(user_id, address)
 
 
 def test_run_logs():
