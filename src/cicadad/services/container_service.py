@@ -1,7 +1,7 @@
 from typing import Dict, List, Optional
 from google.protobuf import wrappers_pb2
 from pydantic.main import BaseModel  # type: ignore
-import grpc
+import grpc  # type: ignore
 
 from cicadad.protos import container_service_pb2, container_service_pb2_grpc
 from cicadad.util.constants import DEFAULT_CONTAINER_SERVICE_ADDRESS
