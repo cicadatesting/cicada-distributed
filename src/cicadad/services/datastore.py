@@ -68,7 +68,7 @@ def get_test_events(
         response = stub.GetTestEvents(request)
 
         return [
-            TestEvent(kind=event.kind, payload=pickle.loads(event.payload))
+            TestEvent(kind=event.kind, payload=pickle.loads(event.payload))  # nosec
             for event in response.events
         ]
 
