@@ -19,12 +19,16 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type DatastoreClient interface {
+	AddTestEvent(ctx context.Context, in *AddEventRequest, opts ...grpc.CallOption) (*empty.Empty, error)
+	GetTestEvents(ctx context.Context, in *GetEventsRequest, opts ...grpc.CallOption) (*Events, error)
 	AddUserResult(ctx context.Context, in *AddUserResultRequest, opts ...grpc.CallOption) (*empty.Empty, error)
 	SetScenarioResult(ctx context.Context, in *SetScenarioResultRequest, opts ...grpc.CallOption) (*empty.Empty, error)
 	MoveUserResults(ctx context.Context, in *MoveUserResultsRequest, opts ...grpc.CallOption) (*MoveUserResultsResponse, error)
 	MoveScenarioResult(ctx context.Context, in *MoveScenarioResultRequest, opts ...grpc.CallOption) (*MoveScenarioResultResponse, error)
 	DistributeWork(ctx context.Context, in *DistributeWorkRequest, opts ...grpc.CallOption) (*empty.Empty, error)
 	GetUserWork(ctx context.Context, in *GetUserWorkRequest, opts ...grpc.CallOption) (*GetUserWorkResponse, error)
+	AddUserEvent(ctx context.Context, in *AddEventRequest, opts ...grpc.CallOption) (*empty.Empty, error)
+	GetUserEvents(ctx context.Context, in *GetEventsRequest, opts ...grpc.CallOption) (*Events, error)
 }
 
 type datastoreClient struct {
@@ -33,6 +37,24 @@ type datastoreClient struct {
 
 func NewDatastoreClient(cc grpc.ClientConnInterface) DatastoreClient {
 	return &datastoreClient{cc}
+}
+
+func (c *datastoreClient) AddTestEvent(ctx context.Context, in *AddEventRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
+	out := new(empty.Empty)
+	err := c.cc.Invoke(ctx, "/datastore.Datastore/AddTestEvent", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *datastoreClient) GetTestEvents(ctx context.Context, in *GetEventsRequest, opts ...grpc.CallOption) (*Events, error) {
+	out := new(Events)
+	err := c.cc.Invoke(ctx, "/datastore.Datastore/GetTestEvents", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *datastoreClient) AddUserResult(ctx context.Context, in *AddUserResultRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
@@ -89,16 +111,38 @@ func (c *datastoreClient) GetUserWork(ctx context.Context, in *GetUserWorkReques
 	return out, nil
 }
 
+func (c *datastoreClient) AddUserEvent(ctx context.Context, in *AddEventRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
+	out := new(empty.Empty)
+	err := c.cc.Invoke(ctx, "/datastore.Datastore/AddUserEvent", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *datastoreClient) GetUserEvents(ctx context.Context, in *GetEventsRequest, opts ...grpc.CallOption) (*Events, error) {
+	out := new(Events)
+	err := c.cc.Invoke(ctx, "/datastore.Datastore/GetUserEvents", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // DatastoreServer is the server API for Datastore service.
 // All implementations must embed UnimplementedDatastoreServer
 // for forward compatibility
 type DatastoreServer interface {
+	AddTestEvent(context.Context, *AddEventRequest) (*empty.Empty, error)
+	GetTestEvents(context.Context, *GetEventsRequest) (*Events, error)
 	AddUserResult(context.Context, *AddUserResultRequest) (*empty.Empty, error)
 	SetScenarioResult(context.Context, *SetScenarioResultRequest) (*empty.Empty, error)
 	MoveUserResults(context.Context, *MoveUserResultsRequest) (*MoveUserResultsResponse, error)
 	MoveScenarioResult(context.Context, *MoveScenarioResultRequest) (*MoveScenarioResultResponse, error)
 	DistributeWork(context.Context, *DistributeWorkRequest) (*empty.Empty, error)
 	GetUserWork(context.Context, *GetUserWorkRequest) (*GetUserWorkResponse, error)
+	AddUserEvent(context.Context, *AddEventRequest) (*empty.Empty, error)
+	GetUserEvents(context.Context, *GetEventsRequest) (*Events, error)
 	mustEmbedUnimplementedDatastoreServer()
 }
 
@@ -106,6 +150,12 @@ type DatastoreServer interface {
 type UnimplementedDatastoreServer struct {
 }
 
+func (UnimplementedDatastoreServer) AddTestEvent(context.Context, *AddEventRequest) (*empty.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddTestEvent not implemented")
+}
+func (UnimplementedDatastoreServer) GetTestEvents(context.Context, *GetEventsRequest) (*Events, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetTestEvents not implemented")
+}
 func (UnimplementedDatastoreServer) AddUserResult(context.Context, *AddUserResultRequest) (*empty.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AddUserResult not implemented")
 }
@@ -124,6 +174,12 @@ func (UnimplementedDatastoreServer) DistributeWork(context.Context, *DistributeW
 func (UnimplementedDatastoreServer) GetUserWork(context.Context, *GetUserWorkRequest) (*GetUserWorkResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUserWork not implemented")
 }
+func (UnimplementedDatastoreServer) AddUserEvent(context.Context, *AddEventRequest) (*empty.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddUserEvent not implemented")
+}
+func (UnimplementedDatastoreServer) GetUserEvents(context.Context, *GetEventsRequest) (*Events, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetUserEvents not implemented")
+}
 func (UnimplementedDatastoreServer) mustEmbedUnimplementedDatastoreServer() {}
 
 // UnsafeDatastoreServer may be embedded to opt out of forward compatibility for this service.
@@ -135,6 +191,42 @@ type UnsafeDatastoreServer interface {
 
 func RegisterDatastoreServer(s grpc.ServiceRegistrar, srv DatastoreServer) {
 	s.RegisterService(&Datastore_ServiceDesc, srv)
+}
+
+func _Datastore_AddTestEvent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddEventRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DatastoreServer).AddTestEvent(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/datastore.Datastore/AddTestEvent",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DatastoreServer).AddTestEvent(ctx, req.(*AddEventRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Datastore_GetTestEvents_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetEventsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DatastoreServer).GetTestEvents(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/datastore.Datastore/GetTestEvents",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DatastoreServer).GetTestEvents(ctx, req.(*GetEventsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _Datastore_AddUserResult_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -245,6 +337,42 @@ func _Datastore_GetUserWork_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Datastore_AddUserEvent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddEventRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DatastoreServer).AddUserEvent(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/datastore.Datastore/AddUserEvent",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DatastoreServer).AddUserEvent(ctx, req.(*AddEventRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Datastore_GetUserEvents_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetEventsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DatastoreServer).GetUserEvents(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/datastore.Datastore/GetUserEvents",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DatastoreServer).GetUserEvents(ctx, req.(*GetEventsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Datastore_ServiceDesc is the grpc.ServiceDesc for Datastore service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -252,6 +380,14 @@ var Datastore_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "datastore.Datastore",
 	HandlerType: (*DatastoreServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "AddTestEvent",
+			Handler:    _Datastore_AddTestEvent_Handler,
+		},
+		{
+			MethodName: "GetTestEvents",
+			Handler:    _Datastore_GetTestEvents_Handler,
+		},
 		{
 			MethodName: "AddUserResult",
 			Handler:    _Datastore_AddUserResult_Handler,
@@ -275,6 +411,14 @@ var Datastore_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetUserWork",
 			Handler:    _Datastore_GetUserWork_Handler,
+		},
+		{
+			MethodName: "AddUserEvent",
+			Handler:    _Datastore_AddUserEvent_Handler,
+		},
+		{
+			MethodName: "GetUserEvents",
+			Handler:    _Datastore_GetUserEvents_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

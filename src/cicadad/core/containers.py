@@ -450,6 +450,7 @@ def docker_container_service_up(client: docker.DockerClient, network: str):
         ],
         host_port=8284,
         container_port=8284,
+        env={"RUNNER_TYPE": "DOCKER"},
         network=network,
     )
 

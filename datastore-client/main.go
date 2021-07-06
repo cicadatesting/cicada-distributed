@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net"
+	"os"
 
 	"github.com/cicadatesting/datastore-client/api"
 	"github.com/cicadatesting/datastore-client/cmd"
@@ -17,9 +19,15 @@ func main() {
 		log.Fatalf("failed to listen: %v", err)
 	}
 
+	redisAddress := os.Getenv("REDIS_ENDPOINT")
+
+	if redisAddress == "" {
+		redisAddress = "cicada-distributed-redis"
+	}
+
 	s := grpc.NewServer()
 	rds := redis.NewClient(&redis.Options{
-		Addr:     "cicada-distributed-redis:6379",
+		Addr:     fmt.Sprintf("%s:6379", redisAddress),
 		Password: "", // no password set
 		DB:       0,  // use default DB
 	})

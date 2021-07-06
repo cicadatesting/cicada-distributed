@@ -31,7 +31,7 @@ build-base-local:
 	docker build -f dockerfiles/base-image.local.dockerfile -t ${BASE_IMAGE_NAME}:latest .
 
 build-base-dev:
-	docker build -f dockerfiles/base-image.dev-a.dockerfile -t ${BASE_IMAGE_NAME}:pre-release .
+	docker build -f dockerfiles/base-image.dev.dockerfile -t ${BASE_IMAGE_NAME}:pre-release .
 
 build-base:
 	docker build -f dockerfiles/base-image.dockerfile -t ${BASE_IMAGE_NAME}:1.1.0 .

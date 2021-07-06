@@ -11,24 +11,45 @@ service ContainerService {
     rpc StopContainer (StopContainerRequest) returns (google.protobuf.Empty);
 }
 
-message StartContainerRequest {
-    string image = 1;
-    string name = 2;
-    repeated string command = 3;
-    repeated string labels = 4;
-    map<string, string> env = 5;
-    repeated DockerVolume volumes = 6;
-    google.protobuf.Int32Value hostPort = 7;
-    google.protobuf.Int32Value containerPort = 8;
-    google.protobuf.StringValue network = 9;
-    google.protobuf.BoolValue createNetwork = 10;
+message DockerArgs {
+    map<string, string> labels = 1;
 }
 
-message DockerVolume {
-    string source = 1;
-    string destination = 2;
+message DockerContainerArgs {
+    string image = 1;
+    repeated string command = 2;
+    map<string, string> env = 3;
+    google.protobuf.StringValue network = 4;
+}
+
+message KubeArgs {
+    map<string, string> labels = 1;
+    string namespace = 2;
+}
+
+message KubeContainerArgs {
+    string image = 1;
+    repeated string command = 2;
+    map<string, string> env = 3;
+}
+
+message StartContainerRequest {
+    string name = 1;
+    oneof args {
+        DockerArgs dockerArgs = 2;
+        KubeArgs kubeArgs = 3;
+    }
+    oneof containerArgs {
+        DockerContainerArgs dockerContainerArgs = 4;
+        KubeContainerArgs kubeContainerArgs = 5;
+    }
 }
 
 message StopContainerRequest {
-    string containerID = 1;
+    string name = 1;
+    oneof args {
+        DockerArgs dockerArgs = 2;
+        KubeArgs kubeArgs = 3;
+    }
 }
+

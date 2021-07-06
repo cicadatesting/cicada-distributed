@@ -1,8 +1,8 @@
 name: Pre-Release-PyPi
 on:
-  push:
-    branches:
-      - main
+  release:
+    types:
+      - prereleased
 jobs:
   push-to-pypi:
     runs-on: ubuntu-latest
