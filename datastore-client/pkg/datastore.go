@@ -23,6 +23,10 @@ type RedisClient interface {
 	Set(ctx context.Context, key string, value interface{}, expiration time.Duration) *redis.StatusCmd
 }
 
+func testEventKey(testID string) string {
+	return fmt.Sprintf("%s-test-events", testID)
+}
+
 func userResultKey(userID string) string {
 	return fmt.Sprintf("%s-results", userID)
 }
@@ -33,6 +37,64 @@ func userWorkKey(userID string) string {
 
 func scenarioResultKey(scenarioID string) string {
 	return fmt.Sprintf("%s-result", scenarioID)
+}
+
+func userEventKey(userID string) string {
+	return fmt.Sprintf("%s-user-events", userID)
+}
+
+type Event struct {
+	Kind    string
+	Payload []byte
+}
+
+func (datastore *Datastore) addEvent(ctx context.Context, key, kind string, payload []byte) error {
+	b, err := msgpack.Marshal(&Event{Kind: kind, Payload: payload})
+
+	if err != nil {
+		return err
+	}
+
+	_, err = datastore.Rds.RPush(ctx, key, b).Result()
+
+	return err
+}
+
+func (datastore *Datastore) getEvents(ctx context.Context, key string) ([]*Event, error) {
+	len, err := datastore.Rds.LLen(ctx, key).Result()
+
+	if err != nil {
+		return nil, err
+	}
+
+	events := []*Event{}
+
+	for i := int64(0); i < len; i++ {
+		event := Event{}
+		b, err := datastore.Rds.LPop(ctx, key).Bytes()
+
+		if err != nil {
+			return nil, err
+		}
+
+		err = msgpack.Unmarshal(b, &event)
+
+		if err != nil {
+			return nil, err
+		}
+
+		events = append(events, &event)
+	}
+
+	return events, nil
+}
+
+func (datastore *Datastore) AddTestEvent(ctx context.Context, testID, kind string, payload []byte) error {
+	return datastore.addEvent(ctx, testEventKey(testID), kind, payload)
+}
+
+func (datastore *Datastore) GetTestEvents(ctx context.Context, testID string) ([]*Event, error) {
+	return datastore.getEvents(ctx, testEventKey(testID))
 }
 
 type ScenarioResult struct {
@@ -86,29 +148,26 @@ func (datastore *Datastore) MoveUserResults(ctx context.Context, userIDs []strin
 	// for each user, lpop all elements of user result
 	// may need to unlink key (with lock)
 	results := [][]byte{}
-	var resultError error
 
 	for _, userID := range userIDs {
 		len, err := datastore.Rds.LLen(ctx, userResultKey(userID)).Result()
 
 		if err != nil {
-			resultError = err
-			break
+			return nil, err
 		}
 
 		for i := int64(0); i < len; i++ {
 			result, err := datastore.Rds.LPop(ctx, userResultKey(userID)).Bytes()
 
 			if err != nil {
-				resultError = err
-				break
+				return nil, err
 			}
 
 			results = append(results, result)
 		}
 	}
 
-	return results, resultError
+	return results, nil
 }
 
 func (datastore *Datastore) MoveScenarioResult(ctx context.Context, scenarioID string) (*ScenarioResult, error) {
@@ -184,4 +243,12 @@ func (datastore *Datastore) GetUserWork(ctx context.Context, userID string) (int
 	}
 
 	return totalWork, nil
+}
+
+func (datastore *Datastore) AddUserEvent(ctx context.Context, userID, kind string, payload []byte) error {
+	return datastore.addEvent(ctx, userEventKey(userID), kind, payload)
+}
+
+func (datastore *Datastore) GetUserEvents(ctx context.Context, userID string) ([]*Event, error) {
+	return datastore.getEvents(ctx, userEventKey(userID))
 }

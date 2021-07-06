@@ -15,6 +15,16 @@ class DatastoreStub(object):
         Args:
             channel: A grpc.Channel.
         """
+        self.AddTestEvent = channel.unary_unary(
+                '/datastore.Datastore/AddTestEvent',
+                request_serializer=cicadad_dot_protos_dot_datastore__pb2.AddEventRequest.SerializeToString,
+                response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                )
+        self.GetTestEvents = channel.unary_unary(
+                '/datastore.Datastore/GetTestEvents',
+                request_serializer=cicadad_dot_protos_dot_datastore__pb2.GetEventsRequest.SerializeToString,
+                response_deserializer=cicadad_dot_protos_dot_datastore__pb2.Events.FromString,
+                )
         self.AddUserResult = channel.unary_unary(
                 '/datastore.Datastore/AddUserResult',
                 request_serializer=cicadad_dot_protos_dot_datastore__pb2.AddUserResultRequest.SerializeToString,
@@ -45,10 +55,32 @@ class DatastoreStub(object):
                 request_serializer=cicadad_dot_protos_dot_datastore__pb2.GetUserWorkRequest.SerializeToString,
                 response_deserializer=cicadad_dot_protos_dot_datastore__pb2.GetUserWorkResponse.FromString,
                 )
+        self.AddUserEvent = channel.unary_unary(
+                '/datastore.Datastore/AddUserEvent',
+                request_serializer=cicadad_dot_protos_dot_datastore__pb2.AddEventRequest.SerializeToString,
+                response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                )
+        self.GetUserEvents = channel.unary_unary(
+                '/datastore.Datastore/GetUserEvents',
+                request_serializer=cicadad_dot_protos_dot_datastore__pb2.GetEventsRequest.SerializeToString,
+                response_deserializer=cicadad_dot_protos_dot_datastore__pb2.Events.FromString,
+                )
 
 
 class DatastoreServicer(object):
     """Missing associated documentation comment in .proto file."""
+
+    def AddTestEvent(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetTestEvents(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
     def AddUserResult(self, request, context):
         """Missing associated documentation comment in .proto file."""
@@ -86,9 +118,31 @@ class DatastoreServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def AddUserEvent(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetUserEvents(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_DatastoreServicer_to_server(servicer, server):
     rpc_method_handlers = {
+            'AddTestEvent': grpc.unary_unary_rpc_method_handler(
+                    servicer.AddTestEvent,
+                    request_deserializer=cicadad_dot_protos_dot_datastore__pb2.AddEventRequest.FromString,
+                    response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            ),
+            'GetTestEvents': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetTestEvents,
+                    request_deserializer=cicadad_dot_protos_dot_datastore__pb2.GetEventsRequest.FromString,
+                    response_serializer=cicadad_dot_protos_dot_datastore__pb2.Events.SerializeToString,
+            ),
             'AddUserResult': grpc.unary_unary_rpc_method_handler(
                     servicer.AddUserResult,
                     request_deserializer=cicadad_dot_protos_dot_datastore__pb2.AddUserResultRequest.FromString,
@@ -119,6 +173,16 @@ def add_DatastoreServicer_to_server(servicer, server):
                     request_deserializer=cicadad_dot_protos_dot_datastore__pb2.GetUserWorkRequest.FromString,
                     response_serializer=cicadad_dot_protos_dot_datastore__pb2.GetUserWorkResponse.SerializeToString,
             ),
+            'AddUserEvent': grpc.unary_unary_rpc_method_handler(
+                    servicer.AddUserEvent,
+                    request_deserializer=cicadad_dot_protos_dot_datastore__pb2.AddEventRequest.FromString,
+                    response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            ),
+            'GetUserEvents': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetUserEvents,
+                    request_deserializer=cicadad_dot_protos_dot_datastore__pb2.GetEventsRequest.FromString,
+                    response_serializer=cicadad_dot_protos_dot_datastore__pb2.Events.SerializeToString,
+            ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
             'datastore.Datastore', rpc_method_handlers)
@@ -128,6 +192,40 @@ def add_DatastoreServicer_to_server(servicer, server):
  # This class is part of an EXPERIMENTAL API.
 class Datastore(object):
     """Missing associated documentation comment in .proto file."""
+
+    @staticmethod
+    def AddTestEvent(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/datastore.Datastore/AddTestEvent',
+            cicadad_dot_protos_dot_datastore__pb2.AddEventRequest.SerializeToString,
+            google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def GetTestEvents(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/datastore.Datastore/GetTestEvents',
+            cicadad_dot_protos_dot_datastore__pb2.GetEventsRequest.SerializeToString,
+            cicadad_dot_protos_dot_datastore__pb2.Events.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def AddUserResult(request,
@@ -228,5 +326,39 @@ class Datastore(object):
         return grpc.experimental.unary_unary(request, target, '/datastore.Datastore/GetUserWork',
             cicadad_dot_protos_dot_datastore__pb2.GetUserWorkRequest.SerializeToString,
             cicadad_dot_protos_dot_datastore__pb2.GetUserWorkResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def AddUserEvent(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/datastore.Datastore/AddUserEvent',
+            cicadad_dot_protos_dot_datastore__pb2.AddEventRequest.SerializeToString,
+            google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def GetUserEvents(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/datastore.Datastore/GetUserEvents',
+            cicadad_dot_protos_dot_datastore__pb2.GetEventsRequest.SerializeToString,
+            cicadad_dot_protos_dot_datastore__pb2.Events.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

@@ -21,30 +21,30 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=b'Z.github.com/cicadatesting/container-service/api',
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n&cicadad/protos/container_service.proto\x12\x11\x63ontainer_service\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1egoogle/protobuf/wrappers.proto\"\xb8\x03\n\x15StartContainerRequest\x12\r\n\x05image\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0f\n\x07\x63ommand\x18\x03 \x03(\t\x12\x0e\n\x06labels\x18\x04 \x03(\t\x12>\n\x03\x65nv\x18\x05 \x03(\x0b\x32\x31.container_service.StartContainerRequest.EnvEntry\x12\x30\n\x07volumes\x18\x06 \x03(\x0b\x32\x1f.container_service.DockerVolume\x12-\n\x08hostPort\x18\x07 \x01(\x0b\x32\x1b.google.protobuf.Int32Value\x12\x32\n\rcontainerPort\x18\x08 \x01(\x0b\x32\x1b.google.protobuf.Int32Value\x12-\n\x07network\x18\t \x01(\x0b\x32\x1c.google.protobuf.StringValue\x12\x31\n\rcreateNetwork\x18\n \x01(\x0b\x32\x1a.google.protobuf.BoolValue\x1a*\n\x08\x45nvEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"3\n\x0c\x44ockerVolume\x12\x0e\n\x06source\x18\x01 \x01(\t\x12\x13\n\x0b\x64\x65stination\x18\x02 \x01(\t\"+\n\x14StopContainerRequest\x12\x13\n\x0b\x63ontainerID\x18\x01 \x01(\t2\xb8\x01\n\x10\x43ontainerService\x12R\n\x0eStartContainer\x12(.container_service.StartContainerRequest\x1a\x16.google.protobuf.Empty\x12P\n\rStopContainer\x12\'.container_service.StopContainerRequest\x1a\x16.google.protobuf.EmptyB0Z.github.com/cicadatesting/container-service/apib\x06proto3'
+  serialized_pb=b'\n&cicadad/protos/container_service.proto\x12\x11\x63ontainer_service\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1egoogle/protobuf/wrappers.proto\"v\n\nDockerArgs\x12\x39\n\x06labels\x18\x01 \x03(\x0b\x32).container_service.DockerArgs.LabelsEntry\x1a-\n\x0bLabelsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"\xce\x01\n\x13\x44ockerContainerArgs\x12\r\n\x05image\x18\x01 \x01(\t\x12\x0f\n\x07\x63ommand\x18\x02 \x03(\t\x12<\n\x03\x65nv\x18\x03 \x03(\x0b\x32/.container_service.DockerContainerArgs.EnvEntry\x12-\n\x07network\x18\x04 \x01(\x0b\x32\x1c.google.protobuf.StringValue\x1a*\n\x08\x45nvEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"\x85\x01\n\x08KubeArgs\x12\x37\n\x06labels\x18\x01 \x03(\x0b\x32\'.container_service.KubeArgs.LabelsEntry\x12\x11\n\tnamespace\x18\x02 \x01(\t\x1a-\n\x0bLabelsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"\x9b\x01\n\x11KubeContainerArgs\x12\r\n\x05image\x18\x01 \x01(\t\x12\x0f\n\x07\x63ommand\x18\x02 \x03(\t\x12:\n\x03\x65nv\x18\x03 \x03(\x0b\x32-.container_service.KubeContainerArgs.EnvEntry\x1a*\n\x08\x45nvEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"\xae\x02\n\x15StartContainerRequest\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x33\n\ndockerArgs\x18\x02 \x01(\x0b\x32\x1d.container_service.DockerArgsH\x00\x12/\n\x08kubeArgs\x18\x03 \x01(\x0b\x32\x1b.container_service.KubeArgsH\x00\x12\x45\n\x13\x64ockerContainerArgs\x18\x04 \x01(\x0b\x32&.container_service.DockerContainerArgsH\x01\x12\x41\n\x11kubeContainerArgs\x18\x05 \x01(\x0b\x32$.container_service.KubeContainerArgsH\x01\x42\x06\n\x04\x61rgsB\x0f\n\rcontainerArgs\"\x92\x01\n\x14StopContainerRequest\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x33\n\ndockerArgs\x18\x02 \x01(\x0b\x32\x1d.container_service.DockerArgsH\x00\x12/\n\x08kubeArgs\x18\x03 \x01(\x0b\x32\x1b.container_service.KubeArgsH\x00\x42\x06\n\x04\x61rgs2\xb8\x01\n\x10\x43ontainerService\x12R\n\x0eStartContainer\x12(.container_service.StartContainerRequest\x1a\x16.google.protobuf.Empty\x12P\n\rStopContainer\x12\'.container_service.StopContainerRequest\x1a\x16.google.protobuf.EmptyB0Z.github.com/cicadatesting/container-service/apib\x06proto3'
   ,
   dependencies=[google_dot_protobuf_dot_empty__pb2.DESCRIPTOR,google_dot_protobuf_dot_wrappers__pb2.DESCRIPTOR,])
 
 
 
 
-_STARTCONTAINERREQUEST_ENVENTRY = _descriptor.Descriptor(
-  name='EnvEntry',
-  full_name='container_service.StartContainerRequest.EnvEntry',
+_DOCKERARGS_LABELSENTRY = _descriptor.Descriptor(
+  name='LabelsEntry',
+  full_name='container_service.DockerArgs.LabelsEntry',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   create_key=_descriptor._internal_create_key,
   fields=[
     _descriptor.FieldDescriptor(
-      name='key', full_name='container_service.StartContainerRequest.EnvEntry.key', index=0,
+      name='key', full_name='container_service.DockerArgs.LabelsEntry.key', index=0,
       number=1, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='value', full_name='container_service.StartContainerRequest.EnvEntry.value', index=1,
+      name='value', full_name='container_service.DockerArgs.LabelsEntry.value', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
@@ -62,9 +62,293 @@ _STARTCONTAINERREQUEST_ENVENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=521,
-  serialized_end=563,
+  serialized_start=195,
+  serialized_end=240,
 )
+
+_DOCKERARGS = _descriptor.Descriptor(
+  name='DockerArgs',
+  full_name='container_service.DockerArgs',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='labels', full_name='container_service.DockerArgs.labels', index=0,
+      number=1, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[_DOCKERARGS_LABELSENTRY, ],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=122,
+  serialized_end=240,
+)
+
+
+_DOCKERCONTAINERARGS_ENVENTRY = _descriptor.Descriptor(
+  name='EnvEntry',
+  full_name='container_service.DockerContainerArgs.EnvEntry',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='key', full_name='container_service.DockerContainerArgs.EnvEntry.key', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='value', full_name='container_service.DockerContainerArgs.EnvEntry.value', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=b'8\001',
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=407,
+  serialized_end=449,
+)
+
+_DOCKERCONTAINERARGS = _descriptor.Descriptor(
+  name='DockerContainerArgs',
+  full_name='container_service.DockerContainerArgs',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='image', full_name='container_service.DockerContainerArgs.image', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='command', full_name='container_service.DockerContainerArgs.command', index=1,
+      number=2, type=9, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='env', full_name='container_service.DockerContainerArgs.env', index=2,
+      number=3, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='network', full_name='container_service.DockerContainerArgs.network', index=3,
+      number=4, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[_DOCKERCONTAINERARGS_ENVENTRY, ],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=243,
+  serialized_end=449,
+)
+
+
+_KUBEARGS_LABELSENTRY = _descriptor.Descriptor(
+  name='LabelsEntry',
+  full_name='container_service.KubeArgs.LabelsEntry',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='key', full_name='container_service.KubeArgs.LabelsEntry.key', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='value', full_name='container_service.KubeArgs.LabelsEntry.value', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=b'8\001',
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=195,
+  serialized_end=240,
+)
+
+_KUBEARGS = _descriptor.Descriptor(
+  name='KubeArgs',
+  full_name='container_service.KubeArgs',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='labels', full_name='container_service.KubeArgs.labels', index=0,
+      number=1, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='namespace', full_name='container_service.KubeArgs.namespace', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[_KUBEARGS_LABELSENTRY, ],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=452,
+  serialized_end=585,
+)
+
+
+_KUBECONTAINERARGS_ENVENTRY = _descriptor.Descriptor(
+  name='EnvEntry',
+  full_name='container_service.KubeContainerArgs.EnvEntry',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='key', full_name='container_service.KubeContainerArgs.EnvEntry.key', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='value', full_name='container_service.KubeContainerArgs.EnvEntry.value', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=b'8\001',
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=407,
+  serialized_end=449,
+)
+
+_KUBECONTAINERARGS = _descriptor.Descriptor(
+  name='KubeContainerArgs',
+  full_name='container_service.KubeContainerArgs',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='image', full_name='container_service.KubeContainerArgs.image', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='command', full_name='container_service.KubeContainerArgs.command', index=1,
+      number=2, type=9, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='env', full_name='container_service.KubeContainerArgs.env', index=2,
+      number=3, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[_KUBECONTAINERARGS_ENVENTRY, ],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=588,
+  serialized_end=743,
+)
+
 
 _STARTCONTAINERREQUEST = _descriptor.Descriptor(
   name='StartContainerRequest',
@@ -75,111 +359,37 @@ _STARTCONTAINERREQUEST = _descriptor.Descriptor(
   create_key=_descriptor._internal_create_key,
   fields=[
     _descriptor.FieldDescriptor(
-      name='image', full_name='container_service.StartContainerRequest.image', index=0,
+      name='name', full_name='container_service.StartContainerRequest.name', index=0,
       number=1, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='name', full_name='container_service.StartContainerRequest.name', index=1,
-      number=2, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"".decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='command', full_name='container_service.StartContainerRequest.command', index=2,
-      number=3, type=9, cpp_type=9, label=3,
-      has_default_value=False, default_value=[],
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='labels', full_name='container_service.StartContainerRequest.labels', index=3,
-      number=4, type=9, cpp_type=9, label=3,
-      has_default_value=False, default_value=[],
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='env', full_name='container_service.StartContainerRequest.env', index=4,
-      number=5, type=11, cpp_type=10, label=3,
-      has_default_value=False, default_value=[],
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='volumes', full_name='container_service.StartContainerRequest.volumes', index=5,
-      number=6, type=11, cpp_type=10, label=3,
-      has_default_value=False, default_value=[],
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='hostPort', full_name='container_service.StartContainerRequest.hostPort', index=6,
-      number=7, type=11, cpp_type=10, label=1,
+      name='dockerArgs', full_name='container_service.StartContainerRequest.dockerArgs', index=1,
+      number=2, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='containerPort', full_name='container_service.StartContainerRequest.containerPort', index=7,
-      number=8, type=11, cpp_type=10, label=1,
+      name='kubeArgs', full_name='container_service.StartContainerRequest.kubeArgs', index=2,
+      number=3, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='network', full_name='container_service.StartContainerRequest.network', index=8,
-      number=9, type=11, cpp_type=10, label=1,
+      name='dockerContainerArgs', full_name='container_service.StartContainerRequest.dockerContainerArgs', index=3,
+      number=4, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='createNetwork', full_name='container_service.StartContainerRequest.createNetwork', index=9,
-      number=10, type=11, cpp_type=10, label=1,
+      name='kubeContainerArgs', full_name='container_service.StartContainerRequest.kubeContainerArgs', index=4,
+      number=5, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-  ],
-  extensions=[
-  ],
-  nested_types=[_STARTCONTAINERREQUEST_ENVENTRY, ],
-  enum_types=[
-  ],
-  serialized_options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=123,
-  serialized_end=563,
-)
-
-
-_DOCKERVOLUME = _descriptor.Descriptor(
-  name='DockerVolume',
-  full_name='container_service.DockerVolume',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  create_key=_descriptor._internal_create_key,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='source', full_name='container_service.DockerVolume.source', index=0,
-      number=1, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"".decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='destination', full_name='container_service.DockerVolume.destination', index=1,
-      number=2, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
@@ -194,9 +404,19 @@ _DOCKERVOLUME = _descriptor.Descriptor(
   syntax='proto3',
   extension_ranges=[],
   oneofs=[
+    _descriptor.OneofDescriptor(
+      name='args', full_name='container_service.StartContainerRequest.args',
+      index=0, containing_type=None,
+      create_key=_descriptor._internal_create_key,
+    fields=[]),
+    _descriptor.OneofDescriptor(
+      name='containerArgs', full_name='container_service.StartContainerRequest.containerArgs',
+      index=1, containing_type=None,
+      create_key=_descriptor._internal_create_key,
+    fields=[]),
   ],
-  serialized_start=565,
-  serialized_end=616,
+  serialized_start=746,
+  serialized_end=1048,
 )
 
 
@@ -209,9 +429,23 @@ _STOPCONTAINERREQUEST = _descriptor.Descriptor(
   create_key=_descriptor._internal_create_key,
   fields=[
     _descriptor.FieldDescriptor(
-      name='containerID', full_name='container_service.StopContainerRequest.containerID', index=0,
+      name='name', full_name='container_service.StopContainerRequest.name', index=0,
       number=1, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='dockerArgs', full_name='container_service.StopContainerRequest.dockerArgs', index=1,
+      number=2, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='kubeArgs', full_name='container_service.StopContainerRequest.kubeArgs', index=2,
+      number=3, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
@@ -226,44 +460,123 @@ _STOPCONTAINERREQUEST = _descriptor.Descriptor(
   syntax='proto3',
   extension_ranges=[],
   oneofs=[
+    _descriptor.OneofDescriptor(
+      name='args', full_name='container_service.StopContainerRequest.args',
+      index=0, containing_type=None,
+      create_key=_descriptor._internal_create_key,
+    fields=[]),
   ],
-  serialized_start=618,
-  serialized_end=661,
+  serialized_start=1051,
+  serialized_end=1197,
 )
 
-_STARTCONTAINERREQUEST_ENVENTRY.containing_type = _STARTCONTAINERREQUEST
-_STARTCONTAINERREQUEST.fields_by_name['env'].message_type = _STARTCONTAINERREQUEST_ENVENTRY
-_STARTCONTAINERREQUEST.fields_by_name['volumes'].message_type = _DOCKERVOLUME
-_STARTCONTAINERREQUEST.fields_by_name['hostPort'].message_type = google_dot_protobuf_dot_wrappers__pb2._INT32VALUE
-_STARTCONTAINERREQUEST.fields_by_name['containerPort'].message_type = google_dot_protobuf_dot_wrappers__pb2._INT32VALUE
-_STARTCONTAINERREQUEST.fields_by_name['network'].message_type = google_dot_protobuf_dot_wrappers__pb2._STRINGVALUE
-_STARTCONTAINERREQUEST.fields_by_name['createNetwork'].message_type = google_dot_protobuf_dot_wrappers__pb2._BOOLVALUE
+_DOCKERARGS_LABELSENTRY.containing_type = _DOCKERARGS
+_DOCKERARGS.fields_by_name['labels'].message_type = _DOCKERARGS_LABELSENTRY
+_DOCKERCONTAINERARGS_ENVENTRY.containing_type = _DOCKERCONTAINERARGS
+_DOCKERCONTAINERARGS.fields_by_name['env'].message_type = _DOCKERCONTAINERARGS_ENVENTRY
+_DOCKERCONTAINERARGS.fields_by_name['network'].message_type = google_dot_protobuf_dot_wrappers__pb2._STRINGVALUE
+_KUBEARGS_LABELSENTRY.containing_type = _KUBEARGS
+_KUBEARGS.fields_by_name['labels'].message_type = _KUBEARGS_LABELSENTRY
+_KUBECONTAINERARGS_ENVENTRY.containing_type = _KUBECONTAINERARGS
+_KUBECONTAINERARGS.fields_by_name['env'].message_type = _KUBECONTAINERARGS_ENVENTRY
+_STARTCONTAINERREQUEST.fields_by_name['dockerArgs'].message_type = _DOCKERARGS
+_STARTCONTAINERREQUEST.fields_by_name['kubeArgs'].message_type = _KUBEARGS
+_STARTCONTAINERREQUEST.fields_by_name['dockerContainerArgs'].message_type = _DOCKERCONTAINERARGS
+_STARTCONTAINERREQUEST.fields_by_name['kubeContainerArgs'].message_type = _KUBECONTAINERARGS
+_STARTCONTAINERREQUEST.oneofs_by_name['args'].fields.append(
+  _STARTCONTAINERREQUEST.fields_by_name['dockerArgs'])
+_STARTCONTAINERREQUEST.fields_by_name['dockerArgs'].containing_oneof = _STARTCONTAINERREQUEST.oneofs_by_name['args']
+_STARTCONTAINERREQUEST.oneofs_by_name['args'].fields.append(
+  _STARTCONTAINERREQUEST.fields_by_name['kubeArgs'])
+_STARTCONTAINERREQUEST.fields_by_name['kubeArgs'].containing_oneof = _STARTCONTAINERREQUEST.oneofs_by_name['args']
+_STARTCONTAINERREQUEST.oneofs_by_name['containerArgs'].fields.append(
+  _STARTCONTAINERREQUEST.fields_by_name['dockerContainerArgs'])
+_STARTCONTAINERREQUEST.fields_by_name['dockerContainerArgs'].containing_oneof = _STARTCONTAINERREQUEST.oneofs_by_name['containerArgs']
+_STARTCONTAINERREQUEST.oneofs_by_name['containerArgs'].fields.append(
+  _STARTCONTAINERREQUEST.fields_by_name['kubeContainerArgs'])
+_STARTCONTAINERREQUEST.fields_by_name['kubeContainerArgs'].containing_oneof = _STARTCONTAINERREQUEST.oneofs_by_name['containerArgs']
+_STOPCONTAINERREQUEST.fields_by_name['dockerArgs'].message_type = _DOCKERARGS
+_STOPCONTAINERREQUEST.fields_by_name['kubeArgs'].message_type = _KUBEARGS
+_STOPCONTAINERREQUEST.oneofs_by_name['args'].fields.append(
+  _STOPCONTAINERREQUEST.fields_by_name['dockerArgs'])
+_STOPCONTAINERREQUEST.fields_by_name['dockerArgs'].containing_oneof = _STOPCONTAINERREQUEST.oneofs_by_name['args']
+_STOPCONTAINERREQUEST.oneofs_by_name['args'].fields.append(
+  _STOPCONTAINERREQUEST.fields_by_name['kubeArgs'])
+_STOPCONTAINERREQUEST.fields_by_name['kubeArgs'].containing_oneof = _STOPCONTAINERREQUEST.oneofs_by_name['args']
+DESCRIPTOR.message_types_by_name['DockerArgs'] = _DOCKERARGS
+DESCRIPTOR.message_types_by_name['DockerContainerArgs'] = _DOCKERCONTAINERARGS
+DESCRIPTOR.message_types_by_name['KubeArgs'] = _KUBEARGS
+DESCRIPTOR.message_types_by_name['KubeContainerArgs'] = _KUBECONTAINERARGS
 DESCRIPTOR.message_types_by_name['StartContainerRequest'] = _STARTCONTAINERREQUEST
-DESCRIPTOR.message_types_by_name['DockerVolume'] = _DOCKERVOLUME
 DESCRIPTOR.message_types_by_name['StopContainerRequest'] = _STOPCONTAINERREQUEST
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
-StartContainerRequest = _reflection.GeneratedProtocolMessageType('StartContainerRequest', (_message.Message,), {
+DockerArgs = _reflection.GeneratedProtocolMessageType('DockerArgs', (_message.Message,), {
 
-  'EnvEntry' : _reflection.GeneratedProtocolMessageType('EnvEntry', (_message.Message,), {
-    'DESCRIPTOR' : _STARTCONTAINERREQUEST_ENVENTRY,
+  'LabelsEntry' : _reflection.GeneratedProtocolMessageType('LabelsEntry', (_message.Message,), {
+    'DESCRIPTOR' : _DOCKERARGS_LABELSENTRY,
     '__module__' : 'cicadad.protos.container_service_pb2'
-    # @@protoc_insertion_point(class_scope:container_service.StartContainerRequest.EnvEntry)
+    # @@protoc_insertion_point(class_scope:container_service.DockerArgs.LabelsEntry)
     })
   ,
+  'DESCRIPTOR' : _DOCKERARGS,
+  '__module__' : 'cicadad.protos.container_service_pb2'
+  # @@protoc_insertion_point(class_scope:container_service.DockerArgs)
+  })
+_sym_db.RegisterMessage(DockerArgs)
+_sym_db.RegisterMessage(DockerArgs.LabelsEntry)
+
+DockerContainerArgs = _reflection.GeneratedProtocolMessageType('DockerContainerArgs', (_message.Message,), {
+
+  'EnvEntry' : _reflection.GeneratedProtocolMessageType('EnvEntry', (_message.Message,), {
+    'DESCRIPTOR' : _DOCKERCONTAINERARGS_ENVENTRY,
+    '__module__' : 'cicadad.protos.container_service_pb2'
+    # @@protoc_insertion_point(class_scope:container_service.DockerContainerArgs.EnvEntry)
+    })
+  ,
+  'DESCRIPTOR' : _DOCKERCONTAINERARGS,
+  '__module__' : 'cicadad.protos.container_service_pb2'
+  # @@protoc_insertion_point(class_scope:container_service.DockerContainerArgs)
+  })
+_sym_db.RegisterMessage(DockerContainerArgs)
+_sym_db.RegisterMessage(DockerContainerArgs.EnvEntry)
+
+KubeArgs = _reflection.GeneratedProtocolMessageType('KubeArgs', (_message.Message,), {
+
+  'LabelsEntry' : _reflection.GeneratedProtocolMessageType('LabelsEntry', (_message.Message,), {
+    'DESCRIPTOR' : _KUBEARGS_LABELSENTRY,
+    '__module__' : 'cicadad.protos.container_service_pb2'
+    # @@protoc_insertion_point(class_scope:container_service.KubeArgs.LabelsEntry)
+    })
+  ,
+  'DESCRIPTOR' : _KUBEARGS,
+  '__module__' : 'cicadad.protos.container_service_pb2'
+  # @@protoc_insertion_point(class_scope:container_service.KubeArgs)
+  })
+_sym_db.RegisterMessage(KubeArgs)
+_sym_db.RegisterMessage(KubeArgs.LabelsEntry)
+
+KubeContainerArgs = _reflection.GeneratedProtocolMessageType('KubeContainerArgs', (_message.Message,), {
+
+  'EnvEntry' : _reflection.GeneratedProtocolMessageType('EnvEntry', (_message.Message,), {
+    'DESCRIPTOR' : _KUBECONTAINERARGS_ENVENTRY,
+    '__module__' : 'cicadad.protos.container_service_pb2'
+    # @@protoc_insertion_point(class_scope:container_service.KubeContainerArgs.EnvEntry)
+    })
+  ,
+  'DESCRIPTOR' : _KUBECONTAINERARGS,
+  '__module__' : 'cicadad.protos.container_service_pb2'
+  # @@protoc_insertion_point(class_scope:container_service.KubeContainerArgs)
+  })
+_sym_db.RegisterMessage(KubeContainerArgs)
+_sym_db.RegisterMessage(KubeContainerArgs.EnvEntry)
+
+StartContainerRequest = _reflection.GeneratedProtocolMessageType('StartContainerRequest', (_message.Message,), {
   'DESCRIPTOR' : _STARTCONTAINERREQUEST,
   '__module__' : 'cicadad.protos.container_service_pb2'
   # @@protoc_insertion_point(class_scope:container_service.StartContainerRequest)
   })
 _sym_db.RegisterMessage(StartContainerRequest)
-_sym_db.RegisterMessage(StartContainerRequest.EnvEntry)
-
-DockerVolume = _reflection.GeneratedProtocolMessageType('DockerVolume', (_message.Message,), {
-  'DESCRIPTOR' : _DOCKERVOLUME,
-  '__module__' : 'cicadad.protos.container_service_pb2'
-  # @@protoc_insertion_point(class_scope:container_service.DockerVolume)
-  })
-_sym_db.RegisterMessage(DockerVolume)
 
 StopContainerRequest = _reflection.GeneratedProtocolMessageType('StopContainerRequest', (_message.Message,), {
   'DESCRIPTOR' : _STOPCONTAINERREQUEST,
@@ -274,7 +587,10 @@ _sym_db.RegisterMessage(StopContainerRequest)
 
 
 DESCRIPTOR._options = None
-_STARTCONTAINERREQUEST_ENVENTRY._options = None
+_DOCKERARGS_LABELSENTRY._options = None
+_DOCKERCONTAINERARGS_ENVENTRY._options = None
+_KUBEARGS_LABELSENTRY._options = None
+_KUBECONTAINERARGS_ENVENTRY._options = None
 
 _CONTAINERSERVICE = _descriptor.ServiceDescriptor(
   name='ContainerService',
@@ -283,8 +599,8 @@ _CONTAINERSERVICE = _descriptor.ServiceDescriptor(
   index=0,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=664,
-  serialized_end=848,
+  serialized_start=1200,
+  serialized_end=1384,
   methods=[
   _descriptor.MethodDescriptor(
     name='StartContainer',

@@ -1,5 +1,9 @@
 name: Code Check
-on: push
+on:
+  push:
+    branches-ignore:
+      - dev
+      - main
 jobs:
   code-quality:
     runs-on: ubuntu-latest

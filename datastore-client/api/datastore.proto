@@ -7,12 +7,34 @@ import "google/protobuf/empty.proto";
 import "google/protobuf/wrappers.proto";
 
 service Datastore {
+    rpc AddTestEvent (AddEventRequest) returns (google.protobuf.Empty);
+    rpc GetTestEvents (GetEventsRequest) returns (Events);
     rpc AddUserResult (AddUserResultRequest) returns (google.protobuf.Empty);
     rpc SetScenarioResult (SetScenarioResultRequest) returns (google.protobuf.Empty);
     rpc MoveUserResults (MoveUserResultsRequest) returns (MoveUserResultsResponse);
     rpc MoveScenarioResult (MoveScenarioResultRequest) returns (MoveScenarioResultResponse);
     rpc DistributeWork (DistributeWorkRequest) returns (google.protobuf.Empty);
     rpc GetUserWork (GetUserWorkRequest) returns (GetUserWorkResponse);
+    rpc AddUserEvent (AddEventRequest) returns (google.protobuf.Empty);
+    rpc GetUserEvents (GetEventsRequest) returns (Events);
+}
+
+message Event {
+    string kind = 1;
+    bytes payload = 2;
+}
+
+message AddEventRequest {
+    string id = 1;
+    Event event = 2;
+}
+
+message GetEventsRequest {
+    string id = 1;
+}
+
+message Events {
+    repeated Event events = 1;
 }
 
 message AddUserResultRequest {

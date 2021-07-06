@@ -2,6 +2,8 @@ import base64
 import json
 
 DEFAULT_DOCKER_NETWORK = "cicada-distributed-network"
+DEFAULT_KUBE_NAMESPACE = "default"
+DEFAULT_CONTAINER_MODE = "DOCKER"
 
 DEFAULT_CONTEXT_STRING = base64.b64encode(json.dumps({}).encode("ascii")).decode(
     "ascii"
