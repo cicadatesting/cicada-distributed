@@ -399,7 +399,7 @@ def docker_datastore_client_up(client: docker.DockerClient, network: str):
     elif os.getenv("ENV") == "dev":
         image = "cicadatesting/cicada-distributed-datastore-client:pre-release"
     else:
-        image = "cicadatesting/cicada-distributed-datastore-client:1.1.0"
+        image = "cicadatesting/cicada-distributed-datastore-client:1.2.0"
         pull_docker_image(client, image)
 
     args = DockerServerArgs(
@@ -438,7 +438,7 @@ def docker_container_service_up(client: docker.DockerClient, network: str):
     elif os.getenv("ENV") == "dev":
         image = "cicadatesting/cicada-distributed-container-service:pre-release"
     else:
-        image = "cicadatesting/cicada-distributed-container-service:1.1.0"
+        image = "cicadatesting/cicada-distributed-container-service:1.2.0"
         pull_docker_image(client, image)
 
     args = DockerServerArgs(
