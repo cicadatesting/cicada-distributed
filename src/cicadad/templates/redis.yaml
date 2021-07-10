@@ -1,0 +1,94 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cicada-distributed-redis
+  labels:
+    app.kubernetes.io/name: cicada-distributed-redis
+    app.kubernetes.io/managed-by: cicada-distributed
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cicada-distributed-redis-configmap
+  labels:
+    app.kubernetes.io/name: cicada-distributed-redis-configmap
+    app.kubernetes.io/managed-by: cicada-distributed
+data:
+  redis.conf: |
+    maxmemory-policy allkeys-lru
+  update-node.sh: |
+    #!/bin/sh
+    REDIS_NODES="/data/nodes.conf"
+    sed -i -e "/myself/ s/[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}/${POD_IP}/" ${REDIS_NODES}
+    exec "$@"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: cicada-distributed-redis
+    app.kubernetes.io/name: cicada-distributed-redis
+    app.kubernetes.io/managed-by: cicada-distributed
+  name: cicada-distributed-redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cicada-distributed-redis
+  template:
+    metadata:
+      labels:
+        app: cicada-distributed-redis
+    spec:
+      containers:
+      - command:
+        - redis-server
+        - /redis-master/redis.conf
+        env:
+        - name: MASTER
+          value: "true"
+        image: redis:6
+        imagePullPolicy: IfNotPresent
+        name: redis
+        ports:
+        - containerPort: 6379
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 500m
+            memory: 1Gi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        volumeMounts:
+        - mountPath: /redis-master-data
+          name: data
+        - mountPath: /redis-master
+          name: config
+      serviceAccountName: cicada-distributed-redis
+      volumes:
+      - emptyDir: {}
+        name: data
+      - configMap:
+          defaultMode: 420
+          items:
+          - key: redis.conf
+            path: redis.conf
+          name: cicada-distributed-redis-configmap
+        name: config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cicada-distributed-redis
+  labels:
+    app.kubernetes.io/name: cicada-distributed-redis
+    app.kubernetes.io/managed-by: cicada-distributed
+spec:
+  ports:
+  - port: 6379
+    protocol: TCP
+    targetPort: 6379
+  selector:
+    app: cicada-distributed-redis
+  type: ClusterIP

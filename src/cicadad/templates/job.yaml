@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cicada-distributed-job
+  labels:
+    app.kubernetes.io/name: cicada-distributed-job
+    app.kubernetes.io/managed-by: cicada-distributed

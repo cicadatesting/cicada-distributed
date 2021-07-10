@@ -68,26 +68,41 @@ def init(ctx, build_path):
 @click.pass_context
 @click.option("--network", type=str, default=constants.DEFAULT_DOCKER_NETWORK)
 @click.option("--create-network/--no-create-network", default=True)
-def start_cluster(ctx, network, create_network):
+@click.option("--mode", default=constants.DEFAULT_CONTAINER_MODE)
+def start_cluster(ctx, network, create_network, mode):
     # FEATURE: more options for docker client
-    docker_client = docker.from_env()
+    if mode == constants.KUBE_CONTAINER_MODE:
+        click.echo(containers.make_concatenated_kube_templates())
+    elif mode == constants.DOCKER_CONTAINER_MODE:
+        docker_client = docker.from_env()
 
-    containers.configure_docker_network(docker_client, network, create_network)
+        containers.configure_docker_network(
+            docker_client,
+            network,
+            create_network,
+        )
 
-    redis_container = containers.docker_redis_up(docker_client, network)
+        redis_container = containers.docker_redis_up(docker_client, network)
 
-    if ctx.obj["DEBUG"]:
-        click.echo(f"Created Redis: {redis_container.id}")
+        if ctx.obj["DEBUG"]:
+            click.echo(f"Created Redis: {redis_container.id}")
 
-    datastore_client = containers.docker_datastore_client_up(docker_client, network)
+        datastore_client = containers.docker_datastore_client_up(
+            docker_client,
+            network,
+        )
 
-    if ctx.obj["DEBUG"]:
-        click.echo(f"Created Datastore Client: {datastore_client.id}")
+        if ctx.obj["DEBUG"]:
+            click.echo(f"Created Datastore Client: {datastore_client.id}")
 
-    container_service = containers.docker_container_service_up(docker_client, network)
+        container_service = containers.docker_container_service_up(
+            docker_client, network
+        )
 
-    if ctx.obj["DEBUG"]:
-        click.echo(f"Created Container Service: {container_service.id}")
+        if ctx.obj["DEBUG"]:
+            click.echo(f"Created Container Service: {container_service.id}")
+    else:
+        raise ValueError(f"Invalid mode: {mode}")
 
 
 @cli.command()
@@ -155,14 +170,14 @@ def run(
 
     if image:
         image_id = image
-    elif mode == constants.DEFAULT_CONTAINER_MODE:
+    elif mode == constants.DOCKER_CONTAINER_MODE:
         image_id = containers.build_docker_image(
             client=docker_client,
             path=build_path,
             dockerfile=dockerfile,
         )
     else:
-        raise RuntimeError(
+        raise ValueError(
             f"Must specify image if not running in {constants.DEFAULT_CONTAINER_MODE} mode"
         )
 
@@ -180,7 +195,7 @@ def run(
     else:
         tag_arg = [e for t in tag for e in ["--tag", t]]
 
-    if mode == "KUBE":
+    if mode == constants.KUBE_CONTAINER_MODE:
         container_service.start_kube_container(
             container_service.StartKubeContainerArgs(
                 image=image_id,
@@ -208,6 +223,7 @@ def run(
             container_service_address,
         )
     else:
+        # NOTE: mode is checked earlier
         container_service.start_docker_container(
             container_service.StartDockerContainerArgs(
                 image=image_id,
@@ -318,7 +334,7 @@ def run(
                 time.sleep(1)
     finally:
         if not no_cleanup:
-            if mode == "KUBE":
+            if mode == constants.KUBE_CONTAINER_MODE:
                 if ctx.obj["DEBUG"]:
                     click.echo("Cleaning Test Runners")
 

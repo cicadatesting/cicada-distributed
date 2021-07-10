@@ -7,6 +7,7 @@ import io
 import traceback
 
 from pydantic import BaseModel, Field
+from cicadad.util.constants import KUBE_CONTAINER_MODE
 
 from cicadad.util.context import encode_context
 from cicadad.services import datastore, container_service
@@ -197,7 +198,7 @@ class ScenarioCommands(object):
             user_id = f"user-{str(uuid.uuid4())[:8]}"
             encoded_context = encode_context(self.context)
 
-            if self.container_mode == "KUBE":
+            if self.container_mode == KUBE_CONTAINER_MODE:
                 container_service.start_kube_container(
                     container_service.StartKubeContainerArgs(
                         name=user_id,
@@ -281,7 +282,7 @@ class ScenarioCommands(object):
             if remaining < 1:
                 break
 
-            if self.container_mode == "KUBE":
+            if self.container_mode == KUBE_CONTAINER_MODE:
                 container_service.stop_kube_container(
                     user_id,
                     namespace=self.namespace,
@@ -429,7 +430,7 @@ def start_scenario(
     container_id = f"scenario-{scenario_id}"
     encoded_context = encode_context(results)
 
-    if container_mode == "KUBE":
+    if container_mode == KUBE_CONTAINER_MODE:
         container_service.start_kube_container(
             container_service.StartKubeContainerArgs(
                 image=image,

@@ -8,16 +8,12 @@ updated properly.
 1. Checkout the `dev` branch and pull in the changes from remote
 2. Search for the previously released version number to highlight changes
 3. Change version number in `setup.cfg`
-4. Change version number in `base-image.dockerfile` and
-`base-image.pre-release.dockerfile`
-5. Change version numbers for `container-service` and `datastore-client` in
-`containers.py`
-6. Change version numbers in `.github/workflows/release-docker.yml`
-7. Change version numbers in Makefiles (root, container-service and
+4. Change version number in `constants.py`
+5. Change version numbers in Makefiles (root, container-service and
 datastore-client)
-8. Change version numbers in `cicada-distributed-chart` (`Makefile`,
-`Chart.yaml`, `values.yaml`)
-9. Change version numbers in `cicada-distributed-demos` (`Dockerfile` in `integration-tests`, `load-test`, and `stress-test`)
+6. Change version numbers in `.github/workflows/release-docker.yml`
+7. Change version numbers in templates (`Dockerfile`, kube charts)
+8. Change version numbers in `cicada-distributed-demos` (`Dockerfile` in `integration-tests`, `load-test`, and `stress-test`)
 
 ## Testing Cicada-Distributed
 
