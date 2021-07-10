@@ -7,7 +7,11 @@ from pydantic import BaseModel
 from docker.errors import APIError, NotFound  # type: ignore
 import docker  # type: ignore
 
-from cicadad.util.constants import DEFAULT_DOCKER_NETWORK, DOCKER_CONTAINER_MODE
+from cicadad.util.constants import (
+    CICADA_VERSION,
+    DEFAULT_DOCKER_NETWORK,
+    DOCKER_CONTAINER_MODE,
+)
 from cicadad import configs as configs_module
 from cicadad import templates as templates_module
 
@@ -400,7 +404,7 @@ def docker_datastore_client_up(client: docker.DockerClient, network: str):
     elif os.getenv("ENV") == "dev":
         image = "cicadatesting/cicada-distributed-datastore-client:pre-release"
     else:
-        image = "cicadatesting/cicada-distributed-datastore-client:1.2.0"
+        image = f"cicadatesting/cicada-distributed-datastore-client:{CICADA_VERSION}"
         pull_docker_image(client, image)
 
     args = DockerServerArgs(
@@ -439,7 +443,7 @@ def docker_container_service_up(client: docker.DockerClient, network: str):
     elif os.getenv("ENV") == "dev":
         image = "cicadatesting/cicada-distributed-container-service:pre-release"
     else:
-        image = "cicadatesting/cicada-distributed-container-service:1.2.0"
+        image = f"cicadatesting/cicada-distributed-container-service:{CICADA_VERSION}"
         pull_docker_image(client, image)
 
     args = DockerServerArgs(
