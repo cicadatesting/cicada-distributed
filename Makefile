@@ -78,11 +78,6 @@ clean:
 	rm -r build
 	rm -r src/cicadad.egg-info
 
-# TODO: fix command
-clean-containers:
-	docker container stop $(shell docker ps -q --filter "label=cicada-distributed") \
-	&& docker container rm $(shell docker ps -q --filter "label=cicada-distributed")
-
 # NOTE: requires `pip install grpcio-tools`
 proto-compile:
 	cd src && python3 -m grpc_tools.protoc -I . \
