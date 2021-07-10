@@ -1,5 +1,9 @@
 name: Code Check
-on: push
+on:
+  push:
+    branches-ignore:
+      - dev
+      - main
 jobs:
   code-quality:
     runs-on: ubuntu-latest
@@ -85,4 +89,51 @@ jobs:
           docker ps
           ENV=local cicada-distributed --debug run
           ENV=local cicada-distributed --debug stop-cluster
+          docker ps
+  kube-smoke-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Set up Python 3.6
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.6
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      - name: prepare-cicadad
+        run: |
+          make install-local
+          make build-base-local
+      - name: build-container-service-local
+        run: |
+          cd container-service
+          make build-local
+      - name: build-datastore-client-local
+        run: |
+          cd datastore-client
+          make build-local
+      - name: setup-cluster
+        run: |
+          curl -s https://raw.githubusercontent.com/rancher/k3d/main/install.sh | bash
+          make setup-cluster
+          make import-images-local
+          make install-kube
+          docker ps
+          kubectl get pods
+        # NOTE: may need to wait for pods
+      - name: run-smoke-test
+        run: |
+          mkdir smoke-test
+          ENV=local cicada-distributed --debug init ./smoke-test
+          cd smoke-test
+          ls
+          docker build -t cicadatesting/smoke-test:local .
+          k3d image import cicadatesting/smoke-test:local
+          ENV=local cicada-distributed --debug run --mode=KUBE --image=cicadatesting/smoke-test:local
+          cd ..
+          make uninstall-kube
+          make teardown-cluster
           docker ps

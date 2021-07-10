@@ -18,6 +18,35 @@ type Server struct {
 	datastore *pkg.Datastore
 }
 
+func (s *Server) AddTestEvent(ctx context.Context, in *api.AddEventRequest) (*empty.Empty, error) {
+	err := s.datastore.AddTestEvent(
+		context.Background(),
+		in.GetId(),
+		in.GetEvent().GetKind(),
+		in.GetEvent().GetPayload(),
+	)
+
+	return &empty.Empty{}, err
+}
+
+func (s *Server) GetTestEvents(ctx context.Context, in *api.GetEventsRequest) (*api.Events, error) {
+	events, err := s.datastore.GetTestEvents(context.Background(), in.GetId())
+
+	if err != nil {
+		return nil, err
+	}
+
+	result := api.Events{
+		Events: []*api.Event{},
+	}
+
+	for _, event := range events {
+		result.Events = append(result.Events, &api.Event{Kind: event.Kind, Payload: event.Payload})
+	}
+
+	return &result, nil
+}
+
 func (s *Server) AddUserResult(ctx context.Context, in *api.AddUserResultRequest) (*empty.Empty, error) {
 	err := s.datastore.AddUserResult(context.Background(), in.GetUserID(), in.GetResult())
 
@@ -109,4 +138,33 @@ func NewServer(redisClient *redis.Client) *Server {
 	datastore := pkg.Datastore{Rds: redisClient}
 
 	return &Server{datastore: &datastore}
+}
+
+func (s *Server) AddUserEvent(ctx context.Context, in *api.AddEventRequest) (*empty.Empty, error) {
+	err := s.datastore.AddTestEvent(
+		context.Background(),
+		in.GetId(),
+		in.GetEvent().GetKind(),
+		in.GetEvent().GetPayload(),
+	)
+
+	return &empty.Empty{}, err
+}
+
+func (s *Server) GetUserEvents(ctx context.Context, in *api.GetEventsRequest) (*api.Events, error) {
+	events, err := s.datastore.GetTestEvents(context.Background(), in.GetId())
+
+	if err != nil {
+		return nil, err
+	}
+
+	result := api.Events{
+		Events: []*api.Event{},
+	}
+
+	for _, event := range events {
+		result.Events = append(result.Events, &api.Event{Kind: event.Kind, Payload: event.Payload})
+	}
+
+	return &result, nil
 }

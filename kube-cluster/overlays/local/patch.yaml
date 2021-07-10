@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cicada-distributed-container-service
+spec:
+  template:
+    spec:
+      containers:
+        - name: cicada-distributed-container-service
+          image: cicadatesting/cicada-distributed-container-service:local
+          imagePullPolicy: Never
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cicada-distributed-datastore-client
+spec:
+  template:
+    spec:
+      containers:
+        - name: cicada-distributed-datastore-client
+          image: cicadatesting/cicada-distributed-datastore-client:local
+          imagePullPolicy: Never
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cicada-distributed-datastore-client
+spec:
+  ports:
+  - port: 8283
+    protocol: TCP
+    targetPort: 8283
+    nodePort: 30083
+  type: NodePort
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cicada-distributed-container-service
+spec:
+  ports:
+  - port: 8284
+    protocol: TCP
+    targetPort: 8284
+    nodePort: 30084
+  type: NodePort

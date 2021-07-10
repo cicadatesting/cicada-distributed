@@ -1,5 +1,5 @@
-import os
 from typing import Any, Dict, List, Optional
+import os
 import uuid
 import socket
 
@@ -7,8 +7,13 @@ from pydantic import BaseModel
 from docker.errors import APIError, NotFound  # type: ignore
 import docker  # type: ignore
 
-from cicadad.util.constants import DEFAULT_DOCKER_NETWORK
+from cicadad.util.constants import (
+    CICADA_VERSION,
+    DEFAULT_DOCKER_NETWORK,
+    DOCKER_CONTAINER_MODE,
+)
 from cicadad import configs as configs_module
+from cicadad import templates as templates_module
 
 
 class Volume(BaseModel):
@@ -399,7 +404,7 @@ def docker_datastore_client_up(client: docker.DockerClient, network: str):
     elif os.getenv("ENV") == "dev":
         image = "cicadatesting/cicada-distributed-datastore-client:pre-release"
     else:
-        image = "cicadatesting/cicada-distributed-datastore-client:1.1.0"
+        image = f"cicadatesting/cicada-distributed-datastore-client:{CICADA_VERSION}"
         pull_docker_image(client, image)
 
     args = DockerServerArgs(
@@ -438,7 +443,7 @@ def docker_container_service_up(client: docker.DockerClient, network: str):
     elif os.getenv("ENV") == "dev":
         image = "cicadatesting/cicada-distributed-container-service:pre-release"
     else:
-        image = "cicadatesting/cicada-distributed-container-service:1.1.0"
+        image = f"cicadatesting/cicada-distributed-container-service:{CICADA_VERSION}"
         pull_docker_image(client, image)
 
     args = DockerServerArgs(
@@ -450,6 +455,7 @@ def docker_container_service_up(client: docker.DockerClient, network: str):
         ],
         host_port=8284,
         container_port=8284,
+        env={"RUNNER_TYPE": DOCKER_CONTAINER_MODE},
         network=network,
     )
 
@@ -463,3 +469,39 @@ def docker_container_service_down(client: docker.DockerClient):
         client (docker.DockerClient): Docker client
     """
     docker_container_down_by_name(client, "cicada-distributed-container-service")
+
+
+def make_kube_template(template_filename: str):
+    template_path = os.path.join(
+        os.path.dirname(templates_module.__file__), template_filename
+    )
+
+    with open(template_path, "r") as template_fp:
+        return template_fp.read()
+
+
+def make_kube_redis_template() -> str:
+    return make_kube_template("redis.yaml")
+
+
+def make_kube_datastore_client_template() -> str:
+    return make_kube_template("datastore-client.yaml")
+
+
+def make_kube_container_service_template() -> str:
+    return make_kube_template("container-service.yaml")
+
+
+def make_kube_job_template() -> str:
+    return make_kube_template("job.yaml")
+
+
+def make_concatenated_kube_templates():
+    templates = [
+        make_kube_redis_template(),
+        make_kube_datastore_client_template(),
+        make_kube_container_service_template(),
+        make_kube_job_template(),
+    ]
+
+    return "---\n".join(templates)

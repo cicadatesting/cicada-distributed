@@ -4,6 +4,7 @@ from pytest import raises
 
 from cicadad.core import scenario as scenario_module
 from cicadad.services import datastore
+from cicadad.util.constants import DOCKER_CONTAINER_MODE
 
 
 @patch("cicadad.services.datastore.get_work")
@@ -112,20 +113,26 @@ def test_run_exception():
 
 def test_scale_users_up():
     s = Mock()
+    tid = "t-123"
     image = "foo"
     network = "bar"
+    namespace = "default"
     sid = "abc"
     datastore_addr = "fizz"
     container_service_addr = "buzz"
+    container_mode = DOCKER_CONTAINER_MODE
     ctx = {}
 
     sc = scenario_module.ScenarioCommands(
         s,
+        tid,
         image,
         network,
+        namespace,
         sid,
         datastore_addr,
         container_service_addr,
+        container_mode,
         ctx,
     )
 
@@ -139,20 +146,26 @@ def test_scale_users_up():
 
 def test_scale_users_down():
     s = Mock()
+    tid = "t-123"
     image = "foo"
     network = "bar"
+    namespace = "default"
     sid = "abc"
     datastore_addr = "fizz"
     container_service_addr = "buzz"
+    container_mode = DOCKER_CONTAINER_MODE
     ctx = {}
 
     sc = scenario_module.ScenarioCommands(
         s,
+        tid,
         image,
         network,
+        namespace,
         sid,
         datastore_addr,
         container_service_addr,
+        container_mode,
         ctx,
     )
 
@@ -166,25 +179,31 @@ def test_scale_users_down():
     sc.stop_users.assert_called_once_with(10)
 
 
-@patch("cicadad.services.container_service.start_container")
+@patch("cicadad.services.container_service.start_docker_container")
 def test_start_users(start_container_mock):
     s = Mock()
+    tid = "t-123"
     image = "foo"
     network = "bar"
+    namespace = "default"
     sid = "abc"
     datastore_addr = "fizz"
     container_service_addr = "buzz"
+    container_mode = DOCKER_CONTAINER_MODE
     ctx = {}
 
     s.name = "s"
 
     sc = scenario_module.ScenarioCommands(
         s,
+        tid,
         image,
         network,
+        namespace,
         sid,
         datastore_addr,
         container_service_addr,
+        container_mode,
         ctx,
     )
 
@@ -201,20 +220,26 @@ def test_start_users(start_container_mock):
 
 def test_start_users_negative():
     s = Mock()
+    tid = "t-123"
     image = "foo"
     network = "bar"
+    namespace = "default"
     sid = "abc"
     datastore_addr = "fizz"
     container_service_addr = "buzz"
+    container_mode = DOCKER_CONTAINER_MODE
     ctx = {}
 
     sc = scenario_module.ScenarioCommands(
         s,
+        tid,
         image,
         network,
+        namespace,
         sid,
         datastore_addr,
         container_service_addr,
+        container_mode,
         ctx,
     )
 
@@ -222,23 +247,29 @@ def test_start_users_negative():
         sc.start_users(-1)
 
 
-@patch("cicadad.services.container_service.stop_container")
+@patch("cicadad.services.container_service.stop_docker_container")
 def test_stop_users(stop_container_mock):
     s = Mock()
+    tid = "t-123"
     image = "foo"
     network = "bar"
+    namespace = "default"
     sid = "abc"
     datastore_addr = "fizz"
     container_service_addr = "buzz"
+    container_mode = DOCKER_CONTAINER_MODE
     ctx = {}
 
     sc = scenario_module.ScenarioCommands(
         s,
+        tid,
         image,
         network,
+        namespace,
         sid,
         datastore_addr,
         container_service_addr,
+        container_mode,
         ctx,
     )
 
@@ -255,20 +286,26 @@ def test_stop_users(stop_container_mock):
 
 def test_stop_users_too_many():
     s = Mock()
+    tid = "t-123"
     image = "foo"
     network = "bar"
+    namespace = "default"
     sid = "abc"
     datastore_addr = "fizz"
     container_service_addr = "buzz"
+    container_mode = DOCKER_CONTAINER_MODE
     ctx = {}
 
     sc = scenario_module.ScenarioCommands(
         s,
+        tid,
         image,
         network,
+        namespace,
         sid,
         datastore_addr,
         container_service_addr,
+        container_mode,
         ctx,
     )
 
@@ -278,20 +315,26 @@ def test_stop_users_too_many():
 
 def test_stop_users_negative():
     s = Mock()
+    tid = "t-123"
     image = "foo"
     network = "bar"
+    namespace = "default"
     sid = "abc"
     datastore_addr = "fizz"
     container_service_addr = "buzz"
+    container_mode = DOCKER_CONTAINER_MODE
     ctx = {}
 
     sc = scenario_module.ScenarioCommands(
         s,
+        tid,
         image,
         network,
+        namespace,
         sid,
         datastore_addr,
         container_service_addr,
+        container_mode,
         ctx,
     )
 
@@ -302,20 +345,26 @@ def test_stop_users_negative():
 @patch("cicadad.services.datastore.distribute_work")
 def test_add_work(distribute_work_mock):
     s = Mock()
+    tid = "t-123"
     image = "foo"
     network = "bar"
+    namespace = "default"
     sid = "abc"
     datastore_addr = "fizz"
     container_service_addr = "buzz"
+    container_mode = DOCKER_CONTAINER_MODE
     ctx = {}
 
     sc = scenario_module.ScenarioCommands(
         s,
+        tid,
         image,
         network,
+        namespace,
         sid,
         datastore_addr,
         container_service_addr,
+        container_mode,
         ctx,
     )
 
@@ -331,20 +380,26 @@ def test_add_work(distribute_work_mock):
 
 def test_has_work_buffered():
     s = Mock()
+    tid = "t-123"
     image = "foo"
     network = "bar"
+    namespace = "default"
     sid = "abc"
     datastore_addr = "fizz"
     container_service_addr = "buzz"
+    container_mode = DOCKER_CONTAINER_MODE
     ctx = {}
 
     sc = scenario_module.ScenarioCommands(
         s,
+        tid,
         image,
         network,
+        namespace,
         sid,
         datastore_addr,
         container_service_addr,
+        container_mode,
         ctx,
     )
 
@@ -355,20 +410,26 @@ def test_has_work_buffered():
 
 def test_aggregate_results():
     s = Mock()
+    tid = "t-123"
     image = "foo"
     network = "bar"
+    namespace = "default"
     sid = "abc"
     datastore_addr = "fizz"
     container_service_addr = "buzz"
+    container_mode = DOCKER_CONTAINER_MODE
     ctx = {}
 
     sc = scenario_module.ScenarioCommands(
         s,
+        tid,
         image,
         network,
+        namespace,
         sid,
         datastore_addr,
         container_service_addr,
+        container_mode,
         ctx,
     )
 
@@ -391,20 +452,26 @@ def test_aggregate_results():
 
 def test_aggregate_results_default():
     s = Mock()
+    tid = "t-123"
     image = "foo"
     network = "bar"
+    namespace = "default"
     sid = "abc"
     datastore_addr = "fizz"
     container_service_addr = "buzz"
+    container_mode = DOCKER_CONTAINER_MODE
     ctx = {}
 
     sc = scenario_module.ScenarioCommands(
         s,
+        tid,
         image,
         network,
+        namespace,
         sid,
         datastore_addr,
         container_service_addr,
+        container_mode,
         ctx,
     )
 
@@ -419,20 +486,26 @@ def test_aggregate_results_default():
 
 def test_verify_results():
     s = Mock()
+    tid = "t-123"
     image = "foo"
     network = "bar"
+    namespace = "default"
     sid = "abc"
     datastore_addr = "fizz"
     container_service_addr = "buzz"
+    container_mode = DOCKER_CONTAINER_MODE
     ctx = {}
 
     sc = scenario_module.ScenarioCommands(
         s,
+        tid,
         image,
         network,
+        namespace,
         sid,
         datastore_addr,
         container_service_addr,
+        container_mode,
         ctx,
     )
 
@@ -462,8 +535,11 @@ def test_filter_scenarios_empty():
 
 
 @patch("cicadad.services.datastore.move_scenario_result")
-@patch("cicadad.services.container_service.start_container")
-def test_test_runner(start_container_mock, move_scenario_event_mock):
+@patch("cicadad.services.datastore.add_test_event")
+@patch("cicadad.services.container_service.start_docker_container")
+def test_test_runner(
+    start_container_mock, add_test_event_mock, move_scenario_event_mock
+):
     s1 = Mock()
     s2 = Mock()
     s3 = Mock()
@@ -477,10 +553,14 @@ def test_test_runner(start_container_mock, move_scenario_event_mock):
     s3.dependencies = [s2]
 
     ss = [s1, s2, s3]
+    tags = []
+    tid = "test-123"
     img = "foo"
     n = "bar"
+    namespace = "default"
     datastore_addr = "fizz"
     container_service_addr = "buzz"
+    container_mode = DOCKER_CONTAINER_MODE
 
     r1 = {
         "output": "42",
@@ -500,27 +580,33 @@ def test_test_runner(start_container_mock, move_scenario_event_mock):
 
     move_scenario_event_mock.side_effect = [r1, r2]
 
-    assert (
-        len(
-            list(
-                scenario_module.test_runner(
-                    ss, img, n, datastore_addr, container_service_addr
-                )
-            )
-        )
-        == 5
+    scenario_module.test_runner(
+        ss,
+        tags,
+        tid,
+        img,
+        n,
+        namespace,
+        datastore_addr,
+        container_service_addr,
+        container_mode,
     )
+
+    assert add_test_event_mock.call_count == 7
     assert start_container_mock.call_count == 2
 
 
 @patch("cicadad.services.datastore.set_scenario_result")
 def test_run_scenario(set_scenario_result_mock):
     s = Mock()
+    tid = "t-123"
     image = "foo"
     network = "bar"
+    namespace = "default"
     sid = "abc"
     datastore_addr = "fizz"
     container_service_addr = "buzz"
+    container_mode = DOCKER_CONTAINER_MODE
     ctx = {}
 
     def load_model(sc, c):
@@ -532,11 +618,14 @@ def test_run_scenario(set_scenario_result_mock):
 
     scenario_module.scenario_runner(
         s,
+        tid,
         image,
         network,
+        namespace,
         sid,
         datastore_addr,
         container_service_addr,
+        container_mode,
         ctx,
     )
 
@@ -547,11 +636,14 @@ def test_run_scenario(set_scenario_result_mock):
 @patch("cicadad.services.datastore.set_scenario_result")
 def test_run_scenario_result_transformer(set_scenario_result_mock):
     s = Mock()
+    tid = "t-123"
     image = "foo"
     network = "bar"
+    namespace = "default"
     sid = "abc"
     datastore_addr = "fizz"
     container_service_addr = "buzz"
+    container_mode = DOCKER_CONTAINER_MODE
     ctx = {}
 
     def load_model(sc, c):
@@ -566,11 +658,14 @@ def test_run_scenario_result_transformer(set_scenario_result_mock):
 
     scenario_module.scenario_runner(
         s,
+        tid,
         image,
         network,
+        namespace,
         sid,
         datastore_addr,
         container_service_addr,
+        container_mode,
         ctx,
     )
 
@@ -581,11 +676,14 @@ def test_run_scenario_result_transformer(set_scenario_result_mock):
 @patch("cicadad.services.datastore.set_scenario_result")
 def test_run_scenario_exception(set_scenario_result_mock):
     s = Mock()
+    tid = "t-123"
     image = "foo"
     network = "bar"
+    namespace = "default"
     sid = "abc"
     datastore_addr = "fizz"
     container_service_addr = "buzz"
+    container_mode = DOCKER_CONTAINER_MODE
     ctx = {}
 
     def load_model(sc, c):
@@ -599,11 +697,14 @@ def test_run_scenario_exception(set_scenario_result_mock):
 
     scenario_module.scenario_runner(
         s,
+        tid,
         image,
         network,
+        namespace,
         sid,
         datastore_addr,
         container_service_addr,
+        container_mode,
         ctx,
     )
 

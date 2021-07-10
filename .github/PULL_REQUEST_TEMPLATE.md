@@ -32,7 +32,7 @@ _Link to docsite PR if necessary_
 # Research
 
 - [ ] If this is a new feature, the architecture has been documented
-- [ ] Performance/cost impact accomadated if necessary
+- [ ] Performance/cost impact accommodated if necessary
 - [ ] Alternatives have been researched
 - [ ] There is a plan to deploy this in a cute way if that's what it takes
 

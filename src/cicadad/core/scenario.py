@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, List, Optional, Set
+from typing import Any, Callable, Dict, Iterable, List, Optional, Set
 from datetime import datetime, timedelta
 import uuid
 import time
@@ -7,9 +7,9 @@ import io
 import traceback
 
 from pydantic import BaseModel, Field
+from cicadad.util.constants import KUBE_CONTAINER_MODE
 
 from cicadad.util.context import encode_context
-from cicadad.core import containers
 from cicadad.services import datastore, container_service
 from cicadad.util import printing
 
@@ -26,11 +26,11 @@ class UserCommands(object):
         Args:
             scenario (Scenario): Scenario being run
             user_id (str): ID of current user
-            scenario_id (str): ID of current scenario
             datastore_address: Address of datastore client
         """
         self.scenario = scenario
         self.user_id = user_id
+        self.event_buffer: List[datastore.UserEvent] = []
         self.datastore_address = datastore_address
 
         self.available_work = 0
@@ -41,9 +41,16 @@ class UserCommands(object):
         Returns:
             bool: User is up
         """
-        # HACK: User is stopped by scenario, but may be useful to explicitly
-        # tell user to stop to allow for a graceful user-defined exit
+        # FEATURE: signal to kill user
         return True
+
+    def get_events(self):
+        """Get events sent to user from scenario
+
+        Returns:
+            List[UserEvent]: List of user events
+        """
+        return datastore.get_user_events(self.user_id, self.datastore_address)
 
     def has_work(self, timeout_ms: Optional[int] = 1000):
         """Check if user has remaining invocations
@@ -122,29 +129,38 @@ class ScenarioCommands(object):
     def __init__(
         self,
         scenario: "Scenario",
+        test_id: str,
         image: str,
         network: str,
+        namespace: str,
         scenario_id: str,
         datastore_address: str,
         container_service_address: str,
+        container_mode: str,
         context: dict,
     ):
         """Commands available to a scenario
 
         Args:
             scenario (Scenario): Scenario being run
+            test_id (str): ID of test being run, used to send results
             image (str): Docker image for scenario
             network (str): Docker network for scenario
+            namespace (str): Kube namespace to place jobs in
             scenario_id (str): ID of scenario run
             datastore_address (str): Address of datastore to pass to users
             container_service (str): Address of container service to start and stop users
+            container_mode (str): DOCKER or KUBE mode to create containers
             context (dict): Context data to pass to users
         """
         self.scenario = scenario
+        self.test_id = test_id
         self.image = image
         self.network = network
+        self.namespace = namespace
         self.datastore_address = datastore_address
         self.container_service_address = container_service_address
+        self.container_mode = container_mode
         self.context = context
 
         self.scenario_id = scenario_id
@@ -171,44 +187,71 @@ class ScenarioCommands(object):
         Args:
             n (int): Number of users to start
         """
-        # FEATURE: will need to determine whether docker or kube args
-        # FEATURE: attach additional container args to scenario
         if n < 0:
             raise ValueError("Must supply a positive number of users to start")
 
         if n == 0:
             return
 
-        # FEATURE: mount env and volumes for user
+        # FEATURE: mount env for user + specify args in scenario
         for _ in range(n):
-            user_id = f"user-{self.scenario.name}-{str(uuid.uuid4())[:8]}"
+            user_id = f"user-{str(uuid.uuid4())[:8]}"
             encoded_context = encode_context(self.context)
 
-            args = containers.DockerServerArgs(
-                image=self.image,
-                name=user_id,
-                command=[
-                    "run-user",
-                    "--name",
-                    self.scenario.name,
-                    "--user-id",
-                    user_id,
-                    "--datastore-address",
-                    self.datastore_address,
-                    "--encoded-context",
-                    encoded_context,
-                ],
-                labels=["cicada-distributed-user", self.scenario.name],
-                # env: Dict[str, str]={}
-                # volumes: Optional[List[Volume]]
-                # host_port: Optional[int]
-                # container_port: Optional[int]
-                network=self.network,
-                # create_network: bool=True
-            )
+            if self.container_mode == KUBE_CONTAINER_MODE:
+                container_service.start_kube_container(
+                    container_service.StartKubeContainerArgs(
+                        name=user_id,
+                        # env={}
+                        labels={
+                            "type": "cicada-distributed-user",
+                            "scenario": self.scenario.name,
+                            "test": self.test_id,
+                        },
+                        image=self.image,
+                        command=[
+                            "run-user",
+                            "--name",
+                            self.scenario.name,
+                            "--user-id",
+                            user_id,
+                            "--datastore-address",
+                            self.datastore_address,
+                            "--encoded-context",
+                            encoded_context,
+                        ],
+                        namespace=self.namespace,
+                    ),
+                    self.container_service_address,
+                )
+            else:
+                container_service.start_docker_container(
+                    container_service.StartDockerContainerArgs(
+                        name=user_id,
+                        # env={}
+                        labels={
+                            "type": "cicada-distributed-user",
+                            "scenario": self.scenario.name,
+                            "test": self.test_id,
+                        },
+                        image=self.image,
+                        command=[
+                            "run-user",
+                            "--name",
+                            self.scenario.name,
+                            "--user-id",
+                            user_id,
+                            "--datastore-address",
+                            self.datastore_address,
+                            "--encoded-context",
+                            encoded_context,
+                        ],
+                        network=self.network,
+                    ),
+                    self.container_service_address,
+                )
 
             self.user_ids.add(user_id)
-            container_service.start_container(args, self.container_service_address)
 
         self.num_users += n
 
@@ -239,7 +282,18 @@ class ScenarioCommands(object):
             if remaining < 1:
                 break
 
-            container_service.stop_container(user_id, self.container_service_address)
+            if self.container_mode == KUBE_CONTAINER_MODE:
+                container_service.stop_kube_container(
+                    user_id,
+                    namespace=self.namespace,
+                    address=self.container_service_address,
+                )
+            else:
+                container_service.stop_docker_container(
+                    user_id,
+                    address=self.container_service_address,
+                )
+
             self.user_ids.remove(user_id)
             self.num_users -= 1
             remaining -= 1
@@ -256,6 +310,16 @@ class ScenarioCommands(object):
             return
 
         datastore.distribute_work(n, list(self.user_ids), self.datastore_address)
+
+    def send_user_event(self, user_id: str, kind: str, payload: dict):
+        """Sends an event to a particular user in the user pool
+
+        Args:
+            user_id (str): User ID to send event to
+            kind (str): Type of event
+            payload (dict): JSON dict to send to user
+        """
+        datastore.add_user_event(user_id, kind, payload, self.datastore_address)
 
     def get_latest_results(
         self,
@@ -332,7 +396,9 @@ class ScenarioCommands(object):
     #     return
 
 
-def filter_scenarios_by_tag(scenarios: List["Scenario"], tags: List[str]):
+def filter_scenarios_by_tag(
+    scenarios: Iterable["Scenario"], tags: List[str]
+) -> List["Scenario"]:
     """Filter scenarios that have tags in the list of tags provided. Returns
     all scenarios if tag list is empty
 
@@ -344,77 +410,162 @@ def filter_scenarios_by_tag(scenarios: List["Scenario"], tags: List[str]):
         List[Scenario]: List of filtered scenarios
     """
     if tags == []:
-        return scenarios
+        return list(scenarios)
 
     return [s for s in scenarios if set(s.tags).intersection(set(tags)) != set()]
 
 
-class TestStatus(BaseModel):
-    type: str
-    scenario: str
-    message: str
-    context: str
-
-
-def test_runner(
-    scenarios: List["Scenario"],
+def start_scenario(
+    scenario: "Scenario",
+    scenario_id: str,
+    results: Dict[str, dict],
+    container_mode: str,
     image: str,
+    test_id: str,
     network: str,
+    namespace: str,
     datastore_address: str,
     container_service_address: str,
 ):
-    started: Dict[str, str] = {}
-    results: Dict[str, dict] = {}
+    container_id = f"scenario-{scenario_id}"
+    encoded_context = encode_context(results)
 
-    # Start scenarios with no dependencies
-    for scenario in scenarios:
-        if scenario.dependencies == []:
-            # FIXME: move to function
-            scenario_id = str(uuid.uuid4())[:8]
-            container_id = f"scenario-{scenario.name}-{scenario_id}"
-            encoded_context = encode_context(results)
-
-            args = containers.DockerServerArgs(
+    if container_mode == KUBE_CONTAINER_MODE:
+        container_service.start_kube_container(
+            container_service.StartKubeContainerArgs(
                 image=image,
                 name=container_id,
                 command=[
                     "run-scenario",
                     "--name",
                     scenario.name,
+                    "--test-id",
+                    test_id,
                     "--scenario-id",
                     scenario_id,
                     "--image",
                     image,
                     "--network",
                     network,
+                    "--namespace",
+                    namespace,
                     "--encoded-context",
                     encoded_context,
                     "--datastore-address",
                     datastore_address,
                     "--container-service-address",
                     container_service_address,
+                    "--container-mode",
+                    container_mode,
                 ],
-                labels=["cicada-distributed-scenario", scenario.name],
+                labels={
+                    "type": "cicada-distributed-scenario",
+                    "scenario": scenario.name,
+                    "test": test_id,
+                },
                 # env: Dict[str, str]={}
-                # volumes: Optional[List[Volume]]
-                # host_port: Optional[int]
-                # container_port: Optional[int]
+                namespace=namespace,
+            ),
+            container_service_address,
+        )
+    else:
+        container_service.start_docker_container(
+            container_service.StartDockerContainerArgs(
+                image=image,
+                name=container_id,
+                command=[
+                    "run-scenario",
+                    "--name",
+                    scenario.name,
+                    "--test-id",
+                    test_id,
+                    "--scenario-id",
+                    scenario_id,
+                    "--image",
+                    image,
+                    "--network",
+                    network,
+                    "--namespace",
+                    namespace,
+                    "--encoded-context",
+                    encoded_context,
+                    "--datastore-address",
+                    datastore_address,
+                    "--container-service-address",
+                    container_service_address,
+                    "--container-mode",
+                    container_mode,
+                ],
+                labels={
+                    "type": "cicada-distributed-scenario",
+                    "scenario": scenario.name,
+                    "test": test_id,
+                },
+                # env: Dict[str, str]={}
                 network=network,
-                # create_network: bool=True
-            )
+            ),
+            container_service_address,
+        )
 
-            container_service.start_container(args, container_service_address)
+    datastore.add_test_event(
+        test_id=test_id,
+        kind="SCENARIO_STARTED",
+        event=datastore.TestStatus(
+            scenario=scenario.name,
+            message=f"Started scenario: {scenario.name} ({container_id})",
+            context=json.dumps(results),
+        ),
+        address=datastore_address,
+    )
+
+
+def test_runner(
+    scenarios: Iterable["Scenario"],
+    tags: List[str],
+    test_id: str,
+    image: str,
+    network: str,
+    namespace: str,
+    datastore_address: str,
+    container_service_address: str,
+    container_mode: str,
+):
+    started: Dict[str, str] = {}
+    results: Dict[str, dict] = {}
+
+    valid_scenarios = filter_scenarios_by_tag(scenarios, tags)
+
+    datastore.add_test_event(
+        test_id=test_id,
+        kind="TEST_STARTED",
+        event=datastore.TestStatus(
+            message=f"Collected {len(valid_scenarios)} Scenario(s)",
+        ),
+        address=datastore_address,
+    )
+
+    # Start scenarios with no dependencies
+    for scenario in valid_scenarios:
+        if scenario.dependencies == []:
+            scenario_id = str(uuid.uuid4())[:8]
+
+            start_scenario(
+                scenario,
+                scenario_id,
+                results,
+                container_mode,
+                image,
+                test_id,
+                network,
+                namespace,
+                datastore_address,
+                container_service_address,
+            )
             started[scenario.name] = scenario_id
 
-            yield TestStatus(
-                type="SCENARIO_STARTED",
-                scenario=scenario.name,
-                message=f"Started scenario: {scenario.name} ({container_id})",
-                context=json.dumps(results),
-            )
-
     # listen to completed events and start scenarios with dependencies
-    while len(results) != len(scenarios):
+    # FEATURE: scenario timeout counter here as well
+    while len(results) != len(valid_scenarios):
         for scenario_name in [sn for sn in started if sn not in results]:
             # FIXME: move logic to eventing function
             # FEATURE: stream back metrics gathered from scenarios
@@ -426,61 +577,38 @@ def test_runner(
             if result is not None:
                 results[scenario_name] = result
 
-                yield TestStatus(
-                    type="SCENARIO_FINISHED",
-                    scenario=scenario_name,
-                    message=f"Finished Scenario: {scenario_name}",
-                    context=json.dumps(results),
+                datastore.add_test_event(
+                    test_id=test_id,
+                    kind="SCENARIO_FINISHED",
+                    event=datastore.TestStatus(
+                        scenario=scenario_name,
+                        message=f"Finished Scenario: {scenario_name}",
+                        context=json.dumps(results),
+                    ),
+                    address=datastore_address,
                 )
 
-        for scenario in [s for s in scenarios if s.name not in started]:
+        for scenario in [s for s in valid_scenarios if s.name not in started]:
             # FIXME: move filtering to function
             if all(
                 dep.name in results and results[dep.name]["exception"] is None
                 for dep in scenario.dependencies
             ):
                 scenario_id = str(uuid.uuid4())[:8]
-                container_id = f"scenario-{scenario.name}-{scenario_id}"
-                encoded_context = encode_context(results)
 
-                args = containers.DockerServerArgs(
-                    image=image,
-                    name=container_id,
-                    command=[
-                        "run-scenario",
-                        "--name",
-                        scenario.name,
-                        "--scenario-id",
-                        scenario_id,
-                        "--image",
-                        image,
-                        "--network",
-                        network,
-                        "--encoded-context",
-                        encoded_context,
-                        "--datastore-address",
-                        datastore_address,
-                        "--container-service-address",
-                        container_service_address,
-                    ],
-                    labels=["cicada-distributed-scenario", scenario.name],
-                    # env: Dict[str, str]={}
-                    # volumes: Optional[List[Volume]]
-                    # host_port: Optional[int]
-                    # container_port: Optional[int]
-                    network=network,
-                    # create_network: bool=True
+                start_scenario(
+                    scenario,
+                    scenario_id,
+                    results,
+                    container_mode,
+                    image,
+                    test_id,
+                    network,
+                    namespace,
+                    datastore_address,
+                    container_service_address,
                 )
-
-                container_service.start_container(args, container_service_address)
                 started[scenario.name] = scenario_id
-
-                yield TestStatus(
-                    type="SCENARIO_STARTED",
-                    scenario=scenario.name,
-                    message=f"Started scenario: {scenario.name} ({container_id})",
-                    context=json.dumps(results),
-                )
             elif all(dep.name in results for dep in scenario.dependencies):
                 # has all dependencies but some are failed
                 started[scenario.name] = str(uuid.uuid4())[:8]
@@ -494,44 +622,66 @@ def test_runner(
                     ).json()
                 )
 
-                yield TestStatus(
-                    type="SCENARIO_FINISHED",
-                    scenario=scenario.name,
-                    message=f"Skipped Scenario: {scenario.name}",
-                    context=json.dumps(results),
+                datastore.add_test_event(
+                    test_id=test_id,
+                    kind="SCENARIO_FINISHED",
+                    event=datastore.TestStatus(
+                        scenario=scenario.name,
+                        message=f"Skipped Scenario: {scenario.name}",
+                        context=json.dumps(results),
+                    ),
+                    address=datastore_address,
                 )
 
         # NOTE: maybe make this configurable or shorter?
         time.sleep(1)
 
+    datastore.add_test_event(
+        test_id=test_id,
+        kind="TEST_FINISHED",
+        event=datastore.TestStatus(
+            message=f"Finished running {len(valid_scenarios)} Scenario(s)",
+        ),
+        address=datastore_address,
+    )
+
 
 def scenario_runner(
     scenario: "Scenario",
+    test_id: str,
     image: str,
     network: str,
+    namespace: str,
     scenario_id: str,
     datastore_address: str,
     container_service_address: str,
+    container_mode: str,
     context: dict,
 ):
     """Set up scenario environment and run scenario. Capture output and exceptions
 
     Args:
         scenario (Scenario): Scenario being run
+        test_id (str): Test id to send results
         image (str): Image for scenario
         network (str): Network to run scenario containers in
+        namespace (str): Kube namespace to place jobs in
         scenario_id (str): ID generated for scenario run
         datastore_address (str): Address of datastore passed to users
         container_service (str): Address of container service to start and stop users
+        container_mode (str): DOCKER or KUBE container mode
         context (dict): Test context to pass to users
     """
     scenario_commands = ScenarioCommands(
         scenario,
+        test_id,
         image,
         network,
+        namespace,
         scenario_id,
         datastore_address,
         container_service_address,
+        container_mode,
         context,
     )
 
@@ -631,11 +781,7 @@ def while_has_work(polling_timeout_ms: int = 1000):
 
 
 def while_alive():
-    """Run user if hasn't been shut down yet
-
-    Args:
-        polling_timeout_ms (UserCommands): Time to wait for work before cycling
-    """
+    """Run user if hasn't been shut down yet"""
 
     def closure(user_commands: UserCommands, context: dict):
         while user_commands.is_up():
@@ -955,6 +1101,7 @@ Scenario.update_forward_refs()
 
 
 def load_stages(*stages: LoadModelFn):
+    # FEATURE: signal user loop that stage has changed from scenario commands
     def closure(scenario_commands: ScenarioCommands, context: dict):
         for stage in stages:
             stage(scenario_commands, context)
@@ -962,6 +1109,3 @@ def load_stages(*stages: LoadModelFn):
         scenario_commands.scale_users(0)
 
     return closure
-
-
-# FEATURE: signal user loop that stage has changed from scenario commands

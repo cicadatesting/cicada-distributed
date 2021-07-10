@@ -21,11 +21,153 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=b'Z-github.com/cicadatesting/datastore-client/api',
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\x1e\x63icadad/protos/datastore.proto\x12\tdatastore\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1egoogle/protobuf/wrappers.proto\"6\n\x14\x41\x64\x64UserResultRequest\x12\x0e\n\x06userID\x18\x01 \x01(\t\x12\x0e\n\x06result\x18\x02 \x01(\x0c\"\xae\x01\n\x18SetScenarioResultRequest\x12\x12\n\nscenarioID\x18\x01 \x01(\t\x12,\n\x06output\x18\x02 \x01(\x0b\x32\x1c.google.protobuf.StringValue\x12/\n\texception\x18\x03 \x01(\x0b\x32\x1c.google.protobuf.StringValue\x12\x0c\n\x04logs\x18\x04 \x01(\t\x12\x11\n\ttimeTaken\x18\x05 \x01(\x01\")\n\x16MoveUserResultsRequest\x12\x0f\n\x07userIDs\x18\x01 \x03(\t\"*\n\x17MoveUserResultsResponse\x12\x0f\n\x07results\x18\x01 \x03(\x0c\"/\n\x19MoveScenarioResultRequest\x12\x12\n\nscenarioID\x18\x01 \x01(\t\"\xbb\x01\n\x1aMoveScenarioResultResponse\x12\n\n\x02id\x18\x01 \x01(\t\x12,\n\x06output\x18\x02 \x01(\x0b\x32\x1c.google.protobuf.StringValue\x12/\n\texception\x18\x03 \x01(\x0b\x32\x1c.google.protobuf.StringValue\x12\x0c\n\x04logs\x18\x04 \x01(\t\x12\x11\n\ttimestamp\x18\x05 \x01(\t\x12\x11\n\ttimeTaken\x18\x06 \x01(\x01\"6\n\x15\x44istributeWorkRequest\x12\x0c\n\x04work\x18\x01 \x01(\x05\x12\x0f\n\x07userIDs\x18\x02 \x03(\t\"$\n\x12GetUserWorkRequest\x12\x0e\n\x06userID\x18\x01 \x01(\t\"#\n\x13GetUserWorkResponse\x12\x0c\n\x04work\x18\x01 \x01(\x05\x32\xfe\x03\n\tDatastore\x12H\n\rAddUserResult\x12\x1f.datastore.AddUserResultRequest\x1a\x16.google.protobuf.Empty\x12P\n\x11SetScenarioResult\x12#.datastore.SetScenarioResultRequest\x1a\x16.google.protobuf.Empty\x12X\n\x0fMoveUserResults\x12!.datastore.MoveUserResultsRequest\x1a\".datastore.MoveUserResultsResponse\x12\x61\n\x12MoveScenarioResult\x12$.datastore.MoveScenarioResultRequest\x1a%.datastore.MoveScenarioResultResponse\x12J\n\x0e\x44istributeWork\x12 .datastore.DistributeWorkRequest\x1a\x16.google.protobuf.Empty\x12L\n\x0bGetUserWork\x12\x1d.datastore.GetUserWorkRequest\x1a\x1e.datastore.GetUserWorkResponseB/Z-github.com/cicadatesting/datastore-client/apib\x06proto3'
+  serialized_pb=b'\n\x1e\x63icadad/protos/datastore.proto\x12\tdatastore\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1egoogle/protobuf/wrappers.proto\"&\n\x05\x45vent\x12\x0c\n\x04kind\x18\x01 \x01(\t\x12\x0f\n\x07payload\x18\x02 \x01(\x0c\">\n\x0f\x41\x64\x64\x45ventRequest\x12\n\n\x02id\x18\x01 \x01(\t\x12\x1f\n\x05\x65vent\x18\x02 \x01(\x0b\x32\x10.datastore.Event\"\x1e\n\x10GetEventsRequest\x12\n\n\x02id\x18\x01 \x01(\t\"*\n\x06\x45vents\x12 \n\x06\x65vents\x18\x01 \x03(\x0b\x32\x10.datastore.Event\"6\n\x14\x41\x64\x64UserResultRequest\x12\x0e\n\x06userID\x18\x01 \x01(\t\x12\x0e\n\x06result\x18\x02 \x01(\x0c\"\xae\x01\n\x18SetScenarioResultRequest\x12\x12\n\nscenarioID\x18\x01 \x01(\t\x12,\n\x06output\x18\x02 \x01(\x0b\x32\x1c.google.protobuf.StringValue\x12/\n\texception\x18\x03 \x01(\x0b\x32\x1c.google.protobuf.StringValue\x12\x0c\n\x04logs\x18\x04 \x01(\t\x12\x11\n\ttimeTaken\x18\x05 \x01(\x01\")\n\x16MoveUserResultsRequest\x12\x0f\n\x07userIDs\x18\x01 \x03(\t\"*\n\x17MoveUserResultsResponse\x12\x0f\n\x07results\x18\x01 \x03(\x0c\"/\n\x19MoveScenarioResultRequest\x12\x12\n\nscenarioID\x18\x01 \x01(\t\"\xbb\x01\n\x1aMoveScenarioResultResponse\x12\n\n\x02id\x18\x01 \x01(\t\x12,\n\x06output\x18\x02 \x01(\x0b\x32\x1c.google.protobuf.StringValue\x12/\n\texception\x18\x03 \x01(\x0b\x32\x1c.google.protobuf.StringValue\x12\x0c\n\x04logs\x18\x04 \x01(\t\x12\x11\n\ttimestamp\x18\x05 \x01(\t\x12\x11\n\ttimeTaken\x18\x06 \x01(\x01\"6\n\x15\x44istributeWorkRequest\x12\x0c\n\x04work\x18\x01 \x01(\x05\x12\x0f\n\x07userIDs\x18\x02 \x03(\t\"$\n\x12GetUserWorkRequest\x12\x0e\n\x06userID\x18\x01 \x01(\t\"#\n\x13GetUserWorkResponse\x12\x0c\n\x04work\x18\x01 \x01(\x05\x32\x88\x06\n\tDatastore\x12\x42\n\x0c\x41\x64\x64TestEvent\x12\x1a.datastore.AddEventRequest\x1a\x16.google.protobuf.Empty\x12?\n\rGetTestEvents\x12\x1b.datastore.GetEventsRequest\x1a\x11.datastore.Events\x12H\n\rAddUserResult\x12\x1f.datastore.AddUserResultRequest\x1a\x16.google.protobuf.Empty\x12P\n\x11SetScenarioResult\x12#.datastore.SetScenarioResultRequest\x1a\x16.google.protobuf.Empty\x12X\n\x0fMoveUserResults\x12!.datastore.MoveUserResultsRequest\x1a\".datastore.MoveUserResultsResponse\x12\x61\n\x12MoveScenarioResult\x12$.datastore.MoveScenarioResultRequest\x1a%.datastore.MoveScenarioResultResponse\x12J\n\x0e\x44istributeWork\x12 .datastore.DistributeWorkRequest\x1a\x16.google.protobuf.Empty\x12L\n\x0bGetUserWork\x12\x1d.datastore.GetUserWorkRequest\x1a\x1e.datastore.GetUserWorkResponse\x12\x42\n\x0c\x41\x64\x64UserEvent\x12\x1a.datastore.AddEventRequest\x1a\x16.google.protobuf.Empty\x12?\n\rGetUserEvents\x12\x1b.datastore.GetEventsRequest\x1a\x11.datastore.EventsB/Z-github.com/cicadatesting/datastore-client/apib\x06proto3'
   ,
   dependencies=[google_dot_protobuf_dot_empty__pb2.DESCRIPTOR,google_dot_protobuf_dot_wrappers__pb2.DESCRIPTOR,])
 
 
+
+
+_EVENT = _descriptor.Descriptor(
+  name='Event',
+  full_name='datastore.Event',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='kind', full_name='datastore.Event.kind', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='payload', full_name='datastore.Event.payload', index=1,
+      number=2, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"",
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=106,
+  serialized_end=144,
+)
+
+
+_ADDEVENTREQUEST = _descriptor.Descriptor(
+  name='AddEventRequest',
+  full_name='datastore.AddEventRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='id', full_name='datastore.AddEventRequest.id', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='event', full_name='datastore.AddEventRequest.event', index=1,
+      number=2, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=146,
+  serialized_end=208,
+)
+
+
+_GETEVENTSREQUEST = _descriptor.Descriptor(
+  name='GetEventsRequest',
+  full_name='datastore.GetEventsRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='id', full_name='datastore.GetEventsRequest.id', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=210,
+  serialized_end=240,
+)
+
+
+_EVENTS = _descriptor.Descriptor(
+  name='Events',
+  full_name='datastore.Events',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='events', full_name='datastore.Events.events', index=0,
+      number=1, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=242,
+  serialized_end=284,
+)
 
 
 _ADDUSERRESULTREQUEST = _descriptor.Descriptor(
@@ -62,8 +204,8 @@ _ADDUSERRESULTREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=106,
-  serialized_end=160,
+  serialized_start=286,
+  serialized_end=340,
 )
 
 
@@ -122,8 +264,8 @@ _SETSCENARIORESULTREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=163,
-  serialized_end=337,
+  serialized_start=343,
+  serialized_end=517,
 )
 
 
@@ -154,8 +296,8 @@ _MOVEUSERRESULTSREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=339,
-  serialized_end=380,
+  serialized_start=519,
+  serialized_end=560,
 )
 
 
@@ -186,8 +328,8 @@ _MOVEUSERRESULTSRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=382,
-  serialized_end=424,
+  serialized_start=562,
+  serialized_end=604,
 )
 
 
@@ -218,8 +360,8 @@ _MOVESCENARIORESULTREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=426,
-  serialized_end=473,
+  serialized_start=606,
+  serialized_end=653,
 )
 
 
@@ -285,8 +427,8 @@ _MOVESCENARIORESULTRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=476,
-  serialized_end=663,
+  serialized_start=656,
+  serialized_end=843,
 )
 
 
@@ -324,8 +466,8 @@ _DISTRIBUTEWORKREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=665,
-  serialized_end=719,
+  serialized_start=845,
+  serialized_end=899,
 )
 
 
@@ -356,8 +498,8 @@ _GETUSERWORKREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=721,
-  serialized_end=757,
+  serialized_start=901,
+  serialized_end=937,
 )
 
 
@@ -388,14 +530,20 @@ _GETUSERWORKRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=759,
-  serialized_end=794,
+  serialized_start=939,
+  serialized_end=974,
 )
 
+_ADDEVENTREQUEST.fields_by_name['event'].message_type = _EVENT
+_EVENTS.fields_by_name['events'].message_type = _EVENT
 _SETSCENARIORESULTREQUEST.fields_by_name['output'].message_type = google_dot_protobuf_dot_wrappers__pb2._STRINGVALUE
 _SETSCENARIORESULTREQUEST.fields_by_name['exception'].message_type = google_dot_protobuf_dot_wrappers__pb2._STRINGVALUE
 _MOVESCENARIORESULTRESPONSE.fields_by_name['output'].message_type = google_dot_protobuf_dot_wrappers__pb2._STRINGVALUE
 _MOVESCENARIORESULTRESPONSE.fields_by_name['exception'].message_type = google_dot_protobuf_dot_wrappers__pb2._STRINGVALUE
+DESCRIPTOR.message_types_by_name['Event'] = _EVENT
+DESCRIPTOR.message_types_by_name['AddEventRequest'] = _ADDEVENTREQUEST
+DESCRIPTOR.message_types_by_name['GetEventsRequest'] = _GETEVENTSREQUEST
+DESCRIPTOR.message_types_by_name['Events'] = _EVENTS
 DESCRIPTOR.message_types_by_name['AddUserResultRequest'] = _ADDUSERRESULTREQUEST
 DESCRIPTOR.message_types_by_name['SetScenarioResultRequest'] = _SETSCENARIORESULTREQUEST
 DESCRIPTOR.message_types_by_name['MoveUserResultsRequest'] = _MOVEUSERRESULTSREQUEST
@@ -406,6 +554,34 @@ DESCRIPTOR.message_types_by_name['DistributeWorkRequest'] = _DISTRIBUTEWORKREQUE
 DESCRIPTOR.message_types_by_name['GetUserWorkRequest'] = _GETUSERWORKREQUEST
 DESCRIPTOR.message_types_by_name['GetUserWorkResponse'] = _GETUSERWORKRESPONSE
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
+
+Event = _reflection.GeneratedProtocolMessageType('Event', (_message.Message,), {
+  'DESCRIPTOR' : _EVENT,
+  '__module__' : 'cicadad.protos.datastore_pb2'
+  # @@protoc_insertion_point(class_scope:datastore.Event)
+  })
+_sym_db.RegisterMessage(Event)
+
+AddEventRequest = _reflection.GeneratedProtocolMessageType('AddEventRequest', (_message.Message,), {
+  'DESCRIPTOR' : _ADDEVENTREQUEST,
+  '__module__' : 'cicadad.protos.datastore_pb2'
+  # @@protoc_insertion_point(class_scope:datastore.AddEventRequest)
+  })
+_sym_db.RegisterMessage(AddEventRequest)
+
+GetEventsRequest = _reflection.GeneratedProtocolMessageType('GetEventsRequest', (_message.Message,), {
+  'DESCRIPTOR' : _GETEVENTSREQUEST,
+  '__module__' : 'cicadad.protos.datastore_pb2'
+  # @@protoc_insertion_point(class_scope:datastore.GetEventsRequest)
+  })
+_sym_db.RegisterMessage(GetEventsRequest)
+
+Events = _reflection.GeneratedProtocolMessageType('Events', (_message.Message,), {
+  'DESCRIPTOR' : _EVENTS,
+  '__module__' : 'cicadad.protos.datastore_pb2'
+  # @@protoc_insertion_point(class_scope:datastore.Events)
+  })
+_sym_db.RegisterMessage(Events)
 
 AddUserResultRequest = _reflection.GeneratedProtocolMessageType('AddUserResultRequest', (_message.Message,), {
   'DESCRIPTOR' : _ADDUSERRESULTREQUEST,
@@ -480,13 +656,33 @@ _DATASTORE = _descriptor.ServiceDescriptor(
   index=0,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=797,
-  serialized_end=1307,
+  serialized_start=977,
+  serialized_end=1753,
   methods=[
+  _descriptor.MethodDescriptor(
+    name='AddTestEvent',
+    full_name='datastore.Datastore.AddTestEvent',
+    index=0,
+    containing_service=None,
+    input_type=_ADDEVENTREQUEST,
+    output_type=google_dot_protobuf_dot_empty__pb2._EMPTY,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+  _descriptor.MethodDescriptor(
+    name='GetTestEvents',
+    full_name='datastore.Datastore.GetTestEvents',
+    index=1,
+    containing_service=None,
+    input_type=_GETEVENTSREQUEST,
+    output_type=_EVENTS,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
   _descriptor.MethodDescriptor(
     name='AddUserResult',
     full_name='datastore.Datastore.AddUserResult',
-    index=0,
+    index=2,
     containing_service=None,
     input_type=_ADDUSERRESULTREQUEST,
     output_type=google_dot_protobuf_dot_empty__pb2._EMPTY,
@@ -496,7 +692,7 @@ _DATASTORE = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='SetScenarioResult',
     full_name='datastore.Datastore.SetScenarioResult',
-    index=1,
+    index=3,
     containing_service=None,
     input_type=_SETSCENARIORESULTREQUEST,
     output_type=google_dot_protobuf_dot_empty__pb2._EMPTY,
@@ -506,7 +702,7 @@ _DATASTORE = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='MoveUserResults',
     full_name='datastore.Datastore.MoveUserResults',
-    index=2,
+    index=4,
     containing_service=None,
     input_type=_MOVEUSERRESULTSREQUEST,
     output_type=_MOVEUSERRESULTSRESPONSE,
@@ -516,7 +712,7 @@ _DATASTORE = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='MoveScenarioResult',
     full_name='datastore.Datastore.MoveScenarioResult',
-    index=3,
+    index=5,
     containing_service=None,
     input_type=_MOVESCENARIORESULTREQUEST,
     output_type=_MOVESCENARIORESULTRESPONSE,
@@ -526,7 +722,7 @@ _DATASTORE = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='DistributeWork',
     full_name='datastore.Datastore.DistributeWork',
-    index=4,
+    index=6,
     containing_service=None,
     input_type=_DISTRIBUTEWORKREQUEST,
     output_type=google_dot_protobuf_dot_empty__pb2._EMPTY,
@@ -536,10 +732,30 @@ _DATASTORE = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='GetUserWork',
     full_name='datastore.Datastore.GetUserWork',
-    index=5,
+    index=7,
     containing_service=None,
     input_type=_GETUSERWORKREQUEST,
     output_type=_GETUSERWORKRESPONSE,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+  _descriptor.MethodDescriptor(
+    name='AddUserEvent',
+    full_name='datastore.Datastore.AddUserEvent',
+    index=8,
+    containing_service=None,
+    input_type=_ADDEVENTREQUEST,
+    output_type=google_dot_protobuf_dot_empty__pb2._EMPTY,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+  _descriptor.MethodDescriptor(
+    name='GetUserEvents',
+    full_name='datastore.Datastore.GetUserEvents',
+    index=9,
+    containing_service=None,
+    input_type=_GETEVENTSREQUEST,
+    output_type=_EVENTS,
     serialized_options=None,
     create_key=_descriptor._internal_create_key,
   ),

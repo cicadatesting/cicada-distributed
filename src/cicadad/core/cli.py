@@ -5,14 +5,12 @@ import sys
 import os
 import shutil
 
-from google.protobuf.empty_pb2 import Empty
 from blessed import Terminal  # type: ignore
 import click
 import docker  # type: ignore
-import grpc  # type: ignore
 
+from cicadad.services import datastore, container_service
 from cicadad.core import containers
-from cicadad.protos import hub_pb2_grpc, hub_pb2
 from cicadad.util import constants
 from cicadad import templates as templates_module
 
@@ -70,26 +68,41 @@ def init(ctx, build_path):
 @click.pass_context
 @click.option("--network", type=str, default=constants.DEFAULT_DOCKER_NETWORK)
 @click.option("--create-network/--no-create-network", default=True)
-def start_cluster(ctx, network, create_network):
+@click.option("--mode", default=constants.DEFAULT_CONTAINER_MODE)
+def start_cluster(ctx, network, create_network, mode):
     # FEATURE: more options for docker client
-    docker_client = docker.from_env()
+    if mode == constants.KUBE_CONTAINER_MODE:
+        click.echo(containers.make_concatenated_kube_templates())
+    elif mode == constants.DOCKER_CONTAINER_MODE:
+        docker_client = docker.from_env()
 
-    containers.configure_docker_network(docker_client, network, create_network)
+        containers.configure_docker_network(
+            docker_client,
+            network,
+            create_network,
+        )
 
-    redis_container = containers.docker_redis_up(docker_client, network)
+        redis_container = containers.docker_redis_up(docker_client, network)
 
-    if ctx.obj["DEBUG"]:
-        click.echo(f"Created Redis: {redis_container.id}")
+        if ctx.obj["DEBUG"]:
+            click.echo(f"Created Redis: {redis_container.id}")
 
-    datastore_client = containers.docker_datastore_client_up(docker_client, network)
+        datastore_client = containers.docker_datastore_client_up(
+            docker_client,
+            network,
+        )
 
-    if ctx.obj["DEBUG"]:
-        click.echo(f"Created Datastore Client: {datastore_client.id}")
+        if ctx.obj["DEBUG"]:
+            click.echo(f"Created Datastore Client: {datastore_client.id}")
 
-    container_service = containers.docker_container_service_up(docker_client, network)
+        container_service = containers.docker_container_service_up(
+            docker_client, network
+        )
 
-    if ctx.obj["DEBUG"]:
-        click.echo(f"Created Container Service: {container_service.id}")
+        if ctx.obj["DEBUG"]:
+            click.echo(f"Created Container Service: {container_service.id}")
+    else:
+        raise ValueError(f"Invalid mode: {mode}")
 
 
 @cli.command()
@@ -131,106 +144,139 @@ def stop_cluster(ctx):
 @click.option("--dockerfile", type=str, default="Dockerfile")
 @click.option("--network", type=str, default=constants.DEFAULT_DOCKER_NETWORK)
 @click.option("--tag", "-t", type=str, multiple=True, default=[])
+@click.option("--mode", type=str, default=constants.DEFAULT_CONTAINER_MODE)
+@click.option("--namespace", type=str, default=constants.DEFAULT_KUBE_NAMESPACE)
+@click.option("--datastore-client-address", type=str, default="localhost:8283")
+@click.option("--container-service-address", type=str, default="localhost:8284")
 @click.option("--no-exit-unsuccessful", is_flag=True)
-def run(ctx, image, build_path, dockerfile, network, tag, no_exit_unsuccessful):
+@click.option("--no-cleanup", is_flag=True)
+def run(
+    ctx,
+    image,
+    build_path,
+    dockerfile,
+    network,
+    tag,
+    mode,
+    namespace,
+    datastore_client_address,
+    container_service_address,
+    no_exit_unsuccessful,
+    no_cleanup,
+):
     # FIXME: move to function with dependencies removed
     docker_client = docker.from_env()
     term = Terminal()
 
     if image:
         image_id = image
-    else:
+    elif mode == constants.DOCKER_CONTAINER_MODE:
         image_id = containers.build_docker_image(
             client=docker_client,
             path=build_path,
             dockerfile=dockerfile,
         )
+    else:
+        raise ValueError(
+            f"Must specify image if not running in {constants.DEFAULT_CONTAINER_MODE} mode"
+        )
 
-    name = f"cicada-test-{str(uuid.uuid4())[:8]}"
+    test_id = f"cicada-test-{str(uuid.uuid4())[:8]}"
 
     click.echo(
         term.bold
-        + term.center(f" Starting Test: {name} ", fillchar="=")
+        + term.center(f" Starting Test: {test_id} ", fillchar="=")
         + "\n"
         + term.normal
     )
 
-    # FEATURE: override datastore client/container service address from CLI
-    args = containers.DockerServerArgs(
-        image=image_id,
-        name=name,
-        command=[
-            "run-test",
-            "--image",
-            image_id,
-            "--network",
-            network,
-        ],
-        labels=["cicada-distributed-test"],
-        # env: Dict[str, str]={}
-        # volumes: Optional[List[Volume]]
-        host_port=8282,
-        container_port=50051,
-        network=network,
-        # create_network: bool=True
-    )
+    if tag == []:
+        tag_arg = []
+    else:
+        tag_arg = [e for t in tag for e in ["--tag", t]]
 
-    test_container = containers.create_docker_container(docker_client, args)
+    if mode == constants.KUBE_CONTAINER_MODE:
+        container_service.start_kube_container(
+            container_service.StartKubeContainerArgs(
+                image=image_id,
+                name=test_id,
+                command=[
+                    "run-test",
+                    "--test-id",
+                    test_id,
+                    "--image",
+                    image_id,
+                    "--network",
+                    network,
+                    "--namespace",
+                    namespace,
+                    "--container-mode",
+                    mode,
+                ]
+                + tag_arg,
+                labels={
+                    "type": "cicada-distributed-test",
+                    "test": test_id,
+                },
+                namespace=namespace,
+            ),
+            container_service_address,
+        )
+    else:
+        # NOTE: mode is checked earlier
+        container_service.start_docker_container(
+            container_service.StartDockerContainerArgs(
+                image=image_id,
+                name=test_id,
+                command=[
+                    "run-test",
+                    "--test-id",
+                    test_id,
+                    "--image",
+                    image_id,
+                    "--network",
+                    network,
+                    "--namespace",
+                    namespace,
+                    "--container-mode",
+                    mode,
+                ]
+                + tag_arg,
+                labels={
+                    "type": "cicada-distributed-test",
+                    "test": test_id,
+                },
+                # env: Dict[str, str]={}
+                network=network,
+            ),
+            container_service_address,
+        )
 
     # FEATURE: Error if cluster is not up
 
     try:
         # FIXME: move to function
-        with grpc.insecure_channel("[::]:8282") as channel:
-            stub = hub_pb2_grpc.HubStub(channel)
-
-            # FIXME: integrate with util.backoff
-            ready = False
-            tries = 0
-            period = 2
-
-            while not ready and tries < 3:
-                try:
-                    response = stub.Healthcheck(Empty())
-                    ready = response.ready
-                except grpc.RpcError as e:
-                    ready = False
-
-                    if ctx.obj["DEBUG"]:
-                        click.echo(e)
-
-                    time.sleep(period)
-
-                    tries += 1
-                    period *= 2
-
-            if not ready:
-                logs = containers.container_logs(test_container)
-
-                raise RuntimeError(f"Could not start test:\n{logs}")
-
-        # FIXME: move to function
         context = {}
         passed = []
         failed = []
+        finished = False
 
-        with grpc.insecure_channel("[::]:8282") as channel:
-            stub = hub_pb2_grpc.HubStub(channel)
-            msg = hub_pb2.RunTestRequest(tags=tag)
+        while not finished:
+            # poll for events
+            events = datastore.get_test_events(test_id, datastore_client_address)
+            skip_sleep = False
 
-            for status in stub.Run(msg):
-                # HACK: maybe change this to send back only the results for scenario instead of whole context
+            for event in events:
+                if event.kind == "SCENARIO_FINISHED":
+                    context = json.loads(event.payload.context)
 
-                if status.type == "SCENARIO_FINISHED":
-                    context = json.loads(status.context)
-
-                    result = context[status.scenario]
+                    result = context[event.payload.scenario]
 
                     if result["exception"] is not None:
                         click.echo(
                             term.bold
                             + term.center(
-                                f" {status.scenario}: "
+                                f" {event.payload.scenario}: "
                                 + term.red
                                 + "Failed "
                                 + term.normal
@@ -244,12 +290,12 @@ def run(ctx, image, build_path, dockerfile, network, tag, no_exit_unsuccessful):
                         click.echo(f"Exception: {result['exception']}")
                         click.echo("\n")
 
-                        failed.append(status.scenario)
+                        failed.append(event.payload.scenario)
                     else:
                         click.echo(
                             term.bold
                             + term.center(
-                                f" {status.scenario}: "
+                                f" {event.payload.scenario}: "
                                 + term.green
                                 + "Passed "
                                 + term.normal
@@ -260,7 +306,7 @@ def run(ctx, image, build_path, dockerfile, network, tag, no_exit_unsuccessful):
                             + term.normal
                         )
 
-                        passed.append(status.scenario)
+                        passed.append(event.payload.scenario)
 
                     if result["output"] is not None:
                         click.echo(f"Result: {result['output']}")
@@ -275,31 +321,87 @@ def run(ctx, image, build_path, dockerfile, network, tag, no_exit_unsuccessful):
                 else:
                     click.echo(
                         term.bold
-                        + term.center(f" {status.message} ", fillchar="-")
+                        + term.center(f" {event.payload.message} ", fillchar="-")
                         + "\n"
                         + term.normal
                     )
+
+                if event.kind == "TEST_FINISHED":
+                    finished = True
+                    skip_sleep = True
+
+            if not skip_sleep:
+                time.sleep(1)
     finally:
-        if ctx.obj["DEBUG"]:
-            click.echo("Cleaning Test Runners")
+        if not no_cleanup:
+            if mode == constants.KUBE_CONTAINER_MODE:
+                if ctx.obj["DEBUG"]:
+                    click.echo("Cleaning Test Runners")
 
-        containers.stop_docker_container_by_name(docker_client, test_container.id)
-        containers.clean_docker_containers(docker_client, "cicada-distributed-test")
+                container_service.stop_kube_container(
+                    test_id,
+                    namespace=namespace,
+                    address=container_service_address,
+                )
 
-        if ctx.obj["DEBUG"]:
-            click.echo("Cleaned Test Runners")
-            click.echo("Cleaning Scenarios")
+                if ctx.obj["DEBUG"]:
+                    click.echo("Cleaned Test Runners")
+                    click.echo("Cleaning Scenarios")
 
-        containers.clean_docker_containers(docker_client, "cicada-distributed-scenario")
+                # containers.clean_docker_containers(
+                #     docker_client, "cicada-distributed-scenario"
+                # )
+                container_service.stop_kube_container(
+                    "",
+                    namespace=namespace,
+                    labels={"type": "cicada-distributed-scenario", "test": test_id},
+                    address=container_service_address,
+                )
 
-        if ctx.obj["DEBUG"]:
-            click.echo("Cleaned Scenarios")
-            click.echo("Cleaning Users")
+                if ctx.obj["DEBUG"]:
+                    click.echo("Cleaned Scenarios")
+                    click.echo("Cleaning Users")
 
-        containers.clean_docker_containers(docker_client, "cicada-distributed-user")
+                container_service.stop_kube_container(
+                    "",
+                    namespace=namespace,
+                    labels={"type": "cicada-distributed-user", "test": test_id},
+                    address=container_service_address,
+                )
 
-        if ctx.obj["DEBUG"]:
-            click.echo("Cleaned Users")
+                if ctx.obj["DEBUG"]:
+                    click.echo("Cleaned Users")
+            else:
+                if ctx.obj["DEBUG"]:
+                    click.echo("Cleaning Test Runners")
+
+                container_service.stop_docker_container(
+                    test_id,
+                    address=container_service_address,
+                )
+
+                if ctx.obj["DEBUG"]:
+                    click.echo("Cleaned Test Runners")
+                    click.echo("Cleaning Scenarios")
+
+                container_service.stop_docker_container(
+                    "",
+                    labels={"type": "cicada-distributed-scenario", "test": test_id},
+                    address=container_service_address,
+                )
+
+                if ctx.obj["DEBUG"]:
+                    click.echo("Cleaned Scenarios")
+                    click.echo("Cleaning Users")
+
+                container_service.stop_docker_container(
+                    "",
+                    labels={"type": "cicada-distributed-user", "test": test_id},
+                    address=container_service_address,
+                )
+
+                if ctx.obj["DEBUG"]:
+                    click.echo("Cleaned Users")
 
     # FEATURE: report results in static site
     click.echo(
