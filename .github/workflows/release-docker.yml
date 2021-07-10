@@ -30,8 +30,8 @@ jobs:
           file: dockerfiles/base-image.dockerfile
           platforms: linux/amd64
           push: true
-          build-args:
-            - CICADA_VERSION=${{ env.cicadaVersion }}
+          build-args: |
+            CICADA_VERSION=${{ env.cicadaVersion }}
           tags: cicadatesting/cicada-distributed-base-image:${{ github.sha }},cicadatesting/cicada-distributed-base-image:${{ env.cicadaVersion }},cicadatesting/cicada-distributed-base-image:latest
   push-container-service:
     runs-on: ubuntu-latest

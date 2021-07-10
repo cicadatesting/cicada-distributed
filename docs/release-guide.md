@@ -24,11 +24,12 @@ datastore-client)
 2. Build the datastore client in dev (`make build-dev`)
 3. Build the container service in dev (`make build-dev`)
 4. Start a local cluster in dev mode (`ENV=dev cicada-distributed start-cluster`)
-5. Switch to the demo repo (cicada-distributed-demos) and start the API, then
-run each demo in dev mode (`make run-dev`)
-6. Spin down the Docker cluster, then start a k3d cluster in
-cicada-distributed-charts (`make setup-cluster`)
+5. Switch to the demo repo (cicada-distributed-demos) and start the API
+(`make up`), then run each demo in dev mode (`make run-dev`)
+6. Spin down the Docker cluster, then start a k3d cluster (`make setup-cluster`)
 7. Import the images into the cluster (`import-images-dev`)
-8. Install the Helm chart (`make install-chart`)
-9. Repeat the testing process for K8s (`make import-kube-dev` + `make run-kube`)
+8. Install the Helm chart (`make install-kube`)
+9. Spin down the example API (`make down`), then restart it in K8s
+(`make import-images` + `make install-kube`)
+10. Repeat the testing process for K8s (`make import-kube-dev` + `make run-kube`)
 

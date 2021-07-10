@@ -2,11 +2,17 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: cicada-distributed-redis
+  labels:
+    app.kubernetes.io/name: cicada-distributed-redis
+    app.kubernetes.io/managed-by: cicada-distributed
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: cicada-distributed-redis-configmap
+  labels:
+    app.kubernetes.io/name: cicada-distributed-redis-configmap
+    app.kubernetes.io/managed-by: cicada-distributed
 data:
   redis.conf: |
     maxmemory-policy allkeys-lru
@@ -21,6 +27,8 @@ kind: Deployment
 metadata:
   labels:
     app: cicada-distributed-redis
+    app.kubernetes.io/name: cicada-distributed-redis
+    app.kubernetes.io/managed-by: cicada-distributed
   name: cicada-distributed-redis
 spec:
   replicas: 1
@@ -73,6 +81,9 @@ apiVersion: v1
 kind: Service
 metadata:
   name: cicada-distributed-redis
+  labels:
+    app.kubernetes.io/name: cicada-distributed-redis
+    app.kubernetes.io/managed-by: cicada-distributed
 spec:
   ports:
   - port: 6379
@@ -86,12 +97,17 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: cicada-distributed-datastore-client
+  labels:
+    app.kubernetes.io/name: cicada-distributed-datastore-client
+    app.kubernetes.io/managed-by: cicada-distributed
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
     app: cicada-distributed-datastore-client
+    app.kubernetes.io/name: cicada-distributed-datastore-client
+    app.kubernetes.io/managed-by: cicada-distributed
   name: cicada-distributed-datastore-client
 spec:
   selector:
@@ -126,6 +142,9 @@ apiVersion: v1
 kind: Service
 metadata:
   name: cicada-distributed-datastore-client
+  labels:
+    app.kubernetes.io/name: cicada-distributed-datastore-client
+    app.kubernetes.io/managed-by: cicada-distributed
 spec:
   ports:
   - port: 8283
@@ -140,11 +159,17 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: cicada-distributed-container-service
+  labels:
+    app.kubernetes.io/name: cicada-distributed-container-service
+    app.kubernetes.io/managed-by: cicada-distributed
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: cicada-distributed-container-service
+  labels:
+    app.kubernetes.io/name: cicada-distributed-container-service
+    app.kubernetes.io/managed-by: cicada-distributed
 rules:
 - apiGroups:
   - batch
@@ -161,6 +186,9 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: cicada-distributed-container-service
+  labels:
+    app.kubernetes.io/name: cicada-distributed-container-service
+    app.kubernetes.io/managed-by: cicada-distributed
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -175,6 +203,8 @@ kind: Deployment
 metadata:
   labels:
     app: cicada-distributed-container-service
+    app.kubernetes.io/name: cicada-distributed-container-service
+    app.kubernetes.io/managed-by: cicada-distributed
   name: cicada-distributed-container-service
 spec:
   selector:
@@ -209,6 +239,9 @@ apiVersion: v1
 kind: Service
 metadata:
   name: cicada-distributed-container-service
+  labels:
+    app.kubernetes.io/name: cicada-distributed-container-service
+    app.kubernetes.io/managed-by: cicada-distributed
 spec:
   ports:
   - port: 8284
@@ -222,4 +255,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: cicada-distributed-job
+  labels:
+    app.kubernetes.io/name: cicada-distributed-job
+    app.kubernetes.io/managed-by: cicada-distributed
 
