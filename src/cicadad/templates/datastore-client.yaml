@@ -1,0 +1,53 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cicada-distributed-datastore-client
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: cicada-distributed-datastore-client
+  name: cicada-distributed-datastore-client
+spec:
+  selector:
+    matchLabels:
+      app: cicada-distributed-datastore-client
+  template:
+    metadata:
+      labels:
+        app: cicada-distributed-datastore-client
+    spec:
+      containers:
+      - env:
+        - name: REDIS_ENDPOINT
+          value: cicada-distributed-redis
+        image: cicadatesting/cicada-distributed-datastore-client:1.2.0
+        imagePullPolicy: IfNotPresent
+        name: cicada-distributed-datastore-client
+        ports:
+        - containerPort: 8283
+          name: http
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+      serviceAccountName: cicada-distributed-datastore-client
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cicada-distributed-datastore-client
+spec:
+  ports:
+  - port: 8283
+    protocol: TCP
+    targetPort: 8283
+  selector:
+    app: cicada-distributed-datastore-client
+  sessionAffinity: None
+  type: ClusterIP

@@ -1,0 +1,81 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cicada-distributed-container-service
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cicada-distributed-container-service
+rules:
+- apiGroups:
+  - batch
+  resources:
+  - jobs
+  verbs:
+  - get
+  - list
+  - create
+  - delete
+  - deletecollection
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: cicada-distributed-container-service
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cicada-distributed-container-service
+subjects:
+- kind: ServiceAccount
+  name: cicada-distributed-container-service
+  namespace: default
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: cicada-distributed-container-service
+  name: cicada-distributed-container-service
+spec:
+  selector:
+    matchLabels:
+      app: cicada-distributed-container-service
+  template:
+    metadata:
+      labels:
+        app: cicada-distributed-container-service
+    spec:
+      containers:
+      - env:
+        - name: RUNNER_TYPE
+          value: KUBE
+        image: cicadatesting/cicada-distributed-container-service:1.2.0
+        imagePullPolicy: IfNotPresent
+        name: cicada-distributed-container-service
+        ports:
+        - containerPort: 8284
+          name: http
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 250m
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+      serviceAccountName: cicada-distributed-container-service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cicada-distributed-container-service
+spec:
+  ports:
+  - port: 8284
+    protocol: TCP
+    targetPort: 8284
+  selector:
+    app: cicada-distributed-container-service
+  type: ClusterIP

@@ -4,6 +4,7 @@ from pytest import raises
 
 from cicadad.core import scenario as scenario_module
 from cicadad.services import datastore
+from cicadad.util.constants import DOCKER_CONTAINER_MODE
 
 
 @patch("cicadad.services.datastore.get_work")
@@ -119,7 +120,7 @@ def test_scale_users_up():
     sid = "abc"
     datastore_addr = "fizz"
     container_service_addr = "buzz"
-    container_mode = "DOCKER"
+    container_mode = DOCKER_CONTAINER_MODE
     ctx = {}
 
     sc = scenario_module.ScenarioCommands(
@@ -152,7 +153,7 @@ def test_scale_users_down():
     sid = "abc"
     datastore_addr = "fizz"
     container_service_addr = "buzz"
-    container_mode = "DOCKER"
+    container_mode = DOCKER_CONTAINER_MODE
     ctx = {}
 
     sc = scenario_module.ScenarioCommands(
@@ -188,7 +189,7 @@ def test_start_users(start_container_mock):
     sid = "abc"
     datastore_addr = "fizz"
     container_service_addr = "buzz"
-    container_mode = "DOCKER"
+    container_mode = DOCKER_CONTAINER_MODE
     ctx = {}
 
     s.name = "s"
@@ -226,7 +227,7 @@ def test_start_users_negative():
     sid = "abc"
     datastore_addr = "fizz"
     container_service_addr = "buzz"
-    container_mode = "DOCKER"
+    container_mode = DOCKER_CONTAINER_MODE
     ctx = {}
 
     sc = scenario_module.ScenarioCommands(
@@ -256,7 +257,7 @@ def test_stop_users(stop_container_mock):
     sid = "abc"
     datastore_addr = "fizz"
     container_service_addr = "buzz"
-    container_mode = "DOCKER"
+    container_mode = DOCKER_CONTAINER_MODE
     ctx = {}
 
     sc = scenario_module.ScenarioCommands(
@@ -292,7 +293,7 @@ def test_stop_users_too_many():
     sid = "abc"
     datastore_addr = "fizz"
     container_service_addr = "buzz"
-    container_mode = "DOCKER"
+    container_mode = DOCKER_CONTAINER_MODE
     ctx = {}
 
     sc = scenario_module.ScenarioCommands(
@@ -321,7 +322,7 @@ def test_stop_users_negative():
     sid = "abc"
     datastore_addr = "fizz"
     container_service_addr = "buzz"
-    container_mode = "DOCKER"
+    container_mode = DOCKER_CONTAINER_MODE
     ctx = {}
 
     sc = scenario_module.ScenarioCommands(
@@ -351,7 +352,7 @@ def test_add_work(distribute_work_mock):
     sid = "abc"
     datastore_addr = "fizz"
     container_service_addr = "buzz"
-    container_mode = "DOCKER"
+    container_mode = DOCKER_CONTAINER_MODE
     ctx = {}
 
     sc = scenario_module.ScenarioCommands(
@@ -386,7 +387,7 @@ def test_has_work_buffered():
     sid = "abc"
     datastore_addr = "fizz"
     container_service_addr = "buzz"
-    container_mode = "DOCKER"
+    container_mode = DOCKER_CONTAINER_MODE
     ctx = {}
 
     sc = scenario_module.ScenarioCommands(
@@ -416,7 +417,7 @@ def test_aggregate_results():
     sid = "abc"
     datastore_addr = "fizz"
     container_service_addr = "buzz"
-    container_mode = "DOCKER"
+    container_mode = DOCKER_CONTAINER_MODE
     ctx = {}
 
     sc = scenario_module.ScenarioCommands(
@@ -458,7 +459,7 @@ def test_aggregate_results_default():
     sid = "abc"
     datastore_addr = "fizz"
     container_service_addr = "buzz"
-    container_mode = "DOCKER"
+    container_mode = DOCKER_CONTAINER_MODE
     ctx = {}
 
     sc = scenario_module.ScenarioCommands(
@@ -492,7 +493,7 @@ def test_verify_results():
     sid = "abc"
     datastore_addr = "fizz"
     container_service_addr = "buzz"
-    container_mode = "DOCKER"
+    container_mode = DOCKER_CONTAINER_MODE
     ctx = {}
 
     sc = scenario_module.ScenarioCommands(
@@ -559,7 +560,7 @@ def test_test_runner(
     namespace = "default"
     datastore_addr = "fizz"
     container_service_addr = "buzz"
-    container_mode = "DOCKER"
+    container_mode = DOCKER_CONTAINER_MODE
 
     r1 = {
         "output": "42",
@@ -605,7 +606,7 @@ def test_run_scenario(set_scenario_result_mock):
     sid = "abc"
     datastore_addr = "fizz"
     container_service_addr = "buzz"
-    container_mode = "DOCKER"
+    container_mode = DOCKER_CONTAINER_MODE
     ctx = {}
 
     def load_model(sc, c):
@@ -642,7 +643,7 @@ def test_run_scenario_result_transformer(set_scenario_result_mock):
     sid = "abc"
     datastore_addr = "fizz"
     container_service_addr = "buzz"
-    container_mode = "DOCKER"
+    container_mode = DOCKER_CONTAINER_MODE
     ctx = {}
 
     def load_model(sc, c):
@@ -682,7 +683,7 @@ def test_run_scenario_exception(set_scenario_result_mock):
     sid = "abc"
     datastore_addr = "fizz"
     container_service_addr = "buzz"
-    container_mode = "DOCKER"
+    container_mode = DOCKER_CONTAINER_MODE
     ctx = {}
 
     def load_model(sc, c):

@@ -1,5 +1,7 @@
 
 BASE_IMAGE_NAME=cicadatesting/cicada-distributed-base-image
+CONTAINER_SERVICE_IMAGE_NAME=cicadatesting/cicada-distributed-container-service
+DATASTORE_IMAGE_NAME=cicadatesting/cicada-distributed-datastore-client
 
 # NOTE: may need to use sudo
 # NOTE: may be helpful to run make clean
@@ -36,11 +38,44 @@ build-base-dev:
 build-base:
 	docker build -f dockerfiles/base-image.dockerfile -t ${BASE_IMAGE_NAME}:1.2.0 .
 
+setup-cluster:
+	k3d cluster create -p "8283:30083@server[0]" -p "8284:30084@server[0]"
+
+import-images-local:
+	docker tag ${CONTAINER_SERVICE_IMAGE_NAME}:latest ${CONTAINER_SERVICE_IMAGE_NAME}:local
+	docker tag ${DATASTORE_IMAGE_NAME}:latest ${DATASTORE_IMAGE_NAME}:local
+	k3d image import ${CONTAINER_SERVICE_IMAGE_NAME}:local
+	k3d image import ${DATASTORE_IMAGE_NAME}:local
+
+import-images-dev:
+	docker tag ${CONTAINER_SERVICE_IMAGE_NAME}:pre-release ${CONTAINER_SERVICE_IMAGE_NAME}:local
+	docker tag ${DATASTORE_IMAGE_NAME}:pre-release ${DATASTORE_IMAGE_NAME}:local
+	k3d image import ${CONTAINER_SERVICE_IMAGE_NAME}:local
+	k3d image import ${DATASTORE_IMAGE_NAME}:local
+
+import-images:
+	docker tag ${CONTAINER_SERVICE_IMAGE_NAME}:1.2.0 ${CONTAINER_SERVICE_IMAGE_NAME}:local
+	docker tag ${DATASTORE_IMAGE_NAME}:1.2.0 ${DATASTORE_IMAGE_NAME}:local
+	k3d image import ${CONTAINER_SERVICE_IMAGE_NAME}:local
+	k3d image import ${DATASTORE_IMAGE_NAME}:local
+
+install-kube:
+	cicada-distributed --debug start-cluster --mode=KUBE > kube-cluster/base/cicada-distributed.yaml
+	kubectl apply -k kube-cluster/base
+	kubectl apply -k kube-cluster/overlays/local
+
+uninstall-kube:
+	kubectl delete -k kube-cluster/base
+
+teardown-cluster:
+	k3d cluster delete
+
 clean:
 	rm -r dist
 	rm -r build
 	rm -r src/cicadad.egg-info
 
+# TODO: fix command
 clean-containers:
 	docker container stop $(shell docker ps -q --filter "label=cicada-distributed") \
 	&& docker container rm $(shell docker ps -q --filter "label=cicada-distributed")
