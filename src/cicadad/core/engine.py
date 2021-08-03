@@ -1,6 +1,6 @@
 from typing import Dict, List
 
-from distributed.client import Client
+from distributed.client import Client  # type: ignore
 import click
 
 from cicadad.core.scenario import (

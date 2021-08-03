@@ -8,7 +8,7 @@ import traceback
 
 from pydantic import BaseModel, Field
 from cicadad.util.constants import KUBE_CONTAINER_MODE
-from dask.distributed import Client, fire_and_forget, secede
+from dask.distributed import Client, fire_and_forget, secede  # type: ignore
 
 from cicadad.util.context import encode_context
 from cicadad.services import datastore, container_service
