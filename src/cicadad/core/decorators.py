@@ -47,6 +47,22 @@ def user_loop(user_loop_fn: UserLoopFn):
     return wrapper
 
 
+def users_per_container(users_per_container: int):
+    """Sets how many users can fit inside a single user manager container.
+    Default is 50 users per container
+
+    Args:
+        users_per_container (int): Number of users to fit in a single container
+    """
+
+    def wrapper(fn):
+        set_scenario_attribute(fn, "users_per_container", users_per_container)
+
+        return fn
+
+    return wrapper
+
+
 def load_model(load_model_fn: LoadModelFn):
     """Function to handle how scenario is run with regards to starting users and
     administering work

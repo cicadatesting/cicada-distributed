@@ -31,6 +31,7 @@ message AddEventRequest {
 
 message GetEventsRequest {
     string id = 1;
+    string kind = 2;
 }
 
 message Events {

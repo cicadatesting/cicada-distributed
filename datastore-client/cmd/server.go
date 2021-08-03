@@ -141,7 +141,7 @@ func NewServer(redisClient *redis.Client) *Server {
 }
 
 func (s *Server) AddUserEvent(ctx context.Context, in *api.AddEventRequest) (*empty.Empty, error) {
-	err := s.datastore.AddTestEvent(
+	err := s.datastore.AddUserEvent(
 		context.Background(),
 		in.GetId(),
 		in.GetEvent().GetKind(),
@@ -152,7 +152,7 @@ func (s *Server) AddUserEvent(ctx context.Context, in *api.AddEventRequest) (*em
 }
 
 func (s *Server) GetUserEvents(ctx context.Context, in *api.GetEventsRequest) (*api.Events, error) {
-	events, err := s.datastore.GetTestEvents(context.Background(), in.GetId())
+	events, err := s.datastore.GetUserEvents(context.Background(), in.GetId(), in.GetKind())
 
 	if err != nil {
 		return nil, err
