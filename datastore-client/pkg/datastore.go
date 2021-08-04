@@ -2,7 +2,10 @@ package pkg
 
 import (
 	"context"
+	"crypto/sha1"
+	"encoding/hex"
 	"fmt"
+	"io"
 	"math/rand"
 	"time"
 
@@ -23,6 +26,18 @@ type RedisClient interface {
 	Set(ctx context.Context, key string, value interface{}, expiration time.Duration) *redis.StatusCmd
 }
 
+func concatenatedKey(a string, b ...string) string {
+	h := sha1.New()
+
+	io.WriteString(h, a)
+
+	for _, s := range b {
+		io.WriteString(h, s)
+	}
+
+	return hex.EncodeToString(h.Sum(nil))
+}
+
 func testEventKey(testID string) string {
 	return fmt.Sprintf("%s-test-events", testID)
 }
@@ -39,8 +54,11 @@ func scenarioResultKey(scenarioID string) string {
 	return fmt.Sprintf("%s-result", scenarioID)
 }
 
-func userEventKey(userID string) string {
-	return fmt.Sprintf("%s-user-events", userID)
+func userEventKey(userID, kind string) string {
+	return concatenatedKey(
+		fmt.Sprintf("%s-user-events", userID),
+		kind,
+	)
 }
 
 type Event struct {
@@ -203,6 +221,7 @@ func (datastore *Datastore) DistributeWork(ctx context.Context, amount int, user
 	})
 
 	for i := 0; i < withRemainingWork; i++ {
+		// NOTE: may be useful to implement in terms of user events
 		_, err := datastore.Rds.RPush(ctx, userWorkKey(userIDs[i]), baseWork+1).Result()
 
 		if err != nil {
@@ -246,9 +265,9 @@ func (datastore *Datastore) GetUserWork(ctx context.Context, userID string) (int
 }
 
 func (datastore *Datastore) AddUserEvent(ctx context.Context, userID, kind string, payload []byte) error {
-	return datastore.addEvent(ctx, userEventKey(userID), kind, payload)
+	return datastore.addEvent(ctx, userEventKey(userID, kind), kind, payload)
 }
 
-func (datastore *Datastore) GetUserEvents(ctx context.Context, userID string) ([]*Event, error) {
-	return datastore.getEvents(ctx, userEventKey(userID))
+func (datastore *Datastore) GetUserEvents(ctx context.Context, userID, kind string) ([]*Event, error) {
+	return datastore.getEvents(ctx, userEventKey(userID, kind))
 }

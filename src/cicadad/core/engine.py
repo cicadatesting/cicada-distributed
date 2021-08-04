@@ -1,8 +1,14 @@
 from typing import Dict, List
 
+from distributed.client import Client  # type: ignore
 import click
 
-from cicadad.core.scenario import Scenario, test_runner, scenario_runner, user_runner
+from cicadad.core.scenario import (
+    Scenario,
+    test_runner,
+    scenario_runner,
+    user_scheduler,
+)
 from cicadad.util.constants import (
     DEFAULT_CONTAINER_MODE,
     DEFAULT_CONTAINER_SERVICE_ADDRESS,
@@ -114,7 +120,7 @@ class Engine:
     def run_user(
         self,
         scenario_name: str,
-        user_id: str,
+        user_manager_id: str,
         datastore_address: str,
         encoded_context: str,
     ):
@@ -122,16 +128,18 @@ class Engine:
 
         Args:
             scenario_name (str): Name of scenario being run
-            user_id (str): Unique ID of user assigned by scenario
+            user_manager_id (str): Unique ID of user manager assigned by scenario
             datastore_address (str): Address of datastore client to receive work and save results
             encoded_context (str): Context from test containing previous results
         """
         scenario = self.scenarios[scenario_name]
         context = decode_context(encoded_context)
+        client = Client()
 
-        user_runner(
+        user_scheduler(
+            client,
             scenario,
-            user_id,
+            user_manager_id,
             datastore_address,
             context,
         )
@@ -230,7 +238,7 @@ def run_scenario(
 @engine_cli.command()
 @click.pass_context
 @click.option("--name", type=str, required=True)
-@click.option("--user-id", type=str, required=True)
+@click.option("--user-manager-id", type=str, required=True)
 @click.option("--datastore-address", type=str, default=DEFAULT_DATASTORE_ADDRESS)
 @click.option(
     "--encoded-context",
@@ -240,7 +248,7 @@ def run_scenario(
 def run_user(
     ctx,
     name,
-    user_id,
+    user_manager_id,
     datastore_address,
     encoded_context,
 ):
@@ -248,7 +256,7 @@ def run_user(
 
     engine.run_user(
         name,
-        user_id,
+        user_manager_id,
         datastore_address,
         encoded_context,
     )
