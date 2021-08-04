@@ -282,7 +282,7 @@ class ScenarioCommands(object):
         for user_manager, num_users in users_to_start.items():
             user_ids = [f"user-{str(uuid.uuid4())[:8]}" for _ in range(num_users)]
 
-            self.send_user_event(user_manager, "START_USERS", {"IDs": user_ids})
+            self._send_user_event(user_manager, "START_USERS", {"IDs": user_ids})
 
             for user_id in user_ids:
                 self.user_ids.add(user_id)
@@ -324,7 +324,7 @@ class ScenarioCommands(object):
                 break
 
             location = self.user_locations[user_id]
-            self.send_user_event(user_id, "STOP_USER", {})
+            self._send_user_event(user_id, "STOP_USER", {})
 
             self.user_manager_counts[location] -= 1
 
@@ -358,15 +358,18 @@ class ScenarioCommands(object):
 
         datastore.distribute_work(n, list(self.user_ids), self.datastore_address)
 
-    def send_user_event(self, user_id: str, kind: str, payload: dict):
-        """Sends an event to a particular user in the user pool
+    def _send_user_event(self, user_id: str, kind: str, payload: dict):
+        datastore.add_user_event(user_id, kind, payload, self.datastore_address)
+
+    def send_user_events(self, kind: str, payload: dict):
+        """Send an event to all user in the user pool.
 
         Args:
-            user_id (str): User ID to send event to
             kind (str): Type of event
             payload (dict): JSON dict to send to user
         """
-        datastore.add_user_event(user_id, kind, payload, self.datastore_address)
+        for user_id in self.user_ids:
+            self._send_user_event(user_id, kind, payload)
 
     def get_latest_results(
         self,
