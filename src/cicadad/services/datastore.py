@@ -112,6 +112,7 @@ def move_user_results(
     user_ids: Iterable[str], address: str = DEFAULT_DATASTORE_ADDRESS
 ) -> List[Result]:
     with grpc.insecure_channel(address) as channel:
+        # FEATURE: message compression and limit results
         stub = datastore_pb2_grpc.DatastoreStub(channel)
         request = datastore_pb2.MoveUserResultsRequest(userIDs=user_ids)
 
@@ -191,10 +192,10 @@ class UserEvent(BaseModel):
     payload: dict
 
 
-def get_user_events(user_id: str, address: str = DEFAULT_DATASTORE_ADDRESS):
+def get_user_events(user_id: str, kind: str, address: str = DEFAULT_DATASTORE_ADDRESS):
     with grpc.insecure_channel(address) as channel:
         stub = datastore_pb2_grpc.DatastoreStub(channel)
-        request = datastore_pb2.GetEventsRequest(id=user_id)
+        request = datastore_pb2.GetEventsRequest(id=user_id, kind=kind)
 
         response = stub.GetUserEvents(request)
 

@@ -179,8 +179,9 @@ def test_scale_users_down():
     sc.stop_users.assert_called_once_with(10)
 
 
-@patch("cicadad.services.container_service.start_docker_container")
-def test_start_users(start_container_mock):
+@patch("cicadad.core.scenario.container_service.start_docker_container")
+@patch("cicadad.core.scenario.datastore.add_user_event")
+def test_start_users(add_user_event_mock, start_container_mock):
     s = Mock()
     tid = "t-123"
     image = "foo"
@@ -193,6 +194,7 @@ def test_start_users(start_container_mock):
     ctx = {}
 
     s.name = "s"
+    s.users_per_container = 3
 
     sc = scenario_module.ScenarioCommands(
         s,
@@ -212,7 +214,8 @@ def test_start_users(start_container_mock):
 
     sc.start_users(5)
 
-    assert start_container_mock.call_count == 5
+    assert start_container_mock.call_count == 2
+    assert add_user_event_mock.call_count == 2
 
     sc.add_work.assert_called_once_with(10)
     assert sc.buffered_work == 0
@@ -248,7 +251,8 @@ def test_start_users_negative():
 
 
 @patch("cicadad.services.container_service.stop_docker_container")
-def test_stop_users(stop_container_mock):
+@patch("cicadad.services.datastore.add_user_event")
+def test_stop_users(add_user_event_mock, stop_container_mock):
     s = Mock()
     tid = "t-123"
     image = "foo"
@@ -273,10 +277,13 @@ def test_stop_users(stop_container_mock):
         ctx,
     )
 
+    add_user_event_mock.return_value = None
     stop_container_mock.return_value = None
 
     sc.num_users = 4
     sc.user_ids = ["1", "2", "3", "4"]
+    sc.user_locations = {"1": "a", "2": "a", "3": "b", "4": "b"}
+    sc.user_manager_counts = {"a": 2, "b": 2}
 
     sc.stop_users(3)
 

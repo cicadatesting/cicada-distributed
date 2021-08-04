@@ -8,6 +8,7 @@ import traceback
 
 from pydantic import BaseModel, Field
 from cicadad.util.constants import KUBE_CONTAINER_MODE
+from dask.distributed import Client, fire_and_forget, secede  # type: ignore
 
 from cicadad.util.context import encode_context
 from cicadad.services import datastore, container_service
@@ -41,16 +42,16 @@ class UserCommands(object):
         Returns:
             bool: User is up
         """
-        # FEATURE: signal to kill user
-        return True
+        return self.get_events("STOP_USER") == []
 
-    def get_events(self):
+    def get_events(self, kind: str):
         """Get events sent to user from scenario
 
         Returns:
             List[UserEvent]: List of user events
+            kind: type of event to retrieve
         """
-        return datastore.get_user_events(self.user_id, self.datastore_address)
+        return datastore.get_user_events(self.user_id, kind, self.datastore_address)
 
     def has_work(self, timeout_ms: Optional[int] = 1000):
         """Check if user has remaining invocations
@@ -97,8 +98,8 @@ class UserCommands(object):
                 output, exception = None, e
 
                 if log_traceback:
-                    print("Exception traceback:")
-                    traceback.print_tb(e.__traceback__)
+                    print("Exception traceback:", file=buffer)
+                    traceback.print_tb(e.__traceback__, file=buffer)
 
         return output, exception, buffer.getvalue()
 
@@ -165,6 +166,8 @@ class ScenarioCommands(object):
 
         self.scenario_id = scenario_id
         self.user_ids: Set[str] = set()
+        self.user_locations: Dict[str, str] = {}
+        self.user_manager_counts: Dict[str, int] = {}
         self.num_users = 0
         self.buffered_work = 0
         self.aggregated_results = None
@@ -193,15 +196,34 @@ class ScenarioCommands(object):
         if n == 0:
             return
 
-        # FEATURE: mount env for user + specify args in scenario
-        for _ in range(n):
-            user_id = f"user-{str(uuid.uuid4())[:8]}"
+        users_to_start: Dict[str, int] = {}
+        remaining_users = n
+
+        # Attempt to fill existing user managers
+        for user_manager in self.user_manager_counts:
+            if remaining_users < 1:
+                break
+
+            remaining_capacity = (
+                self.scenario.users_per_container
+                - self.user_manager_counts[user_manager]
+            )
+
+            users_for_manager = min(remaining_capacity, remaining_users)
+
+            users_to_start[user_manager] = users_for_manager
+            remaining_users -= users_for_manager
+
+        # start user managers for remaining users
+        while remaining_users > 0:
+            user_manager_id = f"user-manager-{str(uuid.uuid4())[:8]}"
             encoded_context = encode_context(self.context)
 
+            # FEATURE: mount env for user + specify args in scenario
             if self.container_mode == KUBE_CONTAINER_MODE:
                 container_service.start_kube_container(
                     container_service.StartKubeContainerArgs(
-                        name=user_id,
+                        name=user_manager_id,
                         # env={}
                         labels={
                             "type": "cicada-distributed-user",
@@ -213,8 +235,8 @@ class ScenarioCommands(object):
                             "run-user",
                             "--name",
                             self.scenario.name,
-                            "--user-id",
-                            user_id,
+                            "--user-manager-id",
+                            user_manager_id,
                             "--datastore-address",
                             self.datastore_address,
                             "--encoded-context",
@@ -227,7 +249,7 @@ class ScenarioCommands(object):
             else:
                 container_service.start_docker_container(
                     container_service.StartDockerContainerArgs(
-                        name=user_id,
+                        name=user_manager_id,
                         # env={}
                         labels={
                             "type": "cicada-distributed-user",
@@ -239,8 +261,8 @@ class ScenarioCommands(object):
                             "run-user",
                             "--name",
                             self.scenario.name,
-                            "--user-id",
-                            user_id,
+                            "--user-manager-id",
+                            user_manager_id,
                             "--datastore-address",
                             self.datastore_address,
                             "--encoded-context",
@@ -251,12 +273,31 @@ class ScenarioCommands(object):
                     self.container_service_address,
                 )
 
-            self.user_ids.add(user_id)
+            users_for_manager = min(self.scenario.users_per_container, remaining_users)
 
-        self.num_users += n
+            users_to_start[user_manager_id] = users_for_manager
+            remaining_users -= users_for_manager
+
+        # Signal user managers to start users and update counts
+        for user_manager, num_users in users_to_start.items():
+            user_ids = [f"user-{str(uuid.uuid4())[:8]}" for _ in range(num_users)]
+
+            self._send_user_event(user_manager, "START_USERS", {"IDs": user_ids})
+
+            for user_id in user_ids:
+                self.user_ids.add(user_id)
+                self.user_locations[user_id] = user_manager
+
+            if user_manager in self.user_manager_counts:
+                self.user_manager_counts[user_manager] += num_users
+            else:
+                self.user_manager_counts[user_manager] = num_users
+
+            self.num_users += num_users
 
         # If called add_work before start_users, flush the saved work to the
         # new group of users
+        # NOTE: may be possible to get rid of this mechanic
         if self.buffered_work > 0:
             self.add_work(self.buffered_work)
             self.buffered_work = 0
@@ -282,17 +323,23 @@ class ScenarioCommands(object):
             if remaining < 1:
                 break
 
-            if self.container_mode == KUBE_CONTAINER_MODE:
-                container_service.stop_kube_container(
-                    user_id,
-                    namespace=self.namespace,
-                    address=self.container_service_address,
-                )
-            else:
-                container_service.stop_docker_container(
-                    user_id,
-                    address=self.container_service_address,
-                )
+            location = self.user_locations[user_id]
+            self._send_user_event(user_id, "STOP_USER", {})
+
+            self.user_manager_counts[location] -= 1
+
+            if self.user_manager_counts[location] < 1:
+                if self.container_mode == KUBE_CONTAINER_MODE:
+                    container_service.stop_kube_container(
+                        location,
+                        namespace=self.namespace,
+                        address=self.container_service_address,
+                    )
+                else:
+                    container_service.stop_docker_container(
+                        location,
+                        address=self.container_service_address,
+                    )
 
             self.user_ids.remove(user_id)
             self.num_users -= 1
@@ -311,15 +358,18 @@ class ScenarioCommands(object):
 
         datastore.distribute_work(n, list(self.user_ids), self.datastore_address)
 
-    def send_user_event(self, user_id: str, kind: str, payload: dict):
-        """Sends an event to a particular user in the user pool
+    def _send_user_event(self, user_id: str, kind: str, payload: dict):
+        datastore.add_user_event(user_id, kind, payload, self.datastore_address)
+
+    def send_user_events(self, kind: str, payload: dict):
+        """Send an event to all user in the user pool.
 
         Args:
-            user_id (str): User ID to send event to
             kind (str): Type of event
             payload (dict): JSON dict to send to user
         """
-        datastore.add_user_event(user_id, kind, payload, self.datastore_address)
+        for user_id in self.user_ids:
+            self._send_user_event(user_id, kind, payload)
 
     def get_latest_results(
         self,
@@ -733,6 +783,42 @@ def scenario_runner(
     )
 
 
+def user_scheduler(
+    scheduler: Client,
+    scenario: "Scenario",
+    user_manager_id: str,
+    datastore_address: str,
+    context: dict,
+):
+    """Schedules users inside user manager on events from scenario
+
+    Args:
+        scheduler (Client): Dask client to start users
+        scenario (Scenario): User Scenario
+        user_manager_id (str): ID of this user manager
+        datastore_address (str): Address of datastore to recieve events from
+        context (dict): Test context
+    """
+    while True:
+        events = datastore.get_user_events(
+            user_manager_id, "START_USERS", datastore_address
+        )
+
+        for event in events:
+            for user_id in event.payload["IDs"]:
+                fut = scheduler.submit(
+                    user_runner,
+                    scenario=scenario,
+                    user_id=user_id,
+                    datastore_address=datastore_address,
+                    context=context,
+                    pure=False,
+                )
+
+                # NOTE: may be better waiting for all futures to finish
+                fire_and_forget(fut)
+
+
 def user_runner(
     scenario: "Scenario",
     user_id: str,
@@ -747,12 +833,15 @@ def user_runner(
         datastore_address (str): Address of datastore client to save results
         context (dict): Test context containing previous scenario results
     """
+    secede()
+
     user_commands = UserCommands(
         scenario,
         user_id,
         datastore_address,
     )
 
+    # FEATURE: report errors here back to scenario
     scenario.user_loop(user_commands, context)  # type: ignore
 
 
@@ -768,6 +857,7 @@ def while_has_work(polling_timeout_ms: int = 1000):
         while user_commands.is_up():
             if user_commands.has_work(polling_timeout_ms):
                 start = datetime.now()
+                # FEATURE: option to retry on failure
                 output, exception, logs = user_commands.run(context=context)
                 end = datetime.now()
                 user_commands.report_result(
@@ -1059,7 +1149,7 @@ def ramp_users_to_threshold(
     return closure
 
 
-def basic_verification(latest_results: List[datastore.Result]):
+def basic_verification(latest_results: List[datastore.Result], include_logs=True):
     """Create error strings for each errored result.
 
     Format:
@@ -1071,11 +1161,24 @@ def basic_verification(latest_results: List[datastore.Result]):
     Returns:
         List[str]: List of error strings derived from results
     """
-    return [
-        f"* {type(result.exception)}: {str(result.exception)}"
-        for result in latest_results
-        if result.exception is not None
-    ]
+    exception_strings = []
+
+    for result in latest_results:
+        if result.exception is None:
+            continue
+
+        if include_logs:
+            exception_strings.append(
+                f"""
+* {type(result.exception)}: {str(result.exception)}
+{result.logs}"""
+            )
+        else:
+            exception_strings.append(
+                f"* {type(result.exception)}: {str(result.exception)}"
+            )
+
+    return exception_strings
 
 
 UserLoopFn = Callable[[UserCommands, dict], None]
@@ -1094,6 +1197,7 @@ class Scenario(BaseModel):
     result_aggregator: Optional[ResultAggregatorFn]
     result_verifier: Optional[ResultVerifierFn] = Field(basic_verification)
     output_transformer: Optional[OutputTransformerFn]
+    users_per_container: int = 50
     tags: List[str] = []
 
 

@@ -2,7 +2,7 @@
 BASE_IMAGE_NAME=cicadatesting/cicada-distributed-base-image
 CONTAINER_SERVICE_IMAGE_NAME=cicadatesting/cicada-distributed-container-service
 DATASTORE_IMAGE_NAME=cicadatesting/cicada-distributed-datastore-client
-CICADA_VERSION=1.2.0
+CICADA_VERSION=1.3.0
 
 # NOTE: may need to use sudo
 # NOTE: may be helpful to run make clean
