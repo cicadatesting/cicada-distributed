@@ -62,7 +62,7 @@ spec:
       - env:
         - name: RUNNER_TYPE
           value: KUBE
-        image: cicadatesting/cicada-distributed-container-service:1.2.0
+        image: cicadatesting/cicada-distributed-container-service:1.3.0
         imagePullPolicy: IfNotPresent
         name: cicada-distributed-container-service
         ports:
