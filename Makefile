@@ -42,7 +42,7 @@ build-base:
 		-t ${BASE_IMAGE_NAME}:${CICADA_VERSION} .
 
 setup-cluster:
-	k3d cluster create -p "8283:30083@server[0]" -p "8284:30084@server[0]"
+	k3d cluster create -p "8283:30083@server:0" -p "8284:30084@server:0"
 
 import-images-local:
 	docker tag ${CONTAINER_SERVICE_IMAGE_NAME}:latest ${CONTAINER_SERVICE_IMAGE_NAME}:local
