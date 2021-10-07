@@ -5,10 +5,13 @@ import sys
 import os
 import shutil
 
+from rich.live import Live
+from rich.console import Console
 from blessed import Terminal  # type: ignore
 import click
 import docker  # type: ignore
 
+from cicadad.util.console import LivePanel, MetricsPanel, TasksPanel
 from cicadad.services import datastore, container_service
 from cicadad.core import containers
 from cicadad.util import constants
@@ -183,13 +186,6 @@ def run(
 
     test_id = f"cicada-test-{str(uuid.uuid4())[:8]}"
 
-    click.echo(
-        term.bold
-        + term.center(f" Starting Test: {test_id} ", fillchar="=")
-        + "\n"
-        + term.normal
-    )
-
     if tag == []:
         tag_arg = []
     else:
@@ -253,85 +249,60 @@ def run(
         )
 
     # FEATURE: Error if cluster is not up
+    # FEATURE: detect if test container fails, timeout for entire test
+
+    context = {}
+    passed = []
+    failed = []
+    finished = False
 
     try:
         # FIXME: move to function
-        context = {}
-        passed = []
-        failed = []
-        finished = False
+        rich_console = Console()
+        tasks_panel = TasksPanel()
+        metrics_panel = MetricsPanel()
 
-        while not finished:
-            # poll for events
-            events = datastore.get_test_events(test_id, datastore_client_address)
-            skip_sleep = False
+        live_panel = LivePanel(test_id, tasks_panel, metrics_panel)
 
-            for event in events:
-                if event.kind == "SCENARIO_FINISHED":
-                    context = json.loads(event.payload.context)
+        with Live(
+            console=rich_console,
+            refresh_per_second=20,
+        ) as live:
+            while not finished:
+                live.update(live_panel.get_renderable())
 
-                    result = context[event.payload.scenario]
+                # poll for events
+                events = datastore.get_test_events(test_id, datastore_client_address)
+                skip_sleep = False
 
-                    if result["exception"] is not None:
-                        click.echo(
-                            term.bold
-                            + term.center(
-                                f" {event.payload.scenario}: "
-                                + term.red
-                                + "Failed "
-                                + term.normal
-                                + term.bold,
-                                fillchar="-",
-                            )
-                            + "\n"
-                            + term.normal
+                for event in events:
+                    if event.kind == "SCENARIO_METRIC":
+                        metrics_panel.add_metric(
+                            event.payload.scenario, event.payload.metrics
                         )
+                    elif event.kind == "SCENARIO_FINISHED":
+                        context = json.loads(event.payload.context)
 
-                        click.echo(f"Exception: {result['exception']}")
-                        click.echo("\n")
+                        result = context[event.payload.scenario]
 
-                        failed.append(event.payload.scenario)
-                    else:
-                        click.echo(
-                            term.bold
-                            + term.center(
-                                f" {event.payload.scenario}: "
-                                + term.green
-                                + "Passed "
-                                + term.normal
-                                + term.bold,
-                                fillchar="-",
-                            )
-                            + "\n"
-                            + term.normal
-                        )
+                        if result["exception"] is not None:
+                            tasks_panel.update_task_failed(event.payload.scenario)
 
-                        passed.append(event.payload.scenario)
+                            failed.append(event.payload.scenario)
+                        else:
+                            tasks_panel.update_task_success(event.payload.scenario)
 
-                    if result["output"] is not None:
-                        click.echo(f"Result: {result['output']}")
-                        click.echo("\n")
+                            passed.append(event.payload.scenario)
 
-                    if result["logs"] and (
-                        result["exception"] is not None or ctx.obj["DEBUG"]
-                    ):
-                        click.echo("Logs:")
-                        click.echo(result["logs"])
-                        click.echo("\n")
-                else:
-                    click.echo(
-                        term.bold
-                        + term.center(f" {event.payload.message} ", fillchar="-")
-                        + "\n"
-                        + term.normal
-                    )
+                    elif event.kind == "SCENARIO_STARTED":
+                        # TODO: include container IDs
+                        tasks_panel.add_running_task(event.payload.scenario)
+                    elif event.kind == "TEST_FINISHED":
+                        finished = True
+                        skip_sleep = True
 
-                if event.kind == "TEST_FINISHED":
-                    finished = True
-                    skip_sleep = True
-
-            if not skip_sleep:
-                time.sleep(1)
+                if not skip_sleep:
+                    time.sleep(1)
     finally:
         if not no_cleanup:
             if mode == constants.KUBE_CONTAINER_MODE:
@@ -440,6 +411,42 @@ def run(
         + "\n"
         + term.normal
     )
+
+    for scenario in context:
+        result = context[scenario]
+
+        if result["exception"] is not None:
+            click.echo(
+                term.bold
+                + term.center(
+                    f" {scenario}: " + term.red + "Failed " + term.normal + term.bold,
+                    fillchar="-",
+                )
+                + "\n"
+                + term.normal
+            )
+
+            click.echo(f"Exception: {result['exception']}")
+            click.echo("\n")
+        else:
+            click.echo(
+                term.bold
+                + term.center(
+                    f" {scenario}: " + term.green + "Passed " + term.normal + term.bold,
+                    fillchar="-",
+                )
+                + "\n"
+                + term.normal
+            )
+
+        if result["output"] is not None:
+            click.echo(f"Result: {result['output']}")
+            click.echo("\n")
+
+        if result["logs"] and (result["exception"] is not None or ctx.obj["DEBUG"]):
+            click.echo("Logs:")
+            click.echo(result["logs"])
+            click.echo("\n")
 
     if no_exit_unsuccessful:
         sys.exit(0)

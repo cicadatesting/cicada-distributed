@@ -9,6 +9,7 @@ from cicadad.core.scenario import (
     OutputTransformerFn,
 )
 from cicadad.core.engine import Engine
+from cicadad.metrics.console import ConsoleMetrics
 
 
 def scenario(engine: Engine, name: str = None):
@@ -142,6 +143,22 @@ def output_transformer(transformer_fn: OutputTransformerFn):
 
     def wrapper(fn):
         set_scenario_attribute(fn, "output_transformer", transformer_fn)
+
+        return fn
+
+    return wrapper
+
+
+def metrics_strategy(strategy: ConsoleMetrics):
+    # TODO: replace with abstract class
+    """Specify how metrics are collected and displayed during the scenario
+
+    Args:
+        strategy (ConsoleMetrics): Scenario metric strategy
+    """
+
+    def wrapper(fn):
+        set_scenario_attribute(fn, "metrics_strategy", strategy)
 
         return fn
 

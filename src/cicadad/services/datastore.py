@@ -1,4 +1,4 @@
-from typing import Any, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List, Optional, Union
 from datetime import datetime
 import pickle  # nosec
 import json
@@ -34,15 +34,19 @@ class TestStatus(BaseModel):
     context: Optional[str]
 
 
+class ScenarioMetric(BaseModel):
+    scenario: str
+    metrics: Dict[str, Optional[str]]
+
+
 class TestEvent(BaseModel):
     kind: str
-    payload: TestStatus
+    payload: Union[TestStatus, ScenarioMetric]
 
 
 def add_test_event(
     test_id: str,
-    kind: str,
-    event: TestStatus,
+    event: TestEvent,
     address: str = DEFAULT_DATASTORE_ADDRESS,
 ):
     with grpc.insecure_channel(address) as channel:
@@ -50,8 +54,8 @@ def add_test_event(
         request = datastore_pb2.AddEventRequest(
             id=test_id,
             event=datastore_pb2.Event(
-                kind=kind,
-                payload=pickle.dumps(event),
+                kind=event.kind,
+                payload=pickle.dumps(event.payload),
             ),
         )
 
@@ -205,3 +209,129 @@ def get_user_events(user_id: str, kind: str, address: str = DEFAULT_DATASTORE_AD
             )
             for event in response.events
         ]
+
+
+# rpc GetMetricStatistics (GetMetricRequest) returns (MetricStatisticsResponse);
+
+# message AddMetricRequest {
+#     string scenarioID = 1;
+#     string name = 2;
+#     double value = 3;
+# }
+
+
+def add_metric(
+    scenario_id: str,
+    name: str,
+    value: float,
+    address: str = DEFAULT_DATASTORE_ADDRESS,
+):
+    with grpc.insecure_channel(address) as channel:
+        stub = datastore_pb2_grpc.DatastoreStub(channel)
+        request = datastore_pb2.AddMetricRequest(
+            scenarioID=scenario_id,
+            name=name,
+            value=value,
+        )
+
+        stub.AddMetric(request)
+
+
+def get_metric_total(
+    scenario_id: str,
+    name: str,
+    address: str = DEFAULT_DATASTORE_ADDRESS,
+) -> Optional[float]:
+    with grpc.insecure_channel(address) as channel:
+        try:
+            stub = datastore_pb2_grpc.DatastoreStub(channel)
+            request = datastore_pb2.GetMetricRequest(
+                scenarioID=scenario_id,
+                name=name,
+            )
+
+            response = stub.GetMetricTotal(request)
+
+            return response.total
+        except grpc.RpcError as err:
+            if err.code() == grpc.StatusCode.NOT_FOUND:
+                return None
+            else:
+                raise err
+
+
+def get_last_metric(
+    scenario_id: str,
+    name: str,
+    address: str = DEFAULT_DATASTORE_ADDRESS,
+) -> Optional[float]:
+    with grpc.insecure_channel(address) as channel:
+        try:
+            stub = datastore_pb2_grpc.DatastoreStub(channel)
+            request = datastore_pb2.GetMetricRequest(
+                scenarioID=scenario_id,
+                name=name,
+            )
+
+            response = stub.GetLastMetric(request)
+
+            return response.last
+        except grpc.RpcError as err:
+            if err.code() == grpc.StatusCode.NOT_FOUND:
+                return None
+            else:
+                raise err
+
+
+def get_metric_rate(
+    scenario_id: str,
+    name: str,
+    split_point: float,
+    address: str = DEFAULT_DATASTORE_ADDRESS,
+) -> Optional[float]:
+    with grpc.insecure_channel(address) as channel:
+        try:
+            stub = datastore_pb2_grpc.DatastoreStub(channel)
+            request = datastore_pb2.GetMetricRateRequest(
+                scenarioID=scenario_id,
+                name=name,
+                splitPoint=split_point,
+            )
+
+            response = stub.GetMetricRate(request)
+
+            return response.percentage
+        except grpc.RpcError as err:
+            if err.code() == grpc.StatusCode.NOT_FOUND:
+                return None
+            else:
+                raise err
+
+
+def get_metric_statistics(
+    scenario_id: str,
+    name: str,
+    address: str = DEFAULT_DATASTORE_ADDRESS,
+) -> Optional[dict]:
+    with grpc.insecure_channel(address) as channel:
+        try:
+            stub = datastore_pb2_grpc.DatastoreStub(channel)
+            request = datastore_pb2.GetMetricRequest(
+                scenarioID=scenario_id,
+                name=name,
+            )
+
+            response = stub.GetMetricStatistics(request)
+
+            return {
+                "min": response.min,
+                "max": response.max,
+                "median": response.median,
+                "average": response.average,
+                "len": response.len,
+            }
+        except grpc.RpcError as err:
+            if err.code() == grpc.StatusCode.NOT_FOUND:
+                return None
+            else:
+                raise err

@@ -5,7 +5,8 @@ import (
 	"fmt"
 
 	"github.com/cicadatesting/datastore-client/api"
-	"github.com/cicadatesting/datastore-client/pkg"
+	"github.com/cicadatesting/datastore-client/pkg/datastore"
+	"github.com/cicadatesting/datastore-client/pkg/rediscommands"
 	"github.com/go-redis/redis/v8"
 	"github.com/golang/protobuf/ptypes/empty"
 	"google.golang.org/grpc/codes"
@@ -15,12 +16,11 @@ import (
 
 type Server struct {
 	api.UnimplementedDatastoreServer
-	datastore *pkg.Datastore
+	datastore *datastore.Datastore
 }
 
 func (s *Server) AddTestEvent(ctx context.Context, in *api.AddEventRequest) (*empty.Empty, error) {
 	err := s.datastore.AddTestEvent(
-		context.Background(),
 		in.GetId(),
 		in.GetEvent().GetKind(),
 		in.GetEvent().GetPayload(),
@@ -30,7 +30,7 @@ func (s *Server) AddTestEvent(ctx context.Context, in *api.AddEventRequest) (*em
 }
 
 func (s *Server) GetTestEvents(ctx context.Context, in *api.GetEventsRequest) (*api.Events, error) {
-	events, err := s.datastore.GetTestEvents(context.Background(), in.GetId())
+	events, err := s.datastore.GetTestEvents(in.GetId())
 
 	if err != nil {
 		return nil, err
@@ -48,7 +48,7 @@ func (s *Server) GetTestEvents(ctx context.Context, in *api.GetEventsRequest) (*
 }
 
 func (s *Server) AddUserResult(ctx context.Context, in *api.AddUserResultRequest) (*empty.Empty, error) {
-	err := s.datastore.AddUserResult(context.Background(), in.GetUserID(), in.GetResult())
+	err := s.datastore.AddUserResult(in.GetUserID(), in.GetResult())
 
 	if err != nil {
 		return nil, err
@@ -70,7 +70,6 @@ func (s *Server) SetScenarioResult(ctx context.Context, in *api.SetScenarioResul
 	}
 
 	err := s.datastore.SetScenarioResult(
-		context.Background(),
 		in.GetScenarioID(),
 		output,
 		exception,
@@ -86,7 +85,7 @@ func (s *Server) SetScenarioResult(ctx context.Context, in *api.SetScenarioResul
 }
 
 func (s *Server) MoveUserResults(ctx context.Context, in *api.MoveUserResultsRequest) (*api.MoveUserResultsResponse, error) {
-	results, err := s.datastore.MoveUserResults(context.Background(), in.GetUserIDs())
+	results, err := s.datastore.MoveUserResults(in.GetUserIDs())
 
 	if err != nil {
 		return nil, err
@@ -100,9 +99,9 @@ func (s *Server) MoveUserResults(ctx context.Context, in *api.MoveUserResultsReq
 }
 
 func (s *Server) MoveScenarioResult(ctx context.Context, in *api.MoveScenarioResultRequest) (*api.MoveScenarioResultResponse, error) {
-	result, err := s.datastore.MoveScenarioResult(context.Background(), in.GetScenarioID())
+	result, err := s.datastore.MoveScenarioResult(in.GetScenarioID())
 
-	if err == redis.Nil {
+	if err == datastore.NotFound {
 		return nil, status.Error(codes.NotFound, fmt.Sprintf("Result for scenario %s not found", in.GetScenarioID()))
 	}
 
@@ -123,26 +122,27 @@ func (s *Server) MoveScenarioResult(ctx context.Context, in *api.MoveScenarioRes
 }
 
 func (s *Server) DistributeWork(ctx context.Context, in *api.DistributeWorkRequest) (*empty.Empty, error) {
-	err := s.datastore.DistributeWork(context.Background(), int(in.GetWork()), in.GetUserIDs())
+	err := s.datastore.DistributeWork(int(in.GetWork()), in.GetUserIDs())
 
 	return &empty.Empty{}, err
 }
 
 func (s *Server) GetUserWork(ctx context.Context, in *api.GetUserWorkRequest) (*api.GetUserWorkResponse, error) {
-	work, err := s.datastore.GetUserWork(context.Background(), in.GetUserID())
+	work, err := s.datastore.GetUserWork(in.GetUserID())
 
 	return &api.GetUserWorkResponse{Work: int32(work)}, err
 }
 
 func NewServer(redisClient *redis.Client) *Server {
-	datastore := pkg.Datastore{Rds: redisClient}
+	datastore := datastore.NewDatastore(
+		rediscommands.NewRedisCommands(redisClient),
+	)
 
-	return &Server{datastore: &datastore}
+	return &Server{datastore: datastore}
 }
 
 func (s *Server) AddUserEvent(ctx context.Context, in *api.AddEventRequest) (*empty.Empty, error) {
 	err := s.datastore.AddUserEvent(
-		context.Background(),
 		in.GetId(),
 		in.GetEvent().GetKind(),
 		in.GetEvent().GetPayload(),
@@ -152,7 +152,7 @@ func (s *Server) AddUserEvent(ctx context.Context, in *api.AddEventRequest) (*em
 }
 
 func (s *Server) GetUserEvents(ctx context.Context, in *api.GetEventsRequest) (*api.Events, error) {
-	events, err := s.datastore.GetUserEvents(context.Background(), in.GetId(), in.GetKind())
+	events, err := s.datastore.GetUserEvents(in.GetId(), in.GetKind())
 
 	if err != nil {
 		return nil, err
@@ -167,4 +167,56 @@ func (s *Server) GetUserEvents(ctx context.Context, in *api.GetEventsRequest) (*
 	}
 
 	return &result, nil
+}
+
+func (s *Server) AddMetric(ctx context.Context, in *api.AddMetricRequest) (*empty.Empty, error) {
+	err := s.datastore.AddMetric(in.GetScenarioID(), in.GetName(), in.GetValue())
+
+	return &empty.Empty{}, err
+}
+
+func (s *Server) GetMetricTotal(ctx context.Context, in *api.GetMetricRequest) (*api.MetricTotalResponse, error) {
+	total, err := s.datastore.GetMetricTotal(in.GetScenarioID(), in.GetName())
+
+	return &api.MetricTotalResponse{Total: total}, err
+}
+
+func (s *Server) GetLastMetric(ctx context.Context, in *api.GetMetricRequest) (*api.LastMetricResponse, error) {
+	last, err := s.datastore.GetLastMetric(in.GetScenarioID(), in.GetName())
+
+	if err == datastore.NotFound {
+		return nil, status.Error(codes.NotFound, fmt.Sprintf("Metric for %s not found", in.GetName()))
+	}
+
+	return &api.LastMetricResponse{Last: last}, err
+}
+
+func (s *Server) GetMetricRate(ctx context.Context, in *api.GetMetricRateRequest) (*api.MetricRateResponse, error) {
+	rate, err := s.datastore.GetRate(in.GetScenarioID(), in.GetName(), in.GetSplitPoint())
+
+	if err == datastore.NotFound {
+		return nil, status.Error(codes.NotFound, fmt.Sprintf("Metric for %s not found", in.GetName()))
+	}
+
+	return &api.MetricRateResponse{Percentage: rate}, err
+}
+
+func (s *Server) GetMetricStatistics(ctx context.Context, in *api.GetMetricRequest) (*api.MetricStatisticsResponse, error) {
+	stats, err := s.datastore.GetMetricStatistics(in.GetScenarioID(), in.GetName())
+
+	if err == datastore.NotFound {
+		return nil, status.Error(codes.NotFound, fmt.Sprintf("Metric for %s not found", in.GetName()))
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &api.MetricStatisticsResponse{
+		Min:     stats.Min,
+		Max:     stats.Max,
+		Median:  stats.Median,
+		Average: stats.Average,
+		Len:     stats.Len,
+	}, err
 }
