@@ -551,9 +551,17 @@ def test_test_runner(
     s2 = Mock()
     s3 = Mock()
 
+    ms = Mock()
+
+    ms.get_current.return_value = {"foo": "bar"}
+
     s1.name = "s1"
     s2.name = "s2"
     s3.name = "s3"
+
+    s1.metrics_strategy = ms
+    s2.metrics_strategy = None
+    s3.metrics_strategy = None
 
     s1.dependencies = []
     s2.dependencies = [s1]
@@ -599,7 +607,7 @@ def test_test_runner(
         container_mode,
     )
 
-    assert add_test_event_mock.call_count == 7
+    assert add_test_event_mock.call_count == 8
     assert start_container_mock.call_count == 2
 
 

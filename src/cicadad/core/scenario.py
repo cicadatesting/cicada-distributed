@@ -7,9 +7,10 @@ import io
 import traceback
 
 from pydantic import BaseModel, Field
-from cicadad.util.constants import KUBE_CONTAINER_MODE
 from dask.distributed import Client, fire_and_forget, secede  # type: ignore
 
+from cicadad.metrics.console import ConsoleMetrics
+from cicadad.util.constants import KUBE_CONTAINER_MODE
 from cicadad.util.context import encode_context
 from cicadad.services import datastore, container_service
 from cicadad.util import printing
@@ -432,25 +433,35 @@ class ScenarioCommands(object):
 
     # FEATURE: get number of healthy users in scenario, healthy users per group
 
-    # def create_metric(
-    #     name: str, description: Union[str, int, float], type: str = "HISTOGRAM"
-    # ):
-    #     # NOTE: name must be prometheus allowed
-    #     return
+    def put_metric(self, name: str, value: float):
+        """Save any metric in datastore.
 
-    # def put_metric(name: str, value: str, description: str, type: str = "HISTOGRAM"):
-    #     # create metric if not created yet, then report metric
-    #     return
+        Args:
+            name (str): Metric name
+            value (float): Metric value
+        """
+        # NOTE: may need to change this to work with other strategies
+        datastore.add_metric(self.scenario_id, name, value, self.datastore_address)
 
-    # def report_metric(name: str, value: str):
-    #     return
+    def collect_metrics(self, latest_results: List[datastore.Result]):
+        """Parse latest results and save metrics if any can be parsed from result set.
+
+        Args:
+            latest_results (List[datastore.Result]): List of latest collected results
+        """
+        if self.scenario.metrics_strategy is not None:
+            self.scenario.metrics_strategy.collect_metrics(
+                self.scenario_id,
+                latest_results,
+                self.datastore_address,
+            )
 
 
 def filter_scenarios_by_tag(
     scenarios: Iterable["Scenario"], tags: List[str]
 ) -> List["Scenario"]:
     """Filter scenarios that have tags in the list of tags provided. Returns
-    all scenarios if tag list is empty
+    all scenarios if tag list is empty.
 
     Args:
         scenarios (List[Scenario]): List of scenarios
@@ -559,11 +570,13 @@ def start_scenario(
 
     datastore.add_test_event(
         test_id=test_id,
-        kind="SCENARIO_STARTED",
-        event=datastore.TestStatus(
-            scenario=scenario.name,
-            message=f"Started scenario: {scenario.name} ({container_id})",
-            context=json.dumps(results),
+        event=datastore.TestEvent(
+            kind="SCENARIO_STARTED",
+            payload=datastore.TestStatus(
+                scenario=scenario.name,
+                message=f"Started scenario: {scenario.name} ({container_id})",
+                context=json.dumps(results),
+            ),
         ),
         address=datastore_address,
     )
@@ -581,15 +594,18 @@ def test_runner(
     container_mode: str,
 ):
     started: Dict[str, str] = {}
+    metrics: Dict[str, ConsoleMetrics] = {}
     results: Dict[str, dict] = {}
 
     valid_scenarios = filter_scenarios_by_tag(scenarios, tags)
 
     datastore.add_test_event(
         test_id=test_id,
-        kind="TEST_STARTED",
-        event=datastore.TestStatus(
-            message=f"Collected {len(valid_scenarios)} Scenario(s)",
+        event=datastore.TestEvent(
+            kind="TEST_STARTED",
+            payload=datastore.TestStatus(
+                message=f"Collected {len(valid_scenarios)} Scenario(s)",
+            ),
         ),
         address=datastore_address,
     )
@@ -611,12 +627,32 @@ def test_runner(
                 datastore_address,
                 container_service_address,
             )
+
             started[scenario.name] = scenario_id
+
+            if scenario.metrics_strategy is not None:
+                metrics[scenario.name] = scenario.metrics_strategy
 
     # listen to completed events and start scenarios with dependencies
     # FEATURE: scenario timeout counter here as well
     while len(results) != len(valid_scenarios):
         for scenario_name in [sn for sn in started if sn not in results]:
+            if scenario_name in metrics:
+                strategy = metrics[scenario_name]
+
+                datastore.add_test_event(
+                    test_id=test_id,
+                    event=datastore.TestEvent(
+                        kind="SCENARIO_METRIC",
+                        payload=datastore.ScenarioMetric(
+                            scenario=scenario_name,
+                            metrics=strategy.get_current(
+                                started[scenario_name], datastore_address
+                            ),
+                        ),
+                    ),
+                )
+
             # FIXME: move logic to eventing function
             # FEATURE: stream back metrics gathered from scenarios
             result = datastore.move_scenario_result(
@@ -629,11 +665,13 @@ def test_runner(
 
                 datastore.add_test_event(
                     test_id=test_id,
-                    kind="SCENARIO_FINISHED",
-                    event=datastore.TestStatus(
-                        scenario=scenario_name,
-                        message=f"Finished Scenario: {scenario_name}",
-                        context=json.dumps(results),
+                    event=datastore.TestEvent(
+                        kind="SCENARIO_FINISHED",
+                        payload=datastore.TestStatus(
+                            scenario=scenario_name,
+                            message=f"Finished Scenario: {scenario_name}",
+                            context=json.dumps(results),
+                        ),
                     ),
                     address=datastore_address,
                 )
@@ -658,7 +696,11 @@ def test_runner(
                     datastore_address,
                     container_service_address,
                 )
+
                 started[scenario.name] = scenario_id
+
+                if scenario.metrics_strategy is not None:
+                    metrics[scenario.name] = scenario.metrics_strategy
             elif all(dep.name in results for dep in scenario.dependencies):
                 # has all dependencies but some are failed
                 started[scenario.name] = str(uuid.uuid4())[:8]
@@ -674,11 +716,13 @@ def test_runner(
 
                 datastore.add_test_event(
                     test_id=test_id,
-                    kind="SCENARIO_FINISHED",
-                    event=datastore.TestStatus(
-                        scenario=scenario.name,
-                        message=f"Skipped Scenario: {scenario.name}",
-                        context=json.dumps(results),
+                    event=datastore.TestEvent(
+                        kind="SCENARIO_FINISHED",
+                        payload=datastore.TestStatus(
+                            scenario=scenario.name,
+                            message=f"Skipped Scenario: {scenario.name}",
+                            context=json.dumps(results),
+                        ),
                     ),
                     address=datastore_address,
                 )
@@ -688,9 +732,11 @@ def test_runner(
 
     datastore.add_test_event(
         test_id=test_id,
-        kind="TEST_FINISHED",
-        event=datastore.TestStatus(
-            message=f"Finished running {len(valid_scenarios)} Scenario(s)",
+        event=datastore.TestEvent(
+            kind="TEST_FINISHED",
+            payload=datastore.TestStatus(
+                message=f"Finished running {len(valid_scenarios)} Scenario(s)",
+            ),
         ),
         address=datastore_address,
     )
@@ -1126,6 +1172,7 @@ def ramp_users_to_threshold(
 
             scenario_commands.aggregate_results(latest_results)
             scenario_commands.verify_results(latest_results)
+            scenario_commands.collect_metrics(latest_results)
 
             time.sleep(wait_period)
 
@@ -1198,7 +1245,11 @@ class Scenario(BaseModel):
     result_verifier: Optional[ResultVerifierFn] = Field(basic_verification)
     output_transformer: Optional[OutputTransformerFn]
     users_per_container: int = 50
+    metrics_strategy: Optional[ConsoleMetrics]  # TODO: replace with abstract class
     tags: List[str] = []
+
+    class Config:
+        arbitrary_types_allowed = True
 
 
 Scenario.update_forward_refs()

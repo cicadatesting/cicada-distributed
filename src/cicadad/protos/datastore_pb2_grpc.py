@@ -65,6 +65,31 @@ class DatastoreStub(object):
                 request_serializer=cicadad_dot_protos_dot_datastore__pb2.GetEventsRequest.SerializeToString,
                 response_deserializer=cicadad_dot_protos_dot_datastore__pb2.Events.FromString,
                 )
+        self.AddMetric = channel.unary_unary(
+                '/datastore.Datastore/AddMetric',
+                request_serializer=cicadad_dot_protos_dot_datastore__pb2.AddMetricRequest.SerializeToString,
+                response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                )
+        self.GetMetricTotal = channel.unary_unary(
+                '/datastore.Datastore/GetMetricTotal',
+                request_serializer=cicadad_dot_protos_dot_datastore__pb2.GetMetricRequest.SerializeToString,
+                response_deserializer=cicadad_dot_protos_dot_datastore__pb2.MetricTotalResponse.FromString,
+                )
+        self.GetLastMetric = channel.unary_unary(
+                '/datastore.Datastore/GetLastMetric',
+                request_serializer=cicadad_dot_protos_dot_datastore__pb2.GetMetricRequest.SerializeToString,
+                response_deserializer=cicadad_dot_protos_dot_datastore__pb2.LastMetricResponse.FromString,
+                )
+        self.GetMetricRate = channel.unary_unary(
+                '/datastore.Datastore/GetMetricRate',
+                request_serializer=cicadad_dot_protos_dot_datastore__pb2.GetMetricRateRequest.SerializeToString,
+                response_deserializer=cicadad_dot_protos_dot_datastore__pb2.MetricRateResponse.FromString,
+                )
+        self.GetMetricStatistics = channel.unary_unary(
+                '/datastore.Datastore/GetMetricStatistics',
+                request_serializer=cicadad_dot_protos_dot_datastore__pb2.GetMetricRequest.SerializeToString,
+                response_deserializer=cicadad_dot_protos_dot_datastore__pb2.MetricStatisticsResponse.FromString,
+                )
 
 
 class DatastoreServicer(object):
@@ -130,6 +155,36 @@ class DatastoreServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def AddMetric(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetMetricTotal(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetLastMetric(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetMetricRate(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetMetricStatistics(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_DatastoreServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -182,6 +237,31 @@ def add_DatastoreServicer_to_server(servicer, server):
                     servicer.GetUserEvents,
                     request_deserializer=cicadad_dot_protos_dot_datastore__pb2.GetEventsRequest.FromString,
                     response_serializer=cicadad_dot_protos_dot_datastore__pb2.Events.SerializeToString,
+            ),
+            'AddMetric': grpc.unary_unary_rpc_method_handler(
+                    servicer.AddMetric,
+                    request_deserializer=cicadad_dot_protos_dot_datastore__pb2.AddMetricRequest.FromString,
+                    response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            ),
+            'GetMetricTotal': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetMetricTotal,
+                    request_deserializer=cicadad_dot_protos_dot_datastore__pb2.GetMetricRequest.FromString,
+                    response_serializer=cicadad_dot_protos_dot_datastore__pb2.MetricTotalResponse.SerializeToString,
+            ),
+            'GetLastMetric': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetLastMetric,
+                    request_deserializer=cicadad_dot_protos_dot_datastore__pb2.GetMetricRequest.FromString,
+                    response_serializer=cicadad_dot_protos_dot_datastore__pb2.LastMetricResponse.SerializeToString,
+            ),
+            'GetMetricRate': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetMetricRate,
+                    request_deserializer=cicadad_dot_protos_dot_datastore__pb2.GetMetricRateRequest.FromString,
+                    response_serializer=cicadad_dot_protos_dot_datastore__pb2.MetricRateResponse.SerializeToString,
+            ),
+            'GetMetricStatistics': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetMetricStatistics,
+                    request_deserializer=cicadad_dot_protos_dot_datastore__pb2.GetMetricRequest.FromString,
+                    response_serializer=cicadad_dot_protos_dot_datastore__pb2.MetricStatisticsResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -360,5 +440,90 @@ class Datastore(object):
         return grpc.experimental.unary_unary(request, target, '/datastore.Datastore/GetUserEvents',
             cicadad_dot_protos_dot_datastore__pb2.GetEventsRequest.SerializeToString,
             cicadad_dot_protos_dot_datastore__pb2.Events.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def AddMetric(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/datastore.Datastore/AddMetric',
+            cicadad_dot_protos_dot_datastore__pb2.AddMetricRequest.SerializeToString,
+            google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def GetMetricTotal(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/datastore.Datastore/GetMetricTotal',
+            cicadad_dot_protos_dot_datastore__pb2.GetMetricRequest.SerializeToString,
+            cicadad_dot_protos_dot_datastore__pb2.MetricTotalResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def GetLastMetric(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/datastore.Datastore/GetLastMetric',
+            cicadad_dot_protos_dot_datastore__pb2.GetMetricRequest.SerializeToString,
+            cicadad_dot_protos_dot_datastore__pb2.LastMetricResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def GetMetricRate(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/datastore.Datastore/GetMetricRate',
+            cicadad_dot_protos_dot_datastore__pb2.GetMetricRateRequest.SerializeToString,
+            cicadad_dot_protos_dot_datastore__pb2.MetricRateResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def GetMetricStatistics(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/datastore.Datastore/GetMetricStatistics',
+            cicadad_dot_protos_dot_datastore__pb2.GetMetricRequest.SerializeToString,
+            cicadad_dot_protos_dot_datastore__pb2.MetricStatisticsResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
