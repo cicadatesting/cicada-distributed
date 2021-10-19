@@ -21,7 +21,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=b'Z.github.com/cicadatesting/container-service/api',
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n&cicadad/protos/container_service.proto\x12\x11\x63ontainer_service\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1egoogle/protobuf/wrappers.proto\"v\n\nDockerArgs\x12\x39\n\x06labels\x18\x01 \x03(\x0b\x32).container_service.DockerArgs.LabelsEntry\x1a-\n\x0bLabelsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"\xce\x01\n\x13\x44ockerContainerArgs\x12\r\n\x05image\x18\x01 \x01(\t\x12\x0f\n\x07\x63ommand\x18\x02 \x03(\t\x12<\n\x03\x65nv\x18\x03 \x03(\x0b\x32/.container_service.DockerContainerArgs.EnvEntry\x12-\n\x07network\x18\x04 \x01(\x0b\x32\x1c.google.protobuf.StringValue\x1a*\n\x08\x45nvEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"\x85\x01\n\x08KubeArgs\x12\x37\n\x06labels\x18\x01 \x03(\x0b\x32\'.container_service.KubeArgs.LabelsEntry\x12\x11\n\tnamespace\x18\x02 \x01(\t\x1a-\n\x0bLabelsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"\x9b\x01\n\x11KubeContainerArgs\x12\r\n\x05image\x18\x01 \x01(\t\x12\x0f\n\x07\x63ommand\x18\x02 \x03(\t\x12:\n\x03\x65nv\x18\x03 \x03(\x0b\x32-.container_service.KubeContainerArgs.EnvEntry\x1a*\n\x08\x45nvEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"\xae\x02\n\x15StartContainerRequest\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x33\n\ndockerArgs\x18\x02 \x01(\x0b\x32\x1d.container_service.DockerArgsH\x00\x12/\n\x08kubeArgs\x18\x03 \x01(\x0b\x32\x1b.container_service.KubeArgsH\x00\x12\x45\n\x13\x64ockerContainerArgs\x18\x04 \x01(\x0b\x32&.container_service.DockerContainerArgsH\x01\x12\x41\n\x11kubeContainerArgs\x18\x05 \x01(\x0b\x32$.container_service.KubeContainerArgsH\x01\x42\x06\n\x04\x61rgsB\x0f\n\rcontainerArgs\"\x92\x01\n\x14StopContainerRequest\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x33\n\ndockerArgs\x18\x02 \x01(\x0b\x32\x1d.container_service.DockerArgsH\x00\x12/\n\x08kubeArgs\x18\x03 \x01(\x0b\x32\x1b.container_service.KubeArgsH\x00\x42\x06\n\x04\x61rgs2\xb8\x01\n\x10\x43ontainerService\x12R\n\x0eStartContainer\x12(.container_service.StartContainerRequest\x1a\x16.google.protobuf.Empty\x12P\n\rStopContainer\x12\'.container_service.StopContainerRequest\x1a\x16.google.protobuf.EmptyB0Z.github.com/cicadatesting/container-service/apib\x06proto3'
+  serialized_pb=b'\n&cicadad/protos/container_service.proto\x12\x11\x63ontainer_service\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1egoogle/protobuf/wrappers.proto\"v\n\nDockerArgs\x12\x39\n\x06labels\x18\x01 \x03(\x0b\x32).container_service.DockerArgs.LabelsEntry\x1a-\n\x0bLabelsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"\xce\x01\n\x13\x44ockerContainerArgs\x12\r\n\x05image\x18\x01 \x01(\t\x12\x0f\n\x07\x63ommand\x18\x02 \x03(\t\x12<\n\x03\x65nv\x18\x03 \x03(\x0b\x32/.container_service.DockerContainerArgs.EnvEntry\x12-\n\x07network\x18\x04 \x01(\x0b\x32\x1c.google.protobuf.StringValue\x1a*\n\x08\x45nvEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"\x85\x01\n\x08KubeArgs\x12\x37\n\x06labels\x18\x01 \x03(\x0b\x32\'.container_service.KubeArgs.LabelsEntry\x12\x11\n\tnamespace\x18\x02 \x01(\t\x1a-\n\x0bLabelsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"\x9b\x01\n\x11KubeContainerArgs\x12\r\n\x05image\x18\x01 \x01(\t\x12\x0f\n\x07\x63ommand\x18\x02 \x03(\t\x12:\n\x03\x65nv\x18\x03 \x03(\x0b\x32-.container_service.KubeContainerArgs.EnvEntry\x1a*\n\x08\x45nvEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"\xae\x02\n\x15StartContainerRequest\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x33\n\ndockerArgs\x18\x02 \x01(\x0b\x32\x1d.container_service.DockerArgsH\x00\x12/\n\x08kubeArgs\x18\x03 \x01(\x0b\x32\x1b.container_service.KubeArgsH\x00\x12\x45\n\x13\x64ockerContainerArgs\x18\x04 \x01(\x0b\x32&.container_service.DockerContainerArgsH\x01\x12\x41\n\x11kubeContainerArgs\x18\x05 \x01(\x0b\x32$.container_service.KubeContainerArgsH\x01\x42\x06\n\x04\x61rgsB\x0f\n\rcontainerArgs\"\x92\x01\n\x14StopContainerRequest\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x33\n\ndockerArgs\x18\x02 \x01(\x0b\x32\x1d.container_service.DockerArgsH\x00\x12/\n\x08kubeArgs\x18\x03 \x01(\x0b\x32\x1b.container_service.KubeArgsH\x00\x42\x06\n\x04\x61rgs\";\n\x18\x44\x65scribeContainerRequest\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x11\n\tnamespace\x18\x02 \x01(\t\"+\n\x18\x43ontainerRunningResponse\x12\x0f\n\x07running\x18\x01 \x01(\x08\x32\xa6\x02\n\x10\x43ontainerService\x12R\n\x0eStartContainer\x12(.container_service.StartContainerRequest\x1a\x16.google.protobuf.Empty\x12P\n\rStopContainer\x12\'.container_service.StopContainerRequest\x1a\x16.google.protobuf.Empty\x12l\n\x10\x43ontainerRunning\x12+.container_service.DescribeContainerRequest\x1a+.container_service.ContainerRunningResponseB0Z.github.com/cicadatesting/container-service/apib\x06proto3'
   ,
   dependencies=[google_dot_protobuf_dot_empty__pb2.DESCRIPTOR,google_dot_protobuf_dot_wrappers__pb2.DESCRIPTOR,])
 
@@ -470,6 +470,77 @@ _STOPCONTAINERREQUEST = _descriptor.Descriptor(
   serialized_end=1197,
 )
 
+
+_DESCRIBECONTAINERREQUEST = _descriptor.Descriptor(
+  name='DescribeContainerRequest',
+  full_name='container_service.DescribeContainerRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='name', full_name='container_service.DescribeContainerRequest.name', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='namespace', full_name='container_service.DescribeContainerRequest.namespace', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=1199,
+  serialized_end=1258,
+)
+
+
+_CONTAINERRUNNINGRESPONSE = _descriptor.Descriptor(
+  name='ContainerRunningResponse',
+  full_name='container_service.ContainerRunningResponse',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='running', full_name='container_service.ContainerRunningResponse.running', index=0,
+      number=1, type=8, cpp_type=7, label=1,
+      has_default_value=False, default_value=False,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=1260,
+  serialized_end=1303,
+)
+
 _DOCKERARGS_LABELSENTRY.containing_type = _DOCKERARGS
 _DOCKERARGS.fields_by_name['labels'].message_type = _DOCKERARGS_LABELSENTRY
 _DOCKERCONTAINERARGS_ENVENTRY.containing_type = _DOCKERCONTAINERARGS
@@ -509,6 +580,8 @@ DESCRIPTOR.message_types_by_name['KubeArgs'] = _KUBEARGS
 DESCRIPTOR.message_types_by_name['KubeContainerArgs'] = _KUBECONTAINERARGS
 DESCRIPTOR.message_types_by_name['StartContainerRequest'] = _STARTCONTAINERREQUEST
 DESCRIPTOR.message_types_by_name['StopContainerRequest'] = _STOPCONTAINERREQUEST
+DESCRIPTOR.message_types_by_name['DescribeContainerRequest'] = _DESCRIBECONTAINERREQUEST
+DESCRIPTOR.message_types_by_name['ContainerRunningResponse'] = _CONTAINERRUNNINGRESPONSE
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
 DockerArgs = _reflection.GeneratedProtocolMessageType('DockerArgs', (_message.Message,), {
@@ -585,6 +658,20 @@ StopContainerRequest = _reflection.GeneratedProtocolMessageType('StopContainerRe
   })
 _sym_db.RegisterMessage(StopContainerRequest)
 
+DescribeContainerRequest = _reflection.GeneratedProtocolMessageType('DescribeContainerRequest', (_message.Message,), {
+  'DESCRIPTOR' : _DESCRIBECONTAINERREQUEST,
+  '__module__' : 'cicadad.protos.container_service_pb2'
+  # @@protoc_insertion_point(class_scope:container_service.DescribeContainerRequest)
+  })
+_sym_db.RegisterMessage(DescribeContainerRequest)
+
+ContainerRunningResponse = _reflection.GeneratedProtocolMessageType('ContainerRunningResponse', (_message.Message,), {
+  'DESCRIPTOR' : _CONTAINERRUNNINGRESPONSE,
+  '__module__' : 'cicadad.protos.container_service_pb2'
+  # @@protoc_insertion_point(class_scope:container_service.ContainerRunningResponse)
+  })
+_sym_db.RegisterMessage(ContainerRunningResponse)
+
 
 DESCRIPTOR._options = None
 _DOCKERARGS_LABELSENTRY._options = None
@@ -599,8 +686,8 @@ _CONTAINERSERVICE = _descriptor.ServiceDescriptor(
   index=0,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=1200,
-  serialized_end=1384,
+  serialized_start=1306,
+  serialized_end=1600,
   methods=[
   _descriptor.MethodDescriptor(
     name='StartContainer',
@@ -619,6 +706,16 @@ _CONTAINERSERVICE = _descriptor.ServiceDescriptor(
     containing_service=None,
     input_type=_STOPCONTAINERREQUEST,
     output_type=google_dot_protobuf_dot_empty__pb2._EMPTY,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+  _descriptor.MethodDescriptor(
+    name='ContainerRunning',
+    full_name='container_service.ContainerService.ContainerRunning',
+    index=2,
+    containing_service=None,
+    input_type=_DESCRIBECONTAINERREQUEST,
+    output_type=_CONTAINERRUNNINGRESPONSE,
     serialized_options=None,
     create_key=_descriptor._internal_create_key,
   ),

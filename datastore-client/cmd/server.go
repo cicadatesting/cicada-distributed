@@ -12,6 +12,8 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
+
+	_ "google.golang.org/grpc/encoding/gzip"
 )
 
 type Server struct {
@@ -85,7 +87,13 @@ func (s *Server) SetScenarioResult(ctx context.Context, in *api.SetScenarioResul
 }
 
 func (s *Server) MoveUserResults(ctx context.Context, in *api.MoveUserResultsRequest) (*api.MoveUserResultsResponse, error) {
-	results, err := s.datastore.MoveUserResults(in.GetUserIDs())
+	limit := int(in.GetLimit())
+
+	if limit < 1 {
+		limit = 500
+	}
+
+	results, err := s.datastore.MoveUserResults(in.GetUserIDs(), limit)
 
 	if err != nil {
 		return nil, err
@@ -177,6 +185,10 @@ func (s *Server) AddMetric(ctx context.Context, in *api.AddMetricRequest) (*empt
 
 func (s *Server) GetMetricTotal(ctx context.Context, in *api.GetMetricRequest) (*api.MetricTotalResponse, error) {
 	total, err := s.datastore.GetMetricTotal(in.GetScenarioID(), in.GetName())
+
+	if err == datastore.NotFound {
+		return nil, status.Error(codes.NotFound, fmt.Sprintf("Metric for %s not found", in.GetName()))
+	}
 
 	return &api.MetricTotalResponse{Total: total}, err
 }

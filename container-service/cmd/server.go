@@ -32,6 +32,12 @@ func (s *Server) StopContainer(ctx context.Context, req *api.StopContainerReques
 	return &empty.Empty{}, nil
 }
 
+func (s *Server) ContainerRunning(ctx context.Context, req *api.DescribeContainerRequest) (*api.ContainerRunningResponse, error) {
+	running := s.handler.ContainerRunning(req)
+
+	return &api.ContainerRunningResponse{Running: running}, nil
+}
+
 func NewServer(handler Handler) *Server {
 	return &Server{handler: handler}
 }

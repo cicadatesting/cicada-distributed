@@ -30,6 +30,7 @@ class Result(BaseModel):
 
 class TestStatus(BaseModel):
     scenario: Optional[str]
+    scenario_id: Optional[str]
     message: str
     context: Optional[str]
 
@@ -49,7 +50,7 @@ def add_test_event(
     event: TestEvent,
     address: str = DEFAULT_DATASTORE_ADDRESS,
 ):
-    with grpc.insecure_channel(address) as channel:
+    with grpc.insecure_channel(address, compression=grpc.Compression.Gzip) as channel:
         stub = datastore_pb2_grpc.DatastoreStub(channel)
         request = datastore_pb2.AddEventRequest(
             id=test_id,
@@ -65,7 +66,7 @@ def add_test_event(
 def get_test_events(
     test_id: str, address: str = DEFAULT_DATASTORE_ADDRESS
 ) -> List[TestEvent]:
-    with grpc.insecure_channel(address) as channel:
+    with grpc.insecure_channel(address, compression=grpc.Compression.Gzip) as channel:
         stub = datastore_pb2_grpc.DatastoreStub(channel)
         request = datastore_pb2.GetEventsRequest(id=test_id)
 
@@ -80,7 +81,7 @@ def get_test_events(
 def add_user_result(
     user_id: str, result: Result, address: str = DEFAULT_DATASTORE_ADDRESS
 ):
-    with grpc.insecure_channel(address) as channel:
+    with grpc.insecure_channel(address, compression=grpc.Compression.Gzip) as channel:
         stub = datastore_pb2_grpc.DatastoreStub(channel)
         request = datastore_pb2.AddUserResultRequest(
             userID=user_id, result=pickle.dumps(result)
@@ -97,7 +98,7 @@ def set_scenario_result(
     time_taken: float,
     address: str = DEFAULT_DATASTORE_ADDRESS,
 ):
-    with grpc.insecure_channel(address) as channel:
+    with grpc.insecure_channel(address, compression=grpc.Compression.Gzip) as channel:
         stub = datastore_pb2_grpc.DatastoreStub(channel)
         request = datastore_pb2.SetScenarioResultRequest(
             scenarioID=scenario_id,
@@ -113,12 +114,13 @@ def set_scenario_result(
 
 
 def move_user_results(
-    user_ids: Iterable[str], address: str = DEFAULT_DATASTORE_ADDRESS
+    user_ids: Iterable[str],
+    limit: int = 500,
+    address: str = DEFAULT_DATASTORE_ADDRESS,
 ) -> List[Result]:
-    with grpc.insecure_channel(address) as channel:
-        # FEATURE: message compression and limit results
+    with grpc.insecure_channel(address, compression=grpc.Compression.Gzip) as channel:
         stub = datastore_pb2_grpc.DatastoreStub(channel)
-        request = datastore_pb2.MoveUserResultsRequest(userIDs=user_ids)
+        request = datastore_pb2.MoveUserResultsRequest(userIDs=user_ids, limit=limit)
 
         response = stub.MoveUserResults(request)
 
@@ -128,7 +130,7 @@ def move_user_results(
 def move_scenario_result(
     scenario_id: str, address: str = DEFAULT_DATASTORE_ADDRESS
 ) -> Optional[dict]:
-    with grpc.insecure_channel(address) as channel:
+    with grpc.insecure_channel(address, compression=grpc.Compression.Gzip) as channel:
         try:
             stub = datastore_pb2_grpc.DatastoreStub(channel)
             request = datastore_pb2.MoveScenarioResultRequest(
@@ -155,7 +157,7 @@ def move_scenario_result(
 def distribute_work(
     work: int, user_ids: List[str], address: str = DEFAULT_DATASTORE_ADDRESS
 ):
-    with grpc.insecure_channel(address) as channel:
+    with grpc.insecure_channel(address, compression=grpc.Compression.Gzip) as channel:
         stub = datastore_pb2_grpc.DatastoreStub(channel)
         request = datastore_pb2.DistributeWorkRequest(work=work, userIDs=user_ids)
 
@@ -163,7 +165,7 @@ def distribute_work(
 
 
 def get_work(user_id: str, address: str = DEFAULT_DATASTORE_ADDRESS) -> int:
-    with grpc.insecure_channel(address) as channel:
+    with grpc.insecure_channel(address, compression=grpc.Compression.Gzip) as channel:
         stub = datastore_pb2_grpc.DatastoreStub(channel)
         request = datastore_pb2.GetUserWorkRequest(userID=user_id)
 
@@ -178,7 +180,7 @@ def add_user_event(
     payload: dict,
     address: str = DEFAULT_DATASTORE_ADDRESS,
 ):
-    with grpc.insecure_channel(address) as channel:
+    with grpc.insecure_channel(address, compression=grpc.Compression.Gzip) as channel:
         stub = datastore_pb2_grpc.DatastoreStub(channel)
         request = datastore_pb2.AddEventRequest(
             id=user_id,
@@ -197,7 +199,7 @@ class UserEvent(BaseModel):
 
 
 def get_user_events(user_id: str, kind: str, address: str = DEFAULT_DATASTORE_ADDRESS):
-    with grpc.insecure_channel(address) as channel:
+    with grpc.insecure_channel(address, compression=grpc.Compression.Gzip) as channel:
         stub = datastore_pb2_grpc.DatastoreStub(channel)
         request = datastore_pb2.GetEventsRequest(id=user_id, kind=kind)
 
@@ -226,7 +228,7 @@ def add_metric(
     value: float,
     address: str = DEFAULT_DATASTORE_ADDRESS,
 ):
-    with grpc.insecure_channel(address) as channel:
+    with grpc.insecure_channel(address, compression=grpc.Compression.Gzip) as channel:
         stub = datastore_pb2_grpc.DatastoreStub(channel)
         request = datastore_pb2.AddMetricRequest(
             scenarioID=scenario_id,
@@ -242,7 +244,7 @@ def get_metric_total(
     name: str,
     address: str = DEFAULT_DATASTORE_ADDRESS,
 ) -> Optional[float]:
-    with grpc.insecure_channel(address) as channel:
+    with grpc.insecure_channel(address, compression=grpc.Compression.Gzip) as channel:
         try:
             stub = datastore_pb2_grpc.DatastoreStub(channel)
             request = datastore_pb2.GetMetricRequest(
@@ -265,7 +267,7 @@ def get_last_metric(
     name: str,
     address: str = DEFAULT_DATASTORE_ADDRESS,
 ) -> Optional[float]:
-    with grpc.insecure_channel(address) as channel:
+    with grpc.insecure_channel(address, compression=grpc.Compression.Gzip) as channel:
         try:
             stub = datastore_pb2_grpc.DatastoreStub(channel)
             request = datastore_pb2.GetMetricRequest(
@@ -289,7 +291,7 @@ def get_metric_rate(
     split_point: float,
     address: str = DEFAULT_DATASTORE_ADDRESS,
 ) -> Optional[float]:
-    with grpc.insecure_channel(address) as channel:
+    with grpc.insecure_channel(address, compression=grpc.Compression.Gzip) as channel:
         try:
             stub = datastore_pb2_grpc.DatastoreStub(channel)
             request = datastore_pb2.GetMetricRateRequest(
@@ -313,7 +315,7 @@ def get_metric_statistics(
     name: str,
     address: str = DEFAULT_DATASTORE_ADDRESS,
 ) -> Optional[dict]:
-    with grpc.insecure_channel(address) as channel:
+    with grpc.insecure_channel(address, compression=grpc.Compression.Gzip) as channel:
         try:
             stub = datastore_pb2_grpc.DatastoreStub(channel)
             request = datastore_pb2.GetMetricRequest(

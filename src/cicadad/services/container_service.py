@@ -101,3 +101,29 @@ def stop_kube_container(
         )
 
         stub.StopContainer(request)
+
+
+def docker_container_is_running(
+    name: str, address: str = DEFAULT_CONTAINER_SERVICE_ADDRESS
+) -> bool:
+    with grpc.insecure_channel(address) as channel:
+        stub = container_service_pb2_grpc.ContainerServiceStub(channel)
+        request = container_service_pb2.DescribeContainerRequest(name=name)
+
+        response = stub.ContainerRunning(request)
+
+        return response.running
+
+
+def kube_container_is_running(
+    name: str, namespace: str, address: str = DEFAULT_CONTAINER_SERVICE_ADDRESS
+) -> bool:
+    with grpc.insecure_channel(address) as channel:
+        stub = container_service_pb2_grpc.ContainerServiceStub(channel)
+        request = container_service_pb2.DescribeContainerRequest(
+            name=name, namespace=namespace
+        )
+
+        response = stub.ContainerRunning(request)
+
+        return response.running

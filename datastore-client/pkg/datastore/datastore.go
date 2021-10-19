@@ -212,10 +212,11 @@ func (datastore *Datastore) SetScenarioResult(
 	return nil
 }
 
-func (datastore *Datastore) MoveUserResults(userIDs []string) ([][]byte, error) {
+func (datastore *Datastore) MoveUserResults(userIDs []string, limit int) ([][]byte, error) {
 	// for each user, lpop all elements of user result
 	// may need to unlink key (with lock)
 	results := [][]byte{}
+	remaining := limit
 
 	for _, userID := range userIDs {
 		len, err := datastore.rc.ListLength(userResultKey(userID))
@@ -226,6 +227,11 @@ func (datastore *Datastore) MoveUserResults(userIDs []string) ([][]byte, error) 
 		}
 
 		for i := int64(0); i < len; i++ {
+			// Exit early if limit reached
+			if remaining < 1 {
+				return results, nil
+			}
+
 			result, err := datastore.rc.ListPopBytes(userResultKey(userID))
 
 			if err != nil {
@@ -234,6 +240,7 @@ func (datastore *Datastore) MoveUserResults(userIDs []string) ([][]byte, error) 
 			}
 
 			results = append(results, result)
+			remaining--
 		}
 	}
 
@@ -331,6 +338,7 @@ func (datastore *Datastore) AddUserEvent(userID, kind string, payload []byte) er
 }
 
 func (datastore *Datastore) GetUserEvents(userID, kind string) ([]*Event, error) {
+	// FEATURE: limit events returned
 	return datastore.getEvents(userEventKey(userID, kind))
 }
 

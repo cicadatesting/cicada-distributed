@@ -58,6 +58,7 @@ message SetScenarioResultRequest {
 
 message MoveUserResultsRequest {
     repeated string userIDs = 1;
+    int32 limit = 2;
 }
 
 message MoveUserResultsResponse {
