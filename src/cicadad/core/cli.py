@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 import json
 import uuid
 import time
@@ -11,7 +12,7 @@ from blessed import Terminal  # type: ignore
 import click
 import docker  # type: ignore
 
-from cicadad.util.console import LivePanel, MetricsPanel, TasksPanel
+from cicadad.util.console import LivePanel, MetricDisplay, MetricsPanel, TasksPanel
 from cicadad.services import datastore, container_service
 from cicadad.core import containers
 from cicadad.util import constants
@@ -73,7 +74,6 @@ def init(ctx, build_path):
 @click.option("--create-network/--no-create-network", default=True)
 @click.option("--mode", default=constants.DEFAULT_CONTAINER_MODE)
 def start_cluster(ctx, network, create_network, mode):
-    # FEATURE: more options for docker client
     if mode == constants.KUBE_CONTAINER_MODE:
         click.echo(containers.make_concatenated_kube_templates())
     elif mode == constants.DOCKER_CONTAINER_MODE:
@@ -151,6 +151,12 @@ def stop_cluster(ctx):
 @click.option("--namespace", type=str, default=constants.DEFAULT_KUBE_NAMESPACE)
 @click.option("--datastore-client-address", type=str, default="localhost:8283")
 @click.option("--container-service-address", type=str, default="localhost:8284")
+@click.option(
+    "--test-timeout",
+    type=int,
+    default=None,
+    help="Time limit in seconds for entire test to finish",
+)
 @click.option("--no-exit-unsuccessful", is_flag=True)
 @click.option("--no-cleanup", is_flag=True)
 def run(
@@ -164,6 +170,7 @@ def run(
     namespace,
     datastore_client_address,
     container_service_address,
+    test_timeout,
     no_exit_unsuccessful,
     no_cleanup,
 ):
@@ -249,16 +256,18 @@ def run(
         )
 
     # FEATURE: Error if cluster is not up
-    # FEATURE: detect if test container fails, timeout for entire test
 
     context = {}
+    metrics = {}
     passed = []
     failed = []
     finished = False
+    test_start_time = datetime.now()
+    rich_console = Console()
 
     try:
-        # FIXME: move to function
-        rich_console = Console()
+        # FIXME: move to functions
+        # FEATURE: option to disable live printing
         tasks_panel = TasksPanel()
         metrics_panel = MetricsPanel()
 
@@ -269,6 +278,14 @@ def run(
             refresh_per_second=20,
         ) as live:
             while not finished:
+                # FIXME: make function
+                if (
+                    test_timeout is not None
+                    and datetime.now()
+                    > test_start_time + timedelta(seconds=test_timeout)
+                ):
+                    raise RuntimeError(f"Test timed out after {test_timeout} seconds")
+
                 live.update(live_panel.get_renderable())
 
                 # poll for events
@@ -277,6 +294,8 @@ def run(
 
                 for event in events:
                     if event.kind == "SCENARIO_METRIC":
+                        metrics[event.payload.scenario] = event.payload.metrics
+
                         metrics_panel.add_metric(
                             event.payload.scenario, event.payload.metrics
                         )
@@ -295,8 +314,9 @@ def run(
                             passed.append(event.payload.scenario)
 
                     elif event.kind == "SCENARIO_STARTED":
-                        # TODO: include container IDs
-                        tasks_panel.add_running_task(event.payload.scenario)
+                        tasks_panel.add_running_task(
+                            event.payload.scenario, event.payload.scenario_id
+                        )
                     elif event.kind == "TEST_FINISHED":
                         finished = True
                         skip_sleep = True
@@ -446,6 +466,15 @@ def run(
         if result["logs"] and (result["exception"] is not None or ctx.obj["DEBUG"]):
             click.echo("Logs:")
             click.echo(result["logs"])
+            click.echo("\n")
+
+        if scenario in metrics:
+            metrics_table = MetricDisplay(scenario)
+
+            metrics_table.update_metrics(metrics[scenario])
+
+            click.echo("Metrics:")
+            rich_console.print(metrics_table.get_renderable())
             click.echo("\n")
 
     if no_exit_unsuccessful:

@@ -1,11 +1,16 @@
-from typing import Callable, Dict, List, Optional
+from typing import Callable, Dict, Iterable, List, Optional
 
 from cicadad.services import datastore
 from cicadad.util.constants import DEFAULT_DATASTORE_ADDRESS
 
 
+ConsoleCollectorFn = Callable[[List[datastore.Result]], Iterable[float]]
+
+
 class ConsoleMetricField(object):
-    def __init__(self, name: str, collector: Optional[Callable] = None) -> None:
+    def __init__(
+        self, name: str, collector: Optional[ConsoleCollectorFn] = None
+    ) -> None:
         self.name = name
         self.collector = collector
 
@@ -102,10 +107,7 @@ class ConsolePercent(ConsoleMetricField):
 
 class ConsoleMetrics(object):
     def __init__(self, *fields: ConsoleMetricField) -> None:
-        self.fields = {}
-
-        for field in fields:
-            self.fields[field.name] = field
+        self.fields = fields
 
     def collect_metrics(
         self,
@@ -114,7 +116,7 @@ class ConsoleMetrics(object):
         datastore_address: str = DEFAULT_DATASTORE_ADDRESS,
     ):
         for field in self.fields:
-            self.fields[field].collect_metric(scenario_id, results, datastore_address)
+            field.collect_metric(scenario_id, results, datastore_address)
 
     def get_current(
         self,
@@ -123,8 +125,6 @@ class ConsoleMetrics(object):
         **kwargs,
     ) -> Dict[str, Optional[str]]:
         return {
-            field: self.fields[field].get_metric(
-                scenario_id, datastore_address, **kwargs
-            )
+            field.name: field.get_metric(scenario_id, datastore_address, **kwargs)
             for field in self.fields
         }

@@ -10,6 +10,7 @@ import (
 type Handler interface {
 	StartContainer(*api.StartContainerRequest) error
 	StopContainer(*api.StopContainerRequest) error
+	ContainerRunning(*api.DescribeContainerRequest) bool
 }
 
 type DockerHandler struct {
@@ -89,6 +90,10 @@ func (h *DockerHandler) StopContainer(req *api.StopContainerRequest) error {
 	return h.dockerRunner.StopContainer(req.GetName(), args.GetLabels())
 }
 
+func (h *DockerHandler) ContainerRunning(req *api.DescribeContainerRequest) bool {
+	return h.dockerRunner.ContainerIsRunning(req.GetName())
+}
+
 type KubeHandler struct {
 	kubeRunner *pkg.KubeRunner
 }
@@ -123,4 +128,8 @@ func (h *KubeHandler) StopContainer(req *api.StopContainerRequest) error {
 	}
 
 	return h.kubeRunner.CleanJobs(args.GetNamespace(), req.GetName(), args.GetLabels())
+}
+
+func (h *KubeHandler) ContainerRunning(req *api.DescribeContainerRequest) bool {
+	return h.kubeRunner.JobRunning(req.GetNamespace(), req.GetName())
 }

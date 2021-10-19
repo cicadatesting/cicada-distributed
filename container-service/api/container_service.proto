@@ -9,6 +9,7 @@ import "google/protobuf/wrappers.proto";
 service ContainerService {
     rpc StartContainer (StartContainerRequest) returns (google.protobuf.Empty);
     rpc StopContainer (StopContainerRequest) returns (google.protobuf.Empty);
+    rpc ContainerRunning (DescribeContainerRequest) returns (ContainerRunningResponse);
 }
 
 message DockerArgs {
@@ -51,5 +52,14 @@ message StopContainerRequest {
         DockerArgs dockerArgs = 2;
         KubeArgs kubeArgs = 3;
     }
+}
+
+message DescribeContainerRequest {
+    string name = 1;
+    string namespace = 2;
+}
+
+message ContainerRunningResponse {
+    bool running = 1;
 }
 

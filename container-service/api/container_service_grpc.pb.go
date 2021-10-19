@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion7
 type ContainerServiceClient interface {
 	StartContainer(ctx context.Context, in *StartContainerRequest, opts ...grpc.CallOption) (*empty.Empty, error)
 	StopContainer(ctx context.Context, in *StopContainerRequest, opts ...grpc.CallOption) (*empty.Empty, error)
+	ContainerRunning(ctx context.Context, in *DescribeContainerRequest, opts ...grpc.CallOption) (*ContainerRunningResponse, error)
 }
 
 type containerServiceClient struct {
@@ -49,12 +50,22 @@ func (c *containerServiceClient) StopContainer(ctx context.Context, in *StopCont
 	return out, nil
 }
 
+func (c *containerServiceClient) ContainerRunning(ctx context.Context, in *DescribeContainerRequest, opts ...grpc.CallOption) (*ContainerRunningResponse, error) {
+	out := new(ContainerRunningResponse)
+	err := c.cc.Invoke(ctx, "/container_service.ContainerService/ContainerRunning", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ContainerServiceServer is the server API for ContainerService service.
 // All implementations must embed UnimplementedContainerServiceServer
 // for forward compatibility
 type ContainerServiceServer interface {
 	StartContainer(context.Context, *StartContainerRequest) (*empty.Empty, error)
 	StopContainer(context.Context, *StopContainerRequest) (*empty.Empty, error)
+	ContainerRunning(context.Context, *DescribeContainerRequest) (*ContainerRunningResponse, error)
 	mustEmbedUnimplementedContainerServiceServer()
 }
 
@@ -67,6 +78,9 @@ func (UnimplementedContainerServiceServer) StartContainer(context.Context, *Star
 }
 func (UnimplementedContainerServiceServer) StopContainer(context.Context, *StopContainerRequest) (*empty.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method StopContainer not implemented")
+}
+func (UnimplementedContainerServiceServer) ContainerRunning(context.Context, *DescribeContainerRequest) (*ContainerRunningResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ContainerRunning not implemented")
 }
 func (UnimplementedContainerServiceServer) mustEmbedUnimplementedContainerServiceServer() {}
 
@@ -117,6 +131,24 @@ func _ContainerService_StopContainer_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ContainerService_ContainerRunning_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DescribeContainerRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ContainerServiceServer).ContainerRunning(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/container_service.ContainerService/ContainerRunning",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ContainerServiceServer).ContainerRunning(ctx, req.(*DescribeContainerRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ContainerService_ServiceDesc is the grpc.ServiceDesc for ContainerService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -131,6 +163,10 @@ var ContainerService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "StopContainer",
 			Handler:    _ContainerService_StopContainer_Handler,
+		},
+		{
+			MethodName: "ContainerRunning",
+			Handler:    _ContainerService_ContainerRunning_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

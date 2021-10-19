@@ -12,15 +12,18 @@ from rich import box
 
 
 class TaskDisplay(object):
-    def __init__(self, task_name: str):
+    def __init__(self, task_name: str, task_id: str):
         self.task_name = task_name
-        self.renderable = Spinner("dots", text=Text(task_name), style="green")
+        self.task_id = task_id
+        self.renderable = Spinner(
+            "dots", text=Text(f"{task_name} ({task_id})"), style="green"
+        )
 
     def set_succeeded(self):
-        self.renderable = f"[green]:heavy_check_mark: {self.task_name}"
+        self.renderable = f"[green]:heavy_check_mark: {self.task_name} ({self.task_id})"
 
     def set_failed(self):
-        self.renderable = f"[red]:x: {self.task_name}"
+        self.renderable = f"[red]:x: {self.task_name} ({self.task_id})"
 
     def get_renderable(self):
         return self.renderable
@@ -53,8 +56,8 @@ class TasksPanel(object):
     def __init__(self) -> None:
         self.tasks: Dict[str, TaskDisplay] = {}
 
-    def add_running_task(self, name: str):
-        self.tasks[name] = TaskDisplay(name)
+    def add_running_task(self, name: str, scenario_id: str):
+        self.tasks[name] = TaskDisplay(name, scenario_id)
 
     def update_task_success(self, name: str):
         self.tasks[name].set_succeeded()
@@ -95,7 +98,10 @@ class MetricsPanel(object):
 
 class LivePanel(object):
     def __init__(
-        self, test_name: str, tasks_panel: TasksPanel, metrics_panel: MetricsPanel
+        self,
+        test_name: str,
+        tasks_panel: TasksPanel,
+        metrics_panel: MetricsPanel,
     ):
         self.test_name = test_name
         self.tasks_panel = tasks_panel

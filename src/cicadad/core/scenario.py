@@ -375,22 +375,39 @@ class ScenarioCommands(object):
     def get_latest_results(
         self,
         timeout_ms: Optional[int] = 1000,
+        limit: int = 500,
     ):
         """Gathers results produced by users
 
         Args:
             timeout_ms (int, optional): Time to wait for results. Defaults to 1000.
+            limit (int): Max results to return. Defaults to 500
 
         Returns:
             List[Result]: List of latest results collected
         """
-        results = datastore.move_user_results(self.user_ids, self.datastore_address)
+        results = datastore.move_user_results(
+            self.user_ids, limit, self.datastore_address
+        )
 
+        # Wait timeout_ms and get results again if no results
         if results == [] and timeout_ms is not None:
             time.sleep(timeout_ms / 1000)
-            results = datastore.move_user_results(self.user_ids, self.datastore_address)
+            results = datastore.move_user_results(
+                self.user_ids, limit, self.datastore_address
+            )
 
-        return results
+        # Get rest of results if limit reached
+        all_results = results[:]
+
+        while len(results) >= limit:
+            results = datastore.move_user_results(
+                self.user_ids, limit, self.datastore_address
+            )
+
+            all_results.extend(results)
+
+        return all_results
 
     def aggregate_results(self, latest_results: List[datastore.Result]) -> Any:
         """Run scenario aggregator function against latest gathered results and
@@ -488,14 +505,13 @@ def start_scenario(
     datastore_address: str,
     container_service_address: str,
 ):
-    container_id = f"scenario-{scenario_id}"
     encoded_context = encode_context(results)
 
     if container_mode == KUBE_CONTAINER_MODE:
         container_service.start_kube_container(
             container_service.StartKubeContainerArgs(
                 image=image,
-                name=container_id,
+                name=scenario_id,
                 command=[
                     "run-scenario",
                     "--name",
@@ -533,7 +549,7 @@ def start_scenario(
         container_service.start_docker_container(
             container_service.StartDockerContainerArgs(
                 image=image,
-                name=container_id,
+                name=scenario_id,
                 command=[
                     "run-scenario",
                     "--name",
@@ -574,7 +590,8 @@ def start_scenario(
             kind="SCENARIO_STARTED",
             payload=datastore.TestStatus(
                 scenario=scenario.name,
-                message=f"Started scenario: {scenario.name} ({container_id})",
+                scenario_id=scenario_id,
+                message=f"Started scenario: {scenario.name} ({scenario_id})",
                 context=json.dumps(results),
             ),
         ),
@@ -613,7 +630,7 @@ def test_runner(
     # Start scenarios with no dependencies
     for scenario in valid_scenarios:
         if scenario.dependencies == []:
-            scenario_id = str(uuid.uuid4())[:8]
+            scenario_id = f"scenario-{str(uuid.uuid4())[:8]}"
 
             start_scenario(
                 scenario,
@@ -654,7 +671,6 @@ def test_runner(
                 )
 
             # FIXME: move logic to eventing function
-            # FEATURE: stream back metrics gathered from scenarios
             result = datastore.move_scenario_result(
                 started[scenario_name],
                 datastore_address,
@@ -669,6 +685,7 @@ def test_runner(
                         kind="SCENARIO_FINISHED",
                         payload=datastore.TestStatus(
                             scenario=scenario_name,
+                            scenario_id=started[scenario_name],
                             message=f"Finished Scenario: {scenario_name}",
                             context=json.dumps(results),
                         ),
@@ -682,7 +699,7 @@ def test_runner(
                 dep.name in results and results[dep.name]["exception"] is None
                 for dep in scenario.dependencies
             ):
-                scenario_id = str(uuid.uuid4())[:8]
+                scenario_id = f"scenario-{str(uuid.uuid4())[:8]}"
 
                 start_scenario(
                     scenario,
@@ -720,6 +737,7 @@ def test_runner(
                         kind="SCENARIO_FINISHED",
                         payload=datastore.TestStatus(
                             scenario=scenario.name,
+                            scenario_id=started[scenario.name],
                             message=f"Skipped Scenario: {scenario.name}",
                             context=json.dumps(results),
                         ),
@@ -1010,6 +1028,7 @@ def n_iterations(
 
             scenario_commands.aggregate_results(latest_results)
             scenario_commands.verify_results(latest_results)
+            scenario_commands.collect_metrics(latest_results)
             num_results += len(latest_results)
 
             time.sleep(wait_period)
@@ -1063,6 +1082,7 @@ def n_seconds(
 
             scenario_commands.aggregate_results(latest_results)
             scenario_commands.verify_results(latest_results)
+            scenario_commands.collect_metrics(latest_results)
 
             time.sleep(wait_period)
 
@@ -1122,6 +1142,7 @@ def n_users_ramping(
 
             scenario_commands.aggregate_results(latest_results)
             scenario_commands.verify_results(latest_results)
+            scenario_commands.collect_metrics(latest_results)
 
             time.sleep(wait_period)
 

@@ -835,6 +835,9 @@ def test_n_users_ramping_add_users():
         def scale_users(self, n):
             self.num_users = n
 
+        def collect_metrics(self, m):
+            return
+
     sc = ScenarioCommandsMock()
     ctx = {}
 
@@ -862,6 +865,9 @@ def test_n_users_ramping_stop_users():
 
         def scale_users(self, n):
             self.num_users = n
+
+        def collect_metrics(self, m):
+            return
 
     sc = ScenarioCommandsMock()
     ctx = {}

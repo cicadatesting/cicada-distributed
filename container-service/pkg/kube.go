@@ -42,6 +42,7 @@ type iKubeClient interface {
 	) (*batchV1.Job, error)
 	stopJob(namespace string, name string) error
 	stopJobs(namespace string, labels map[string]string) error
+	jobIsRunning(namespace, name string) bool
 }
 
 type kubeClient struct {
@@ -122,6 +123,19 @@ func (k *kubeClient) stopJobs(namespace string, labels map[string]string) error 
 			LabelSelector: strings.Join(labelSelector, ","),
 		},
 	)
+}
+
+func (k *kubeClient) jobIsRunning(namespace, name string) bool {
+	batchV1Client := k.clientSet.BatchV1()
+	ctx := context.Background()
+
+	job, err := batchV1Client.Jobs(namespace).Get(ctx, name, metaV1.GetOptions{})
+
+	if err != nil {
+		return false
+	}
+
+	return job.Status.Active > 0
 }
 
 // func (k *kubeClient) getScale(namespace, name string) (*autoscalingV1.Scale, error) {
@@ -210,6 +224,10 @@ func (r *KubeRunner) CleanJobs(namespace string, name string, labels map[string]
 	}
 
 	return r.client.stopJob(namespace, name)
+}
+
+func (r *KubeRunner) JobRunning(namespace, name string) bool {
+	return r.client.jobIsRunning(namespace, name)
 }
 
 // func (r *KubeRunner) StartUsers(
