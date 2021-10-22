@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from typing import Dict, List
 import json
 import uuid
 import time
@@ -174,7 +175,6 @@ def run(
     no_exit_unsuccessful,
     no_cleanup,
 ):
-    # FIXME: move to function with dependencies removed
     docker_client = docker.from_env()
     term = Terminal()
 
@@ -191,6 +191,115 @@ def run(
             f"Must specify image if not running in {constants.DEFAULT_CONTAINER_MODE} mode"
         )
 
+    test_id = start_test_container(
+        tag,
+        mode,
+        image_id,
+        network,
+        namespace,
+        container_service_address,
+    )
+
+    # FEATURE: Error if cluster is not up
+
+    context = {}
+    metrics = {}
+    passed = []
+    failed = []
+    finished = False
+    test_start_time = datetime.now()
+    rich_console = Console()
+
+    try:
+        # FEATURE: option to disable live printing
+        tasks_panel = TasksPanel()
+        metrics_panel = MetricsPanel()
+
+        live_panel = LivePanel(test_id, tasks_panel, metrics_panel)
+
+        with Live(
+            console=rich_console,
+            refresh_per_second=20,
+        ) as live:
+            while not finished:
+                if (
+                    test_timeout is not None
+                    and datetime.now()
+                    > test_start_time + timedelta(seconds=test_timeout)
+                ):
+                    raise RuntimeError(f"Test timed out after {test_timeout} seconds")
+
+                live.update(live_panel.get_renderable())
+
+                # poll for events
+                events = datastore.get_test_events(test_id, datastore_client_address)
+                skip_sleep = False
+
+                for event in events:
+                    if event.kind == "SCENARIO_METRIC":
+                        metrics[event.payload.scenario] = event.payload.metrics
+
+                        metrics_panel.add_metric(
+                            event.payload.scenario, event.payload.metrics
+                        )
+                    elif event.kind == "SCENARIO_FINISHED":
+                        context = json.loads(event.payload.context)
+
+                        result = context[event.payload.scenario]
+
+                        if result["exception"] is not None:
+                            tasks_panel.update_task_failed(event.payload.scenario)
+
+                            failed.append(event.payload.scenario)
+                        else:
+                            tasks_panel.update_task_success(event.payload.scenario)
+
+                            passed.append(event.payload.scenario)
+
+                    elif event.kind == "SCENARIO_STARTED":
+                        tasks_panel.add_running_task(
+                            event.payload.scenario, event.payload.scenario_id
+                        )
+                    elif event.kind == "TEST_FINISHED":
+                        finished = True
+                        skip_sleep = True
+
+                if not skip_sleep:
+                    time.sleep(1)
+    finally:
+        if not no_cleanup:
+            cleanup(
+                mode,
+                ctx.obj["DEBUG"],
+                test_id,
+                namespace,
+                container_service_address,
+            )
+
+    print_results(
+        term,
+        rich_console,
+        passed,
+        failed,
+        context,
+        metrics,
+        ctx.obj["DEBUG"],
+    )
+
+    if no_exit_unsuccessful:
+        sys.exit(0)
+    elif failed != []:
+        sys.exit(1)
+
+
+def start_test_container(
+    tag: List[str],
+    mode: str,
+    image_id: str,
+    network: str,
+    namespace: str,
+    container_service_address: str,
+) -> str:
     test_id = f"cicada-test-{str(uuid.uuid4())[:8]}"
 
     if tag == []:
@@ -255,145 +364,91 @@ def run(
             container_service_address,
         )
 
-    # FEATURE: Error if cluster is not up
+    return test_id
 
-    context = {}
-    metrics = {}
-    passed = []
-    failed = []
-    finished = False
-    test_start_time = datetime.now()
-    rich_console = Console()
 
-    try:
-        # FIXME: move to functions
-        # FEATURE: option to disable live printing
-        tasks_panel = TasksPanel()
-        metrics_panel = MetricsPanel()
+def cleanup(
+    mode: str,
+    debug: bool,
+    test_id: str,
+    namespace: str,
+    container_service_address: str,
+):
+    if mode == constants.KUBE_CONTAINER_MODE:
+        if debug:
+            click.echo("Cleaning Test Runners")
 
-        live_panel = LivePanel(test_id, tasks_panel, metrics_panel)
+        container_service.stop_kube_container(
+            test_id,
+            namespace=namespace,
+            address=container_service_address,
+        )
 
-        with Live(
-            console=rich_console,
-            refresh_per_second=20,
-        ) as live:
-            while not finished:
-                # FIXME: make function
-                if (
-                    test_timeout is not None
-                    and datetime.now()
-                    > test_start_time + timedelta(seconds=test_timeout)
-                ):
-                    raise RuntimeError(f"Test timed out after {test_timeout} seconds")
+        if debug:
+            click.echo("Cleaned Test Runners")
+            click.echo("Cleaning Scenarios")
 
-                live.update(live_panel.get_renderable())
+        # containers.clean_docker_containers(
+        #     docker_client, "cicada-distributed-scenario"
+        # )
+        container_service.stop_kube_containers(
+            namespace=namespace,
+            labels={"type": "cicada-distributed-scenario", "test": test_id},
+            address=container_service_address,
+        )
 
-                # poll for events
-                events = datastore.get_test_events(test_id, datastore_client_address)
-                skip_sleep = False
+        if debug:
+            click.echo("Cleaned Scenarios")
+            click.echo("Cleaning Users")
 
-                for event in events:
-                    if event.kind == "SCENARIO_METRIC":
-                        metrics[event.payload.scenario] = event.payload.metrics
+        container_service.stop_kube_containers(
+            namespace=namespace,
+            labels={"type": "cicada-distributed-user", "test": test_id},
+            address=container_service_address,
+        )
 
-                        metrics_panel.add_metric(
-                            event.payload.scenario, event.payload.metrics
-                        )
-                    elif event.kind == "SCENARIO_FINISHED":
-                        context = json.loads(event.payload.context)
+        if debug:
+            click.echo("Cleaned Users")
+    else:
+        if debug:
+            click.echo("Cleaning Test Runners")
 
-                        result = context[event.payload.scenario]
+        container_service.stop_docker_container(
+            test_id,
+            address=container_service_address,
+        )
 
-                        if result["exception"] is not None:
-                            tasks_panel.update_task_failed(event.payload.scenario)
+        if debug:
+            click.echo("Cleaned Test Runners")
+            click.echo("Cleaning Scenarios")
 
-                            failed.append(event.payload.scenario)
-                        else:
-                            tasks_panel.update_task_success(event.payload.scenario)
+        container_service.stop_docker_containers(
+            labels={"type": "cicada-distributed-scenario", "test": test_id},
+            address=container_service_address,
+        )
 
-                            passed.append(event.payload.scenario)
+        if debug:
+            click.echo("Cleaned Scenarios")
+            click.echo("Cleaning Users")
 
-                    elif event.kind == "SCENARIO_STARTED":
-                        tasks_panel.add_running_task(
-                            event.payload.scenario, event.payload.scenario_id
-                        )
-                    elif event.kind == "TEST_FINISHED":
-                        finished = True
-                        skip_sleep = True
+        container_service.stop_docker_containers(
+            labels={"type": "cicada-distributed-user", "test": test_id},
+            address=container_service_address,
+        )
 
-                if not skip_sleep:
-                    time.sleep(1)
-    finally:
-        if not no_cleanup:
-            if mode == constants.KUBE_CONTAINER_MODE:
-                if ctx.obj["DEBUG"]:
-                    click.echo("Cleaning Test Runners")
+        if debug:
+            click.echo("Cleaned Users")
 
-                container_service.stop_kube_container(
-                    test_id,
-                    namespace=namespace,
-                    address=container_service_address,
-                )
 
-                if ctx.obj["DEBUG"]:
-                    click.echo("Cleaned Test Runners")
-                    click.echo("Cleaning Scenarios")
-
-                # containers.clean_docker_containers(
-                #     docker_client, "cicada-distributed-scenario"
-                # )
-                container_service.stop_kube_container(
-                    "",
-                    namespace=namespace,
-                    labels={"type": "cicada-distributed-scenario", "test": test_id},
-                    address=container_service_address,
-                )
-
-                if ctx.obj["DEBUG"]:
-                    click.echo("Cleaned Scenarios")
-                    click.echo("Cleaning Users")
-
-                container_service.stop_kube_container(
-                    "",
-                    namespace=namespace,
-                    labels={"type": "cicada-distributed-user", "test": test_id},
-                    address=container_service_address,
-                )
-
-                if ctx.obj["DEBUG"]:
-                    click.echo("Cleaned Users")
-            else:
-                if ctx.obj["DEBUG"]:
-                    click.echo("Cleaning Test Runners")
-
-                container_service.stop_docker_container(
-                    test_id,
-                    address=container_service_address,
-                )
-
-                if ctx.obj["DEBUG"]:
-                    click.echo("Cleaned Test Runners")
-                    click.echo("Cleaning Scenarios")
-
-                container_service.stop_docker_container(
-                    "",
-                    labels={"type": "cicada-distributed-scenario", "test": test_id},
-                    address=container_service_address,
-                )
-
-                if ctx.obj["DEBUG"]:
-                    click.echo("Cleaned Scenarios")
-                    click.echo("Cleaning Users")
-
-                container_service.stop_docker_container(
-                    "",
-                    labels={"type": "cicada-distributed-user", "test": test_id},
-                    address=container_service_address,
-                )
-
-                if ctx.obj["DEBUG"]:
-                    click.echo("Cleaned Users")
-
+def print_results(
+    term: Terminal,
+    rich_console: Console,
+    passed: List[str],
+    failed: List[str],
+    context: dict,
+    metrics: Dict[str, Dict[str, str]],
+    debug: bool,
+):
     # FEATURE: report results in static site
     click.echo(
         term.bold + term.center(" Test Complete ", fillchar="=") + "\n" + term.normal
@@ -463,7 +518,7 @@ def run(
             click.echo(f"Result: {result['output']}")
             click.echo("\n")
 
-        if result["logs"] and (result["exception"] is not None or ctx.obj["DEBUG"]):
+        if result["logs"] and (result["exception"] is not None or debug):
             click.echo("Logs:")
             click.echo(result["logs"])
             click.echo("\n")
@@ -476,11 +531,6 @@ def run(
             click.echo("Metrics:")
             rich_console.print(metrics_table.get_renderable())
             click.echo("\n")
-
-    if no_exit_unsuccessful:
-        sys.exit(0)
-    elif failed != []:
-        sys.exit(1)
 
 
 # init project (load base files)

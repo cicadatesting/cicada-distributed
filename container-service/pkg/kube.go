@@ -218,12 +218,12 @@ func (r *KubeRunner) RunJob(
 	return err
 }
 
-func (r *KubeRunner) CleanJobs(namespace string, name string, labels map[string]string) error {
-	if len(labels) != 0 {
-		return r.client.stopJobs(namespace, labels)
-	}
-
+func (r *KubeRunner) CleanJob(namespace string, name string) error {
 	return r.client.stopJob(namespace, name)
+}
+
+func (r *KubeRunner) CleanJobs(namespace string, labels map[string]string) error {
+	return r.client.stopJobs(namespace, labels)
 }
 
 func (r *KubeRunner) JobRunning(namespace, name string) bool {

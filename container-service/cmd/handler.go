@@ -10,6 +10,7 @@ import (
 type Handler interface {
 	StartContainer(*api.StartContainerRequest) error
 	StopContainer(*api.StopContainerRequest) error
+	StopContainers(*api.StopContainersRequest) error
 	ContainerRunning(*api.DescribeContainerRequest) bool
 }
 
@@ -48,11 +49,9 @@ func (h *DockerHandler) StartContainer(req *api.StartContainerRequest) error {
 	// for _, volume := range req.GetVolumes() {
 	// 	volumes = append(volumes, pkg.DockerVolume{Source: volume.Source, Destination: volume.Destination})
 	// }
-
-	args := req.GetDockerArgs()
 	containerArgs := req.GetDockerContainerArgs()
 
-	if args == nil || containerArgs == nil {
+	if containerArgs == nil {
 		return fmt.Errorf("Invalid Docker args")
 	}
 
@@ -64,7 +63,7 @@ func (h *DockerHandler) StartContainer(req *api.StartContainerRequest) error {
 		containerArgs.GetImage(),
 		req.GetName(),
 		containerArgs.GetCommand(),
-		args.GetLabels(),
+		req.GetLabels(),
 		containerArgs.GetEnv(),
 		// volumes,
 		// hostPort,
@@ -81,13 +80,11 @@ func (h *DockerHandler) StartContainer(req *api.StartContainerRequest) error {
 }
 
 func (h *DockerHandler) StopContainer(req *api.StopContainerRequest) error {
-	args := req.GetDockerArgs()
+	return h.dockerRunner.StopContainer(req.GetName())
+}
 
-	if args == nil {
-		return fmt.Errorf("Invalid Docker args")
-	}
-
-	return h.dockerRunner.StopContainer(req.GetName(), args.GetLabels())
+func (h *DockerHandler) StopContainers(req *api.StopContainersRequest) error {
+	return h.dockerRunner.StopContainers(req.GetLabels())
 }
 
 func (h *DockerHandler) ContainerRunning(req *api.DescribeContainerRequest) bool {
@@ -103,31 +100,28 @@ func NewKubeHandler(runner *pkg.KubeRunner) *KubeHandler {
 }
 
 func (h *KubeHandler) StartContainer(req *api.StartContainerRequest) error {
-	args := req.GetKubeArgs()
 	containerArgs := req.GetKubeContainerArgs()
 
-	if args == nil || containerArgs == nil {
+	if containerArgs == nil {
 		return fmt.Errorf("Invalid Kube args")
 	}
 
 	return h.kubeRunner.RunJob(
-		args.GetNamespace(),
+		req.GetNamespace(),
 		req.GetName(),
 		containerArgs.GetImage(),
 		containerArgs.GetCommand(),
 		containerArgs.GetEnv(),
-		args.GetLabels(),
+		req.GetLabels(),
 	)
 }
 
 func (h *KubeHandler) StopContainer(req *api.StopContainerRequest) error {
-	args := req.GetKubeArgs()
+	return h.kubeRunner.CleanJob(req.GetNamespace(), req.GetName())
+}
 
-	if args == nil {
-		return fmt.Errorf("Invalid Kube args")
-	}
-
-	return h.kubeRunner.CleanJobs(args.GetNamespace(), req.GetName(), args.GetLabels())
+func (h *KubeHandler) StopContainers(req *api.StopContainersRequest) error {
+	return h.kubeRunner.CleanJobs(req.GetNamespace(), req.GetLabels())
 }
 
 func (h *KubeHandler) ContainerRunning(req *api.DescribeContainerRequest) bool {

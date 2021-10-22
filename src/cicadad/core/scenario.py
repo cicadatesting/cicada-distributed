@@ -670,7 +670,6 @@ def test_runner(
                     ),
                 )
 
-            # FIXME: move logic to eventing function
             result = datastore.move_scenario_result(
                 started[scenario_name],
                 datastore_address,
@@ -694,7 +693,6 @@ def test_runner(
                 )
 
         for scenario in [s for s in valid_scenarios if s.name not in started]:
-            # FIXME: move filtering to function
             if all(
                 dep.name in results and results[dep.name]["exception"] is None
                 for dep in scenario.dependencies
@@ -909,7 +907,7 @@ def user_runner(
     scenario.user_loop(user_commands, context)  # type: ignore
 
 
-# FIXME: move these to another module
+# FIXME: figure out how to split this module (has circular dependencies due to types)
 def while_has_work(polling_timeout_ms: int = 1000):
     """Run user if work is available or continue polling
 
@@ -1076,13 +1074,15 @@ def n_seconds(
         # collect results for specified seconds
         start_time = datetime.now()
 
-        while datetime.now() < start_time + timedelta(seconds=seconds):
-            # FIXME: ensure remaining results are collected
+        while True:
             latest_results = scenario_commands.get_latest_results()
 
             scenario_commands.aggregate_results(latest_results)
             scenario_commands.verify_results(latest_results)
             scenario_commands.collect_metrics(latest_results)
+
+            if datetime.now() < start_time + timedelta(seconds=seconds):
+                break
 
             time.sleep(wait_period)
 

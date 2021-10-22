@@ -9,11 +9,8 @@ import "google/protobuf/wrappers.proto";
 service ContainerService {
     rpc StartContainer (StartContainerRequest) returns (google.protobuf.Empty);
     rpc StopContainer (StopContainerRequest) returns (google.protobuf.Empty);
+    rpc StopContainers (StopContainersRequest) returns (google.protobuf.Empty);
     rpc ContainerRunning (DescribeContainerRequest) returns (ContainerRunningResponse);
-}
-
-message DockerArgs {
-    map<string, string> labels = 1;
 }
 
 message DockerContainerArgs {
@@ -21,11 +18,6 @@ message DockerContainerArgs {
     repeated string command = 2;
     map<string, string> env = 3;
     google.protobuf.StringValue network = 4;
-}
-
-message KubeArgs {
-    map<string, string> labels = 1;
-    string namespace = 2;
 }
 
 message KubeContainerArgs {
@@ -36,10 +28,8 @@ message KubeContainerArgs {
 
 message StartContainerRequest {
     string name = 1;
-    oneof args {
-        DockerArgs dockerArgs = 2;
-        KubeArgs kubeArgs = 3;
-    }
+    string namespace = 2;
+    map<string, string> labels = 3;
     oneof containerArgs {
         DockerContainerArgs dockerContainerArgs = 4;
         KubeContainerArgs kubeContainerArgs = 5;
@@ -48,10 +38,12 @@ message StartContainerRequest {
 
 message StopContainerRequest {
     string name = 1;
-    oneof args {
-        DockerArgs dockerArgs = 2;
-        KubeArgs kubeArgs = 3;
-    }
+    string namespace = 2;
+}
+
+message StopContainersRequest {
+    string namespace = 1;
+    map<string, string> labels = 2;
 }
 
 message DescribeContainerRequest {

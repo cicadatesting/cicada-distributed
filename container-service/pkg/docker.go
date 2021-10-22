@@ -18,7 +18,8 @@ import (
 
 type iDockerClient interface {
 	startContainer(image, name string, command []string, labels, env map[string]string, network *string) error
-	stopContainer(name string, labels map[string]string) error
+	stopContainer(name string) error
+	stopContainers(labels map[string]string) error
 	containerIsRunning(name string) bool
 }
 
@@ -142,39 +143,40 @@ func (c *dockerClient) startContainer(
 	return nil
 }
 
-func (c *dockerClient) stopContainer(name string, labels map[string]string) error {
+func (c *dockerClient) stopContainer(name string) error {
 	ctx := context.Background()
 	stopContainerTimeout := time.Second * 3
 
-	// FIXME: this should be a different function
-	if len(labels) != 0 {
-		filter := filters.NewArgs()
+	return c.client.ContainerStop(ctx, name, &stopContainerTimeout)
+}
 
-		for key, value := range labels {
-			filter.Add("label", fmt.Sprintf("%s=%s", key, value))
-		}
+func (c *dockerClient) stopContainers(labels map[string]string) error {
+	ctx := context.Background()
+	stopContainerTimeout := time.Second * 3
+	filter := filters.NewArgs()
 
-		// NOTE: docker errors if no containers found with filter (but will not throw a known error)
-		containers, err := c.client.ContainerList(context.Background(), types.ContainerListOptions{
-			Filters: filter,
-		})
+	for key, value := range labels {
+		filter.Add("label", fmt.Sprintf("%s=%s", key, value))
+	}
+
+	// NOTE: docker errors if no containers found with filter (but will not throw a known error)
+	containers, err := c.client.ContainerList(context.Background(), types.ContainerListOptions{
+		Filters: filter,
+	})
+
+	if err != nil {
+		return err
+	}
+
+	for _, container := range containers {
+		err := c.client.ContainerStop(ctx, container.ID, &stopContainerTimeout)
 
 		if err != nil {
 			return err
 		}
-
-		for _, container := range containers {
-			err := c.client.ContainerStop(ctx, container.ID, &stopContainerTimeout)
-
-			if err != nil {
-				return err
-			}
-		}
-
-		return nil
 	}
 
-	return c.client.ContainerStop(ctx, name, &stopContainerTimeout)
+	return nil
 }
 
 func (c *dockerClient) containerIsRunning(name string) bool {
@@ -201,8 +203,12 @@ func (r *DockerRunner) StartContainer(image, name string, command []string, labe
 	return r.client.startContainer(image, name, command, labels, env, network)
 }
 
-func (r *DockerRunner) StopContainer(name string, labels map[string]string) error {
-	return r.client.stopContainer(name, labels)
+func (r *DockerRunner) StopContainer(name string) error {
+	return r.client.stopContainer(name)
+}
+
+func (r *DockerRunner) StopContainers(labels map[string]string) error {
+	return r.client.stopContainers(labels)
 }
 
 func (r *DockerRunner) ContainerIsRunning(name string) bool {
