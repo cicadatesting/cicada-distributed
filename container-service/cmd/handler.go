@@ -73,7 +73,7 @@ func (h *DockerHandler) StartContainer(req *api.StartContainerRequest) error {
 	)
 
 	if err != nil {
-		return err
+		return fmt.Errorf("Error starting container: %v", err)
 	}
 
 	return nil
