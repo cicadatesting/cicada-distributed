@@ -215,15 +215,31 @@ func (r *KubeRunner) RunJob(
 ) error {
 	_, err := r.client.createJob(namespace, name, image, command, env, labels)
 
-	return err
+	if err != nil {
+		return fmt.Errorf("Error creating job: %v", err)
+	}
+
+	return nil
 }
 
 func (r *KubeRunner) CleanJob(namespace string, name string) error {
-	return r.client.stopJob(namespace, name)
+	err := r.client.stopJob(namespace, name)
+
+	if err != nil {
+		return fmt.Errorf("Error stopping job: %v", err)
+	}
+
+	return nil
 }
 
 func (r *KubeRunner) CleanJobs(namespace string, labels map[string]string) error {
-	return r.client.stopJobs(namespace, labels)
+	err := r.client.stopJobs(namespace, labels)
+
+	if err != nil {
+		return fmt.Errorf("Error stopping jobs: %v", err)
+	}
+
+	return nil
 }
 
 func (r *KubeRunner) JobRunning(namespace, name string) bool {
