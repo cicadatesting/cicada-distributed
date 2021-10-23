@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"context"
+	"fmt"
+	"log"
 
 	"github.com/cicadatesting/container-service/api"
 	"github.com/golang/protobuf/ptypes/empty"
@@ -16,7 +18,8 @@ func (s *Server) StartContainer(ctx context.Context, req *api.StartContainerRequ
 	err := s.handler.StartContainer(req)
 
 	if err != nil {
-		return &empty.Empty{}, err
+		log.Println("Error starting container:", err)
+		return &empty.Empty{}, fmt.Errorf("Error starting container: %v", err)
 	}
 
 	return &empty.Empty{}, nil
@@ -26,7 +29,8 @@ func (s *Server) StopContainer(ctx context.Context, req *api.StopContainerReques
 	err := s.handler.StopContainer(req)
 
 	if err != nil {
-		return &empty.Empty{}, err
+		log.Println("Error stopping container:", err)
+		return &empty.Empty{}, fmt.Errorf("Error stopping container: %v", err)
 	}
 
 	return &empty.Empty{}, nil
@@ -36,7 +40,8 @@ func (s *Server) StopContainers(ctx context.Context, req *api.StopContainersRequ
 	err := s.handler.StopContainers(req)
 
 	if err != nil {
-		return &empty.Empty{}, err
+		log.Println("Error stopping containers:", err)
+		return &empty.Empty{}, fmt.Errorf("Error stopping containers: %v", err)
 	}
 
 	return &empty.Empty{}, nil
