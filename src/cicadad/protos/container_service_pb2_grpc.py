@@ -25,6 +25,11 @@ class ContainerServiceStub(object):
                 request_serializer=cicadad_dot_protos_dot_container__service__pb2.StopContainerRequest.SerializeToString,
                 response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
                 )
+        self.StopContainers = channel.unary_unary(
+                '/container_service.ContainerService/StopContainers',
+                request_serializer=cicadad_dot_protos_dot_container__service__pb2.StopContainersRequest.SerializeToString,
+                response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                )
         self.ContainerRunning = channel.unary_unary(
                 '/container_service.ContainerService/ContainerRunning',
                 request_serializer=cicadad_dot_protos_dot_container__service__pb2.DescribeContainerRequest.SerializeToString,
@@ -47,6 +52,12 @@ class ContainerServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def StopContainers(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def ContainerRunning(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -64,6 +75,11 @@ def add_ContainerServiceServicer_to_server(servicer, server):
             'StopContainer': grpc.unary_unary_rpc_method_handler(
                     servicer.StopContainer,
                     request_deserializer=cicadad_dot_protos_dot_container__service__pb2.StopContainerRequest.FromString,
+                    response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            ),
+            'StopContainers': grpc.unary_unary_rpc_method_handler(
+                    servicer.StopContainers,
+                    request_deserializer=cicadad_dot_protos_dot_container__service__pb2.StopContainersRequest.FromString,
                     response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
             ),
             'ContainerRunning': grpc.unary_unary_rpc_method_handler(
@@ -111,6 +127,23 @@ class ContainerService(object):
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/container_service.ContainerService/StopContainer',
             cicadad_dot_protos_dot_container__service__pb2.StopContainerRequest.SerializeToString,
+            google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def StopContainers(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/container_service.ContainerService/StopContainers',
+            cicadad_dot_protos_dot_container__service__pb2.StopContainersRequest.SerializeToString,
             google_dot_protobuf_dot_empty__pb2.Empty.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

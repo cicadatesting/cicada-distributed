@@ -344,7 +344,7 @@ def clean_docker_containers(client: docker.DockerClient, label: str):
     """
     containers = client.containers.list(filters={"label": label})
 
-    # FIXME: may need performance enhancement
+    # NOTE: may need performance enhancement
     for container in containers:
         docker_container_down(container)
 
