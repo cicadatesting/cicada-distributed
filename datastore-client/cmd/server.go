@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"github.com/cicadatesting/datastore-client/api"
 	"github.com/cicadatesting/datastore-client/pkg/datastore"
@@ -22,14 +21,6 @@ type Server struct {
 	datastore *datastore.Datastore
 }
 
-func NewServer(redisClient *redis.Client) *Server {
-	datastore := datastore.NewDatastore(
-		rediscommands.NewRedisCommands(redisClient),
-	)
-
-	return &Server{datastore: datastore}
-}
-
 func (s *Server) AddTestEvent(ctx context.Context, in *api.AddEventRequest) (*empty.Empty, error) {
 	err := s.datastore.AddTestEvent(
 		in.GetId(),
@@ -44,8 +35,7 @@ func (s *Server) GetTestEvents(ctx context.Context, in *api.GetEventsRequest) (*
 	events, err := s.datastore.GetTestEvents(in.GetId())
 
 	if err != nil {
-		log.Println("Error getting test events:", err)
-		return nil, fmt.Errorf("Error getting test events: %v", err)
+		return nil, err
 	}
 
 	result := api.Events{
@@ -63,8 +53,7 @@ func (s *Server) AddUserResult(ctx context.Context, in *api.AddUserResultRequest
 	err := s.datastore.AddUserResult(in.GetUserID(), in.GetResult())
 
 	if err != nil {
-		log.Println("Error adding user result:", err)
-		return nil, fmt.Errorf("Error adding user result: %v", err)
+		return nil, err
 	}
 
 	return &empty.Empty{}, nil
@@ -91,8 +80,7 @@ func (s *Server) SetScenarioResult(ctx context.Context, in *api.SetScenarioResul
 	)
 
 	if err != nil {
-		log.Println("Error adding scenario result:", err)
-		return nil, fmt.Errorf("Error adding scenario result: %v", err)
+		return nil, err
 	}
 
 	return &empty.Empty{}, nil
@@ -108,8 +96,7 @@ func (s *Server) MoveUserResults(ctx context.Context, in *api.MoveUserResultsReq
 	results, err := s.datastore.MoveUserResults(in.GetUserIDs(), limit)
 
 	if err != nil {
-		log.Println("Error getting user results:", err)
-		return nil, fmt.Errorf("Error getting user results: %v", err)
+		return nil, err
 	}
 
 	response := api.MoveUserResultsResponse{
@@ -127,8 +114,7 @@ func (s *Server) MoveScenarioResult(ctx context.Context, in *api.MoveScenarioRes
 	}
 
 	if err != nil {
-		log.Println("Error moving scenario result:", err)
-		return nil, fmt.Errorf("Error moving scenario result: %v", err)
+		return nil, err
 	}
 
 	response := api.MoveScenarioResultResponse{
@@ -146,21 +132,21 @@ func (s *Server) MoveScenarioResult(ctx context.Context, in *api.MoveScenarioRes
 func (s *Server) DistributeWork(ctx context.Context, in *api.DistributeWorkRequest) (*empty.Empty, error) {
 	err := s.datastore.DistributeWork(int(in.GetWork()), in.GetUserIDs())
 
-	if err != nil {
-		log.Println("Error distributing work:", err)
-	}
-
 	return &empty.Empty{}, err
 }
 
 func (s *Server) GetUserWork(ctx context.Context, in *api.GetUserWorkRequest) (*api.GetUserWorkResponse, error) {
 	work, err := s.datastore.GetUserWork(in.GetUserID())
 
-	if err != nil {
-		log.Println("Error getting user work:", err)
-	}
-
 	return &api.GetUserWorkResponse{Work: int32(work)}, err
+}
+
+func NewServer(redisClient *redis.Client) *Server {
+	datastore := datastore.NewDatastore(
+		rediscommands.NewRedisCommands(redisClient),
+	)
+
+	return &Server{datastore: datastore}
 }
 
 func (s *Server) AddUserEvent(ctx context.Context, in *api.AddEventRequest) (*empty.Empty, error) {
@@ -170,10 +156,6 @@ func (s *Server) AddUserEvent(ctx context.Context, in *api.AddEventRequest) (*em
 		in.GetEvent().GetPayload(),
 	)
 
-	if err != nil {
-		log.Println("Error adding user event:", err)
-	}
-
 	return &empty.Empty{}, err
 }
 
@@ -181,8 +163,7 @@ func (s *Server) GetUserEvents(ctx context.Context, in *api.GetEventsRequest) (*
 	events, err := s.datastore.GetUserEvents(in.GetId(), in.GetKind())
 
 	if err != nil {
-		log.Println("Error getting user events:", err)
-		return nil, fmt.Errorf("Error getting user events: %v", err)
+		return nil, err
 	}
 
 	result := api.Events{
@@ -199,10 +180,6 @@ func (s *Server) GetUserEvents(ctx context.Context, in *api.GetEventsRequest) (*
 func (s *Server) AddMetric(ctx context.Context, in *api.AddMetricRequest) (*empty.Empty, error) {
 	err := s.datastore.AddMetric(in.GetScenarioID(), in.GetName(), in.GetValue())
 
-	if err != nil {
-		log.Println("Error adding metric:", err)
-	}
-
 	return &empty.Empty{}, err
 }
 
@@ -211,10 +188,6 @@ func (s *Server) GetMetricTotal(ctx context.Context, in *api.GetMetricRequest) (
 
 	if err == datastore.NotFound {
 		return nil, status.Error(codes.NotFound, fmt.Sprintf("Metric for %s not found", in.GetName()))
-	}
-
-	if err != nil {
-		log.Println("Error getting metric total:", err)
 	}
 
 	return &api.MetricTotalResponse{Total: total}, err
@@ -248,7 +221,6 @@ func (s *Server) GetMetricStatistics(ctx context.Context, in *api.GetMetricReque
 	}
 
 	if err != nil {
-		log.Println("Error getting metric statistics:", err)
 		return nil, err
 	}
 

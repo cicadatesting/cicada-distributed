@@ -133,11 +133,11 @@ func (c *dockerClient) startContainer(
 	)
 
 	if err != nil {
-		return fmt.Errorf("Error creating container: %v", err)
+		return err
 	}
 
 	if err := c.client.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
-		return fmt.Errorf("Error starting container: %v", err)
+		return err
 	}
 
 	return nil
@@ -165,14 +165,14 @@ func (c *dockerClient) stopContainers(labels map[string]string) error {
 	})
 
 	if err != nil {
-		return fmt.Errorf("Error listing containers: %v", err)
+		return err
 	}
 
 	for _, container := range containers {
 		err := c.client.ContainerStop(ctx, container.ID, &stopContainerTimeout)
 
 		if err != nil {
-			return fmt.Errorf("Error stopping container: %v", err)
+			return err
 		}
 	}
 
