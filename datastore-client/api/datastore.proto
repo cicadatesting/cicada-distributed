@@ -17,6 +17,11 @@ service Datastore {
     rpc GetUserWork (GetUserWorkRequest) returns (GetUserWorkResponse);
     rpc AddUserEvent (AddEventRequest) returns (google.protobuf.Empty);
     rpc GetUserEvents (GetEventsRequest) returns (Events);
+    rpc AddMetric (AddMetricRequest) returns (google.protobuf.Empty);
+    rpc GetMetricTotal (GetMetricRequest) returns (MetricTotalResponse);
+    rpc GetLastMetric (GetMetricRequest) returns (LastMetricResponse);
+    rpc GetMetricRate (GetMetricRateRequest) returns (MetricRateResponse);
+    rpc GetMetricStatistics (GetMetricRequest) returns (MetricStatisticsResponse);
 }
 
 message Event {
@@ -53,6 +58,7 @@ message SetScenarioResultRequest {
 
 message MoveUserResultsRequest {
     repeated string userIDs = 1;
+    int32 limit = 2;
 }
 
 message MoveUserResultsResponse {
@@ -83,4 +89,41 @@ message GetUserWorkRequest {
 
 message GetUserWorkResponse {
     int32 work = 1;
+}
+
+message AddMetricRequest {
+    string scenarioID = 1;
+    string name = 2;
+    double value = 3;
+}
+
+message GetMetricRequest {
+    string scenarioID = 1;
+    string name = 2;
+}
+
+message GetMetricRateRequest {
+    string scenarioID = 1;
+    string name = 2;
+    double splitPoint = 3;
+}
+
+message MetricTotalResponse {
+    double total = 1;
+}
+
+message LastMetricResponse {
+    double last = 1;
+}
+
+message MetricRateResponse {
+    double percentage = 1;
+}
+
+message MetricStatisticsResponse {
+    double min = 1;
+    double max = 2;
+    double median = 3;
+    double average = 4;
+    int64 len = 5;
 }

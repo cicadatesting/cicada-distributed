@@ -42,6 +42,7 @@ type iKubeClient interface {
 	) (*batchV1.Job, error)
 	stopJob(namespace string, name string) error
 	stopJobs(namespace string, labels map[string]string) error
+	jobIsRunning(namespace, name string) bool
 }
 
 type kubeClient struct {
@@ -124,6 +125,19 @@ func (k *kubeClient) stopJobs(namespace string, labels map[string]string) error 
 	)
 }
 
+func (k *kubeClient) jobIsRunning(namespace, name string) bool {
+	batchV1Client := k.clientSet.BatchV1()
+	ctx := context.Background()
+
+	job, err := batchV1Client.Jobs(namespace).Get(ctx, name, metaV1.GetOptions{})
+
+	if err != nil {
+		return false
+	}
+
+	return job.Status.Active > 0
+}
+
 // func (k *kubeClient) getScale(namespace, name string) (*autoscalingV1.Scale, error) {
 // 	appsV1Client := k.clientSet.AppsV1()
 // 	ctx := context.Background()
@@ -201,15 +215,35 @@ func (r *KubeRunner) RunJob(
 ) error {
 	_, err := r.client.createJob(namespace, name, image, command, env, labels)
 
-	return err
-}
-
-func (r *KubeRunner) CleanJobs(namespace string, name string, labels map[string]string) error {
-	if len(labels) != 0 {
-		return r.client.stopJobs(namespace, labels)
+	if err != nil {
+		return fmt.Errorf("Error creating job: %v", err)
 	}
 
-	return r.client.stopJob(namespace, name)
+	return nil
+}
+
+func (r *KubeRunner) CleanJob(namespace string, name string) error {
+	err := r.client.stopJob(namespace, name)
+
+	if err != nil {
+		return fmt.Errorf("Error stopping job: %v", err)
+	}
+
+	return nil
+}
+
+func (r *KubeRunner) CleanJobs(namespace string, labels map[string]string) error {
+	err := r.client.stopJobs(namespace, labels)
+
+	if err != nil {
+		return fmt.Errorf("Error stopping jobs: %v", err)
+	}
+
+	return nil
+}
+
+func (r *KubeRunner) JobRunning(namespace, name string) bool {
+	return r.client.jobIsRunning(namespace, name)
 }
 
 // func (r *KubeRunner) StartUsers(

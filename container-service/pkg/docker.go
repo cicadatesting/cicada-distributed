@@ -8,8 +8,7 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
-	"github.com/docker/docker/api/types/network"
-	v1 "github.com/opencontainers/image-spec/specs-go/v1"
+	"github.com/docker/docker/client"
 )
 
 // type DockerVolume struct {
@@ -17,21 +16,15 @@ import (
 // 	Destination string
 // }
 
-type DockerClient interface {
-	NetworkInspect(ctx context.Context, networkID string, options types.NetworkInspectOptions) (types.NetworkResource, error)
-	NetworkCreate(ctx context.Context, name string, options types.NetworkCreate) (types.NetworkCreateResponse, error)
-	ContainerCreate(ctx context.Context, config *container.Config, hostConfig *container.HostConfig, networkingConfig *network.NetworkingConfig, platform *v1.Platform, containerName string) (container.ContainerCreateCreatedBody, error)
-	ContainerStart(ctx context.Context, containerID string, options types.ContainerStartOptions) error
-	ContainerStop(ctx context.Context, containerID string, timeout *time.Duration) error
-	ContainerList(ctx context.Context, options types.ContainerListOptions) ([]types.Container, error)
+type iDockerClient interface {
+	startContainer(image, name string, command []string, labels, env map[string]string, network *string) error
+	stopContainer(name string) error
+	stopContainers(labels map[string]string) error
+	containerIsRunning(name string) bool
 }
 
-type DockerRunner struct {
-	Client DockerClient
-}
-
-func NewDockerRunner(client DockerClient) *DockerRunner {
-	return &DockerRunner{Client: client}
+type dockerClient struct {
+	client *client.Client
 }
 
 // func (r *DockerRunner) networkExists(network string) (bool, error) {
@@ -72,7 +65,7 @@ func NewDockerRunner(client DockerClient) *DockerRunner {
 // 	return nil
 // }
 
-func (r *DockerRunner) StartContainer(
+func (c *dockerClient) startContainer(
 	image string,
 	name string,
 	command []string,
@@ -120,7 +113,7 @@ func (r *DockerRunner) StartContainer(
 		networkMode = *network
 	}
 
-	resp, err := r.Client.ContainerCreate(
+	resp, err := c.client.ContainerCreate(
 		ctx,
 		&container.Config{
 			Image:  image,
@@ -140,46 +133,84 @@ func (r *DockerRunner) StartContainer(
 	)
 
 	if err != nil {
-		return err
+		return fmt.Errorf("Error creating container: %v", err)
 	}
 
-	if err := r.Client.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
-		return err
+	if err := c.client.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
+		return fmt.Errorf("Error starting container: %v", err)
 	}
 
 	return nil
 }
 
-func (r *DockerRunner) StopContainer(name string, labels map[string]string) error {
+func (c *dockerClient) stopContainer(name string) error {
 	ctx := context.Background()
 	stopContainerTimeout := time.Second * 3
 
-	if len(labels) != 0 {
-		filter := filters.NewArgs()
+	return c.client.ContainerStop(ctx, name, &stopContainerTimeout)
+}
 
-		for key, value := range labels {
-			filter.Add("label", fmt.Sprintf("%s=%s", key, value))
-		}
+func (c *dockerClient) stopContainers(labels map[string]string) error {
+	ctx := context.Background()
+	stopContainerTimeout := time.Second * 3
+	filter := filters.NewArgs()
 
-		// NOTE: docker errors if no containers found with filter (but will not throw a known error)
-		containers, err := r.Client.ContainerList(context.Background(), types.ContainerListOptions{
-			Filters: filter,
-		})
-
-		if err != nil {
-			return err
-		}
-
-		for _, container := range containers {
-			err := r.Client.ContainerStop(ctx, container.ID, &stopContainerTimeout)
-
-			if err != nil {
-				return err
-			}
-		}
-
-		return nil
+	for key, value := range labels {
+		filter.Add("label", fmt.Sprintf("%s=%s", key, value))
 	}
 
-	return r.Client.ContainerStop(ctx, name, &stopContainerTimeout)
+	// NOTE: docker errors if no containers found with filter (but will not throw a known error)
+	containers, err := c.client.ContainerList(context.Background(), types.ContainerListOptions{
+		Filters: filter,
+	})
+
+	if err != nil {
+		return fmt.Errorf("Error listing containers: %v", err)
+	}
+
+	for _, container := range containers {
+		err := c.client.ContainerStop(ctx, container.ID, &stopContainerTimeout)
+
+		if err != nil {
+			return fmt.Errorf("Error stopping container: %v", err)
+		}
+	}
+
+	return nil
+}
+
+func (c *dockerClient) containerIsRunning(name string) bool {
+	_, err := c.client.ContainerTop(context.Background(), name, []string{})
+
+	if err != nil {
+		return false
+	}
+
+	return true
+}
+
+type DockerRunner struct {
+	client iDockerClient
+}
+
+func NewDockerRunner(client *client.Client) *DockerRunner {
+	dc := dockerClient{client: client}
+
+	return &DockerRunner{client: &dc}
+}
+
+func (r *DockerRunner) StartContainer(image, name string, command []string, labels, env map[string]string, network *string) error {
+	return r.client.startContainer(image, name, command, labels, env, network)
+}
+
+func (r *DockerRunner) StopContainer(name string) error {
+	return r.client.stopContainer(name)
+}
+
+func (r *DockerRunner) StopContainers(labels map[string]string) error {
+	return r.client.stopContainers(labels)
+}
+
+func (r *DockerRunner) ContainerIsRunning(name string) bool {
+	return r.client.containerIsRunning(name)
 }

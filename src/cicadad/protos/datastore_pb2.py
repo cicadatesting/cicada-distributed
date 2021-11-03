@@ -21,7 +21,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=b'Z-github.com/cicadatesting/datastore-client/api',
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\x1e\x63icadad/protos/datastore.proto\x12\tdatastore\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1egoogle/protobuf/wrappers.proto\"&\n\x05\x45vent\x12\x0c\n\x04kind\x18\x01 \x01(\t\x12\x0f\n\x07payload\x18\x02 \x01(\x0c\">\n\x0f\x41\x64\x64\x45ventRequest\x12\n\n\x02id\x18\x01 \x01(\t\x12\x1f\n\x05\x65vent\x18\x02 \x01(\x0b\x32\x10.datastore.Event\",\n\x10GetEventsRequest\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0c\n\x04kind\x18\x02 \x01(\t\"*\n\x06\x45vents\x12 \n\x06\x65vents\x18\x01 \x03(\x0b\x32\x10.datastore.Event\"6\n\x14\x41\x64\x64UserResultRequest\x12\x0e\n\x06userID\x18\x01 \x01(\t\x12\x0e\n\x06result\x18\x02 \x01(\x0c\"\xae\x01\n\x18SetScenarioResultRequest\x12\x12\n\nscenarioID\x18\x01 \x01(\t\x12,\n\x06output\x18\x02 \x01(\x0b\x32\x1c.google.protobuf.StringValue\x12/\n\texception\x18\x03 \x01(\x0b\x32\x1c.google.protobuf.StringValue\x12\x0c\n\x04logs\x18\x04 \x01(\t\x12\x11\n\ttimeTaken\x18\x05 \x01(\x01\")\n\x16MoveUserResultsRequest\x12\x0f\n\x07userIDs\x18\x01 \x03(\t\"*\n\x17MoveUserResultsResponse\x12\x0f\n\x07results\x18\x01 \x03(\x0c\"/\n\x19MoveScenarioResultRequest\x12\x12\n\nscenarioID\x18\x01 \x01(\t\"\xbb\x01\n\x1aMoveScenarioResultResponse\x12\n\n\x02id\x18\x01 \x01(\t\x12,\n\x06output\x18\x02 \x01(\x0b\x32\x1c.google.protobuf.StringValue\x12/\n\texception\x18\x03 \x01(\x0b\x32\x1c.google.protobuf.StringValue\x12\x0c\n\x04logs\x18\x04 \x01(\t\x12\x11\n\ttimestamp\x18\x05 \x01(\t\x12\x11\n\ttimeTaken\x18\x06 \x01(\x01\"6\n\x15\x44istributeWorkRequest\x12\x0c\n\x04work\x18\x01 \x01(\x05\x12\x0f\n\x07userIDs\x18\x02 \x03(\t\"$\n\x12GetUserWorkRequest\x12\x0e\n\x06userID\x18\x01 \x01(\t\"#\n\x13GetUserWorkResponse\x12\x0c\n\x04work\x18\x01 \x01(\x05\x32\x88\x06\n\tDatastore\x12\x42\n\x0c\x41\x64\x64TestEvent\x12\x1a.datastore.AddEventRequest\x1a\x16.google.protobuf.Empty\x12?\n\rGetTestEvents\x12\x1b.datastore.GetEventsRequest\x1a\x11.datastore.Events\x12H\n\rAddUserResult\x12\x1f.datastore.AddUserResultRequest\x1a\x16.google.protobuf.Empty\x12P\n\x11SetScenarioResult\x12#.datastore.SetScenarioResultRequest\x1a\x16.google.protobuf.Empty\x12X\n\x0fMoveUserResults\x12!.datastore.MoveUserResultsRequest\x1a\".datastore.MoveUserResultsResponse\x12\x61\n\x12MoveScenarioResult\x12$.datastore.MoveScenarioResultRequest\x1a%.datastore.MoveScenarioResultResponse\x12J\n\x0e\x44istributeWork\x12 .datastore.DistributeWorkRequest\x1a\x16.google.protobuf.Empty\x12L\n\x0bGetUserWork\x12\x1d.datastore.GetUserWorkRequest\x1a\x1e.datastore.GetUserWorkResponse\x12\x42\n\x0c\x41\x64\x64UserEvent\x12\x1a.datastore.AddEventRequest\x1a\x16.google.protobuf.Empty\x12?\n\rGetUserEvents\x12\x1b.datastore.GetEventsRequest\x1a\x11.datastore.EventsB/Z-github.com/cicadatesting/datastore-client/apib\x06proto3'
+  serialized_pb=b'\n\x1e\x63icadad/protos/datastore.proto\x12\tdatastore\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1egoogle/protobuf/wrappers.proto\"&\n\x05\x45vent\x12\x0c\n\x04kind\x18\x01 \x01(\t\x12\x0f\n\x07payload\x18\x02 \x01(\x0c\">\n\x0f\x41\x64\x64\x45ventRequest\x12\n\n\x02id\x18\x01 \x01(\t\x12\x1f\n\x05\x65vent\x18\x02 \x01(\x0b\x32\x10.datastore.Event\",\n\x10GetEventsRequest\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0c\n\x04kind\x18\x02 \x01(\t\"*\n\x06\x45vents\x12 \n\x06\x65vents\x18\x01 \x03(\x0b\x32\x10.datastore.Event\"6\n\x14\x41\x64\x64UserResultRequest\x12\x0e\n\x06userID\x18\x01 \x01(\t\x12\x0e\n\x06result\x18\x02 \x01(\x0c\"\xae\x01\n\x18SetScenarioResultRequest\x12\x12\n\nscenarioID\x18\x01 \x01(\t\x12,\n\x06output\x18\x02 \x01(\x0b\x32\x1c.google.protobuf.StringValue\x12/\n\texception\x18\x03 \x01(\x0b\x32\x1c.google.protobuf.StringValue\x12\x0c\n\x04logs\x18\x04 \x01(\t\x12\x11\n\ttimeTaken\x18\x05 \x01(\x01\"8\n\x16MoveUserResultsRequest\x12\x0f\n\x07userIDs\x18\x01 \x03(\t\x12\r\n\x05limit\x18\x02 \x01(\x05\"*\n\x17MoveUserResultsResponse\x12\x0f\n\x07results\x18\x01 \x03(\x0c\"/\n\x19MoveScenarioResultRequest\x12\x12\n\nscenarioID\x18\x01 \x01(\t\"\xbb\x01\n\x1aMoveScenarioResultResponse\x12\n\n\x02id\x18\x01 \x01(\t\x12,\n\x06output\x18\x02 \x01(\x0b\x32\x1c.google.protobuf.StringValue\x12/\n\texception\x18\x03 \x01(\x0b\x32\x1c.google.protobuf.StringValue\x12\x0c\n\x04logs\x18\x04 \x01(\t\x12\x11\n\ttimestamp\x18\x05 \x01(\t\x12\x11\n\ttimeTaken\x18\x06 \x01(\x01\"6\n\x15\x44istributeWorkRequest\x12\x0c\n\x04work\x18\x01 \x01(\x05\x12\x0f\n\x07userIDs\x18\x02 \x03(\t\"$\n\x12GetUserWorkRequest\x12\x0e\n\x06userID\x18\x01 \x01(\t\"#\n\x13GetUserWorkResponse\x12\x0c\n\x04work\x18\x01 \x01(\x05\"C\n\x10\x41\x64\x64MetricRequest\x12\x12\n\nscenarioID\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\r\n\x05value\x18\x03 \x01(\x01\"4\n\x10GetMetricRequest\x12\x12\n\nscenarioID\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\"L\n\x14GetMetricRateRequest\x12\x12\n\nscenarioID\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x12\n\nsplitPoint\x18\x03 \x01(\x01\"$\n\x13MetricTotalResponse\x12\r\n\x05total\x18\x01 \x01(\x01\"\"\n\x12LastMetricResponse\x12\x0c\n\x04last\x18\x01 \x01(\x01\"(\n\x12MetricRateResponse\x12\x12\n\npercentage\x18\x01 \x01(\x01\"b\n\x18MetricStatisticsResponse\x12\x0b\n\x03min\x18\x01 \x01(\x01\x12\x0b\n\x03max\x18\x02 \x01(\x01\x12\x0e\n\x06median\x18\x03 \x01(\x01\x12\x0f\n\x07\x61verage\x18\x04 \x01(\x01\x12\x0b\n\x03len\x18\x05 \x01(\x03\x32\x90\t\n\tDatastore\x12\x42\n\x0c\x41\x64\x64TestEvent\x12\x1a.datastore.AddEventRequest\x1a\x16.google.protobuf.Empty\x12?\n\rGetTestEvents\x12\x1b.datastore.GetEventsRequest\x1a\x11.datastore.Events\x12H\n\rAddUserResult\x12\x1f.datastore.AddUserResultRequest\x1a\x16.google.protobuf.Empty\x12P\n\x11SetScenarioResult\x12#.datastore.SetScenarioResultRequest\x1a\x16.google.protobuf.Empty\x12X\n\x0fMoveUserResults\x12!.datastore.MoveUserResultsRequest\x1a\".datastore.MoveUserResultsResponse\x12\x61\n\x12MoveScenarioResult\x12$.datastore.MoveScenarioResultRequest\x1a%.datastore.MoveScenarioResultResponse\x12J\n\x0e\x44istributeWork\x12 .datastore.DistributeWorkRequest\x1a\x16.google.protobuf.Empty\x12L\n\x0bGetUserWork\x12\x1d.datastore.GetUserWorkRequest\x1a\x1e.datastore.GetUserWorkResponse\x12\x42\n\x0c\x41\x64\x64UserEvent\x12\x1a.datastore.AddEventRequest\x1a\x16.google.protobuf.Empty\x12?\n\rGetUserEvents\x12\x1b.datastore.GetEventsRequest\x1a\x11.datastore.Events\x12@\n\tAddMetric\x12\x1b.datastore.AddMetricRequest\x1a\x16.google.protobuf.Empty\x12M\n\x0eGetMetricTotal\x12\x1b.datastore.GetMetricRequest\x1a\x1e.datastore.MetricTotalResponse\x12K\n\rGetLastMetric\x12\x1b.datastore.GetMetricRequest\x1a\x1d.datastore.LastMetricResponse\x12O\n\rGetMetricRate\x12\x1f.datastore.GetMetricRateRequest\x1a\x1d.datastore.MetricRateResponse\x12W\n\x13GetMetricStatistics\x12\x1b.datastore.GetMetricRequest\x1a#.datastore.MetricStatisticsResponseB/Z-github.com/cicadatesting/datastore-client/apib\x06proto3'
   ,
   dependencies=[google_dot_protobuf_dot_empty__pb2.DESCRIPTOR,google_dot_protobuf_dot_wrappers__pb2.DESCRIPTOR,])
 
@@ -291,6 +291,13 @@ _MOVEUSERRESULTSREQUEST = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='limit', full_name='datastore.MoveUserResultsRequest.limit', index=1,
+      number=2, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
   ],
   extensions=[
   ],
@@ -304,7 +311,7 @@ _MOVEUSERRESULTSREQUEST = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=533,
-  serialized_end=574,
+  serialized_end=589,
 )
 
 
@@ -335,8 +342,8 @@ _MOVEUSERRESULTSRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=576,
-  serialized_end=618,
+  serialized_start=591,
+  serialized_end=633,
 )
 
 
@@ -367,8 +374,8 @@ _MOVESCENARIORESULTREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=620,
-  serialized_end=667,
+  serialized_start=635,
+  serialized_end=682,
 )
 
 
@@ -434,8 +441,8 @@ _MOVESCENARIORESULTRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=670,
-  serialized_end=857,
+  serialized_start=685,
+  serialized_end=872,
 )
 
 
@@ -473,8 +480,8 @@ _DISTRIBUTEWORKREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=859,
-  serialized_end=913,
+  serialized_start=874,
+  serialized_end=928,
 )
 
 
@@ -505,8 +512,8 @@ _GETUSERWORKREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=915,
-  serialized_end=951,
+  serialized_start=930,
+  serialized_end=966,
 )
 
 
@@ -537,8 +544,295 @@ _GETUSERWORKRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=953,
-  serialized_end=988,
+  serialized_start=968,
+  serialized_end=1003,
+)
+
+
+_ADDMETRICREQUEST = _descriptor.Descriptor(
+  name='AddMetricRequest',
+  full_name='datastore.AddMetricRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='scenarioID', full_name='datastore.AddMetricRequest.scenarioID', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='name', full_name='datastore.AddMetricRequest.name', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='value', full_name='datastore.AddMetricRequest.value', index=2,
+      number=3, type=1, cpp_type=5, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=1005,
+  serialized_end=1072,
+)
+
+
+_GETMETRICREQUEST = _descriptor.Descriptor(
+  name='GetMetricRequest',
+  full_name='datastore.GetMetricRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='scenarioID', full_name='datastore.GetMetricRequest.scenarioID', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='name', full_name='datastore.GetMetricRequest.name', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=1074,
+  serialized_end=1126,
+)
+
+
+_GETMETRICRATEREQUEST = _descriptor.Descriptor(
+  name='GetMetricRateRequest',
+  full_name='datastore.GetMetricRateRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='scenarioID', full_name='datastore.GetMetricRateRequest.scenarioID', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='name', full_name='datastore.GetMetricRateRequest.name', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='splitPoint', full_name='datastore.GetMetricRateRequest.splitPoint', index=2,
+      number=3, type=1, cpp_type=5, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=1128,
+  serialized_end=1204,
+)
+
+
+_METRICTOTALRESPONSE = _descriptor.Descriptor(
+  name='MetricTotalResponse',
+  full_name='datastore.MetricTotalResponse',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='total', full_name='datastore.MetricTotalResponse.total', index=0,
+      number=1, type=1, cpp_type=5, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=1206,
+  serialized_end=1242,
+)
+
+
+_LASTMETRICRESPONSE = _descriptor.Descriptor(
+  name='LastMetricResponse',
+  full_name='datastore.LastMetricResponse',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='last', full_name='datastore.LastMetricResponse.last', index=0,
+      number=1, type=1, cpp_type=5, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=1244,
+  serialized_end=1278,
+)
+
+
+_METRICRATERESPONSE = _descriptor.Descriptor(
+  name='MetricRateResponse',
+  full_name='datastore.MetricRateResponse',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='percentage', full_name='datastore.MetricRateResponse.percentage', index=0,
+      number=1, type=1, cpp_type=5, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=1280,
+  serialized_end=1320,
+)
+
+
+_METRICSTATISTICSRESPONSE = _descriptor.Descriptor(
+  name='MetricStatisticsResponse',
+  full_name='datastore.MetricStatisticsResponse',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='min', full_name='datastore.MetricStatisticsResponse.min', index=0,
+      number=1, type=1, cpp_type=5, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='max', full_name='datastore.MetricStatisticsResponse.max', index=1,
+      number=2, type=1, cpp_type=5, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='median', full_name='datastore.MetricStatisticsResponse.median', index=2,
+      number=3, type=1, cpp_type=5, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='average', full_name='datastore.MetricStatisticsResponse.average', index=3,
+      number=4, type=1, cpp_type=5, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='len', full_name='datastore.MetricStatisticsResponse.len', index=4,
+      number=5, type=3, cpp_type=2, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=1322,
+  serialized_end=1420,
 )
 
 _ADDEVENTREQUEST.fields_by_name['event'].message_type = _EVENT
@@ -560,6 +854,13 @@ DESCRIPTOR.message_types_by_name['MoveScenarioResultResponse'] = _MOVESCENARIORE
 DESCRIPTOR.message_types_by_name['DistributeWorkRequest'] = _DISTRIBUTEWORKREQUEST
 DESCRIPTOR.message_types_by_name['GetUserWorkRequest'] = _GETUSERWORKREQUEST
 DESCRIPTOR.message_types_by_name['GetUserWorkResponse'] = _GETUSERWORKRESPONSE
+DESCRIPTOR.message_types_by_name['AddMetricRequest'] = _ADDMETRICREQUEST
+DESCRIPTOR.message_types_by_name['GetMetricRequest'] = _GETMETRICREQUEST
+DESCRIPTOR.message_types_by_name['GetMetricRateRequest'] = _GETMETRICRATEREQUEST
+DESCRIPTOR.message_types_by_name['MetricTotalResponse'] = _METRICTOTALRESPONSE
+DESCRIPTOR.message_types_by_name['LastMetricResponse'] = _LASTMETRICRESPONSE
+DESCRIPTOR.message_types_by_name['MetricRateResponse'] = _METRICRATERESPONSE
+DESCRIPTOR.message_types_by_name['MetricStatisticsResponse'] = _METRICSTATISTICSRESPONSE
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
 Event = _reflection.GeneratedProtocolMessageType('Event', (_message.Message,), {
@@ -653,6 +954,55 @@ GetUserWorkResponse = _reflection.GeneratedProtocolMessageType('GetUserWorkRespo
   })
 _sym_db.RegisterMessage(GetUserWorkResponse)
 
+AddMetricRequest = _reflection.GeneratedProtocolMessageType('AddMetricRequest', (_message.Message,), {
+  'DESCRIPTOR' : _ADDMETRICREQUEST,
+  '__module__' : 'cicadad.protos.datastore_pb2'
+  # @@protoc_insertion_point(class_scope:datastore.AddMetricRequest)
+  })
+_sym_db.RegisterMessage(AddMetricRequest)
+
+GetMetricRequest = _reflection.GeneratedProtocolMessageType('GetMetricRequest', (_message.Message,), {
+  'DESCRIPTOR' : _GETMETRICREQUEST,
+  '__module__' : 'cicadad.protos.datastore_pb2'
+  # @@protoc_insertion_point(class_scope:datastore.GetMetricRequest)
+  })
+_sym_db.RegisterMessage(GetMetricRequest)
+
+GetMetricRateRequest = _reflection.GeneratedProtocolMessageType('GetMetricRateRequest', (_message.Message,), {
+  'DESCRIPTOR' : _GETMETRICRATEREQUEST,
+  '__module__' : 'cicadad.protos.datastore_pb2'
+  # @@protoc_insertion_point(class_scope:datastore.GetMetricRateRequest)
+  })
+_sym_db.RegisterMessage(GetMetricRateRequest)
+
+MetricTotalResponse = _reflection.GeneratedProtocolMessageType('MetricTotalResponse', (_message.Message,), {
+  'DESCRIPTOR' : _METRICTOTALRESPONSE,
+  '__module__' : 'cicadad.protos.datastore_pb2'
+  # @@protoc_insertion_point(class_scope:datastore.MetricTotalResponse)
+  })
+_sym_db.RegisterMessage(MetricTotalResponse)
+
+LastMetricResponse = _reflection.GeneratedProtocolMessageType('LastMetricResponse', (_message.Message,), {
+  'DESCRIPTOR' : _LASTMETRICRESPONSE,
+  '__module__' : 'cicadad.protos.datastore_pb2'
+  # @@protoc_insertion_point(class_scope:datastore.LastMetricResponse)
+  })
+_sym_db.RegisterMessage(LastMetricResponse)
+
+MetricRateResponse = _reflection.GeneratedProtocolMessageType('MetricRateResponse', (_message.Message,), {
+  'DESCRIPTOR' : _METRICRATERESPONSE,
+  '__module__' : 'cicadad.protos.datastore_pb2'
+  # @@protoc_insertion_point(class_scope:datastore.MetricRateResponse)
+  })
+_sym_db.RegisterMessage(MetricRateResponse)
+
+MetricStatisticsResponse = _reflection.GeneratedProtocolMessageType('MetricStatisticsResponse', (_message.Message,), {
+  'DESCRIPTOR' : _METRICSTATISTICSRESPONSE,
+  '__module__' : 'cicadad.protos.datastore_pb2'
+  # @@protoc_insertion_point(class_scope:datastore.MetricStatisticsResponse)
+  })
+_sym_db.RegisterMessage(MetricStatisticsResponse)
+
 
 DESCRIPTOR._options = None
 
@@ -663,8 +1013,8 @@ _DATASTORE = _descriptor.ServiceDescriptor(
   index=0,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=991,
-  serialized_end=1767,
+  serialized_start=1423,
+  serialized_end=2591,
   methods=[
   _descriptor.MethodDescriptor(
     name='AddTestEvent',
@@ -763,6 +1113,56 @@ _DATASTORE = _descriptor.ServiceDescriptor(
     containing_service=None,
     input_type=_GETEVENTSREQUEST,
     output_type=_EVENTS,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+  _descriptor.MethodDescriptor(
+    name='AddMetric',
+    full_name='datastore.Datastore.AddMetric',
+    index=10,
+    containing_service=None,
+    input_type=_ADDMETRICREQUEST,
+    output_type=google_dot_protobuf_dot_empty__pb2._EMPTY,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+  _descriptor.MethodDescriptor(
+    name='GetMetricTotal',
+    full_name='datastore.Datastore.GetMetricTotal',
+    index=11,
+    containing_service=None,
+    input_type=_GETMETRICREQUEST,
+    output_type=_METRICTOTALRESPONSE,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+  _descriptor.MethodDescriptor(
+    name='GetLastMetric',
+    full_name='datastore.Datastore.GetLastMetric',
+    index=12,
+    containing_service=None,
+    input_type=_GETMETRICREQUEST,
+    output_type=_LASTMETRICRESPONSE,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+  _descriptor.MethodDescriptor(
+    name='GetMetricRate',
+    full_name='datastore.Datastore.GetMetricRate',
+    index=13,
+    containing_service=None,
+    input_type=_GETMETRICRATEREQUEST,
+    output_type=_METRICRATERESPONSE,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+  _descriptor.MethodDescriptor(
+    name='GetMetricStatistics',
+    full_name='datastore.Datastore.GetMetricStatistics',
+    index=14,
+    containing_service=None,
+    input_type=_GETMETRICREQUEST,
+    output_type=_METRICSTATISTICSRESPONSE,
     serialized_options=None,
     create_key=_descriptor._internal_create_key,
   ),

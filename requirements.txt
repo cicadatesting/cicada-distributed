@@ -6,3 +6,4 @@ protobuf
 blessed
 dask
 distributed
+rich

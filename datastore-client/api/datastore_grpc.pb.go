@@ -29,6 +29,11 @@ type DatastoreClient interface {
 	GetUserWork(ctx context.Context, in *GetUserWorkRequest, opts ...grpc.CallOption) (*GetUserWorkResponse, error)
 	AddUserEvent(ctx context.Context, in *AddEventRequest, opts ...grpc.CallOption) (*empty.Empty, error)
 	GetUserEvents(ctx context.Context, in *GetEventsRequest, opts ...grpc.CallOption) (*Events, error)
+	AddMetric(ctx context.Context, in *AddMetricRequest, opts ...grpc.CallOption) (*empty.Empty, error)
+	GetMetricTotal(ctx context.Context, in *GetMetricRequest, opts ...grpc.CallOption) (*MetricTotalResponse, error)
+	GetLastMetric(ctx context.Context, in *GetMetricRequest, opts ...grpc.CallOption) (*LastMetricResponse, error)
+	GetMetricRate(ctx context.Context, in *GetMetricRateRequest, opts ...grpc.CallOption) (*MetricRateResponse, error)
+	GetMetricStatistics(ctx context.Context, in *GetMetricRequest, opts ...grpc.CallOption) (*MetricStatisticsResponse, error)
 }
 
 type datastoreClient struct {
@@ -129,6 +134,51 @@ func (c *datastoreClient) GetUserEvents(ctx context.Context, in *GetEventsReques
 	return out, nil
 }
 
+func (c *datastoreClient) AddMetric(ctx context.Context, in *AddMetricRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
+	out := new(empty.Empty)
+	err := c.cc.Invoke(ctx, "/datastore.Datastore/AddMetric", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *datastoreClient) GetMetricTotal(ctx context.Context, in *GetMetricRequest, opts ...grpc.CallOption) (*MetricTotalResponse, error) {
+	out := new(MetricTotalResponse)
+	err := c.cc.Invoke(ctx, "/datastore.Datastore/GetMetricTotal", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *datastoreClient) GetLastMetric(ctx context.Context, in *GetMetricRequest, opts ...grpc.CallOption) (*LastMetricResponse, error) {
+	out := new(LastMetricResponse)
+	err := c.cc.Invoke(ctx, "/datastore.Datastore/GetLastMetric", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *datastoreClient) GetMetricRate(ctx context.Context, in *GetMetricRateRequest, opts ...grpc.CallOption) (*MetricRateResponse, error) {
+	out := new(MetricRateResponse)
+	err := c.cc.Invoke(ctx, "/datastore.Datastore/GetMetricRate", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *datastoreClient) GetMetricStatistics(ctx context.Context, in *GetMetricRequest, opts ...grpc.CallOption) (*MetricStatisticsResponse, error) {
+	out := new(MetricStatisticsResponse)
+	err := c.cc.Invoke(ctx, "/datastore.Datastore/GetMetricStatistics", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // DatastoreServer is the server API for Datastore service.
 // All implementations must embed UnimplementedDatastoreServer
 // for forward compatibility
@@ -143,6 +193,11 @@ type DatastoreServer interface {
 	GetUserWork(context.Context, *GetUserWorkRequest) (*GetUserWorkResponse, error)
 	AddUserEvent(context.Context, *AddEventRequest) (*empty.Empty, error)
 	GetUserEvents(context.Context, *GetEventsRequest) (*Events, error)
+	AddMetric(context.Context, *AddMetricRequest) (*empty.Empty, error)
+	GetMetricTotal(context.Context, *GetMetricRequest) (*MetricTotalResponse, error)
+	GetLastMetric(context.Context, *GetMetricRequest) (*LastMetricResponse, error)
+	GetMetricRate(context.Context, *GetMetricRateRequest) (*MetricRateResponse, error)
+	GetMetricStatistics(context.Context, *GetMetricRequest) (*MetricStatisticsResponse, error)
 	mustEmbedUnimplementedDatastoreServer()
 }
 
@@ -179,6 +234,21 @@ func (UnimplementedDatastoreServer) AddUserEvent(context.Context, *AddEventReque
 }
 func (UnimplementedDatastoreServer) GetUserEvents(context.Context, *GetEventsRequest) (*Events, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUserEvents not implemented")
+}
+func (UnimplementedDatastoreServer) AddMetric(context.Context, *AddMetricRequest) (*empty.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddMetric not implemented")
+}
+func (UnimplementedDatastoreServer) GetMetricTotal(context.Context, *GetMetricRequest) (*MetricTotalResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetMetricTotal not implemented")
+}
+func (UnimplementedDatastoreServer) GetLastMetric(context.Context, *GetMetricRequest) (*LastMetricResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetLastMetric not implemented")
+}
+func (UnimplementedDatastoreServer) GetMetricRate(context.Context, *GetMetricRateRequest) (*MetricRateResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetMetricRate not implemented")
+}
+func (UnimplementedDatastoreServer) GetMetricStatistics(context.Context, *GetMetricRequest) (*MetricStatisticsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetMetricStatistics not implemented")
 }
 func (UnimplementedDatastoreServer) mustEmbedUnimplementedDatastoreServer() {}
 
@@ -373,6 +443,96 @@ func _Datastore_GetUserEvents_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Datastore_AddMetric_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddMetricRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DatastoreServer).AddMetric(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/datastore.Datastore/AddMetric",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DatastoreServer).AddMetric(ctx, req.(*AddMetricRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Datastore_GetMetricTotal_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetMetricRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DatastoreServer).GetMetricTotal(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/datastore.Datastore/GetMetricTotal",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DatastoreServer).GetMetricTotal(ctx, req.(*GetMetricRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Datastore_GetLastMetric_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetMetricRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DatastoreServer).GetLastMetric(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/datastore.Datastore/GetLastMetric",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DatastoreServer).GetLastMetric(ctx, req.(*GetMetricRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Datastore_GetMetricRate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetMetricRateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DatastoreServer).GetMetricRate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/datastore.Datastore/GetMetricRate",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DatastoreServer).GetMetricRate(ctx, req.(*GetMetricRateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Datastore_GetMetricStatistics_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetMetricRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DatastoreServer).GetMetricStatistics(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/datastore.Datastore/GetMetricStatistics",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DatastoreServer).GetMetricStatistics(ctx, req.(*GetMetricRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Datastore_ServiceDesc is the grpc.ServiceDesc for Datastore service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -419,6 +579,26 @@ var Datastore_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetUserEvents",
 			Handler:    _Datastore_GetUserEvents_Handler,
+		},
+		{
+			MethodName: "AddMetric",
+			Handler:    _Datastore_AddMetric_Handler,
+		},
+		{
+			MethodName: "GetMetricTotal",
+			Handler:    _Datastore_GetMetricTotal_Handler,
+		},
+		{
+			MethodName: "GetLastMetric",
+			Handler:    _Datastore_GetLastMetric_Handler,
+		},
+		{
+			MethodName: "GetMetricRate",
+			Handler:    _Datastore_GetMetricRate_Handler,
+		},
+		{
+			MethodName: "GetMetricStatistics",
+			Handler:    _Datastore_GetMetricStatistics_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -551,9 +551,19 @@ def test_test_runner(
     s2 = Mock()
     s3 = Mock()
 
+    cmd_foo = Mock()
+
+    cmd_foo.return_value = "xyz"
+
+    cmds = {"foo": cmd_foo}
+
     s1.name = "s1"
     s2.name = "s2"
     s3.name = "s3"
+
+    s1.console_metric_displays = cmds
+    s2.console_metric_displays = None
+    s3.console_metric_displays = None
 
     s1.dependencies = []
     s2.dependencies = [s1]
@@ -599,7 +609,7 @@ def test_test_runner(
         container_mode,
     )
 
-    assert add_test_event_mock.call_count == 7
+    assert add_test_event_mock.call_count == 8
     assert start_container_mock.call_count == 2
 
 
@@ -827,6 +837,9 @@ def test_n_users_ramping_add_users():
         def scale_users(self, n):
             self.num_users = n
 
+        def collect_metrics(self, m):
+            return
+
     sc = ScenarioCommandsMock()
     ctx = {}
 
@@ -854,6 +867,9 @@ def test_n_users_ramping_stop_users():
 
         def scale_users(self, n):
             self.num_users = n
+
+        def collect_metrics(self, m):
+            return
 
     sc = ScenarioCommandsMock()
     ctx = {}

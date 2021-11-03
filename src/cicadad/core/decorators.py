@@ -1,6 +1,8 @@
 from typing import Any, Callable, Union
 
 from cicadad.core.scenario import (
+    ConsoleMetricDisplays,
+    MetricCollector,
     Scenario,
     LoadModelFn,
     UserLoopFn,
@@ -142,6 +144,42 @@ def output_transformer(transformer_fn: OutputTransformerFn):
 
     def wrapper(fn):
         set_scenario_attribute(fn, "output_transformer", transformer_fn)
+
+        return fn
+
+    return wrapper
+
+
+def metrics_collector(collector: MetricCollector):
+    """Add a collector function to parse and send metrics from scenario.
+
+    Args:
+        collector (MetricCollector): Collector function
+    """
+
+    def wrapper(fn):
+        collectors = get_scenario_attribute(fn, "metric_collectors")
+        entry = [collector]
+
+        if collectors is None:
+            set_scenario_attribute(fn, "metric_collectors", entry)
+        else:
+            set_scenario_attribute(fn, "metric_collectors", collectors + entry)
+
+        return fn
+
+    return wrapper
+
+
+def console_metric_displays(displays: ConsoleMetricDisplays):
+    """Sets map of names to metric displays for scenario.
+
+    Args:
+        displays (ConsoleMetricDisplays): Map of names to console metric display getters
+    """
+
+    def wrapper(fn):
+        set_scenario_attribute(fn, "console_metric_displays", displays)
 
         return fn
 

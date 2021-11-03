@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+from typing import Dict, List
 import json
 import uuid
 import time
@@ -5,10 +7,13 @@ import sys
 import os
 import shutil
 
+from rich.live import Live
+from rich.console import Console
 from blessed import Terminal  # type: ignore
 import click
 import docker  # type: ignore
 
+from cicadad.util.console import LivePanel, MetricDisplay, MetricsPanel, TasksPanel
 from cicadad.services import datastore, container_service
 from cicadad.core import containers
 from cicadad.util import constants
@@ -70,7 +75,6 @@ def init(ctx, build_path):
 @click.option("--create-network/--no-create-network", default=True)
 @click.option("--mode", default=constants.DEFAULT_CONTAINER_MODE)
 def start_cluster(ctx, network, create_network, mode):
-    # FEATURE: more options for docker client
     if mode == constants.KUBE_CONTAINER_MODE:
         click.echo(containers.make_concatenated_kube_templates())
     elif mode == constants.DOCKER_CONTAINER_MODE:
@@ -148,6 +152,12 @@ def stop_cluster(ctx):
 @click.option("--namespace", type=str, default=constants.DEFAULT_KUBE_NAMESPACE)
 @click.option("--datastore-client-address", type=str, default="localhost:8283")
 @click.option("--container-service-address", type=str, default="localhost:8284")
+@click.option(
+    "--test-timeout",
+    type=int,
+    default=None,
+    help="Time limit in seconds for entire test to finish",
+)
 @click.option("--no-exit-unsuccessful", is_flag=True)
 @click.option("--no-cleanup", is_flag=True)
 def run(
@@ -161,10 +171,10 @@ def run(
     namespace,
     datastore_client_address,
     container_service_address,
+    test_timeout,
     no_exit_unsuccessful,
     no_cleanup,
 ):
-    # FIXME: move to function with dependencies removed
     docker_client = docker.from_env()
     term = Terminal()
 
@@ -181,14 +191,116 @@ def run(
             f"Must specify image if not running in {constants.DEFAULT_CONTAINER_MODE} mode"
         )
 
-    test_id = f"cicada-test-{str(uuid.uuid4())[:8]}"
-
-    click.echo(
-        term.bold
-        + term.center(f" Starting Test: {test_id} ", fillchar="=")
-        + "\n"
-        + term.normal
+    test_id = start_test_container(
+        tag,
+        mode,
+        image_id,
+        network,
+        namespace,
+        container_service_address,
     )
+
+    # FEATURE: Error if cluster is not up
+
+    context = {}
+    metrics = {}
+    passed = []
+    failed = []
+    finished = False
+    test_start_time = datetime.now()
+    rich_console = Console()
+
+    try:
+        # FEATURE: option to disable live printing
+        tasks_panel = TasksPanel()
+        metrics_panel = MetricsPanel()
+
+        live_panel = LivePanel(test_id, tasks_panel, metrics_panel)
+
+        with Live(
+            console=rich_console,
+            refresh_per_second=20,
+        ) as live:
+            while not finished:
+                if (
+                    test_timeout is not None
+                    and datetime.now()
+                    > test_start_time + timedelta(seconds=test_timeout)
+                ):
+                    raise RuntimeError(f"Test timed out after {test_timeout} seconds")
+
+                live.update(live_panel.get_renderable())
+
+                # poll for events
+                events = datastore.get_test_events(test_id, datastore_client_address)
+                skip_sleep = False
+
+                for event in events:
+                    if event.kind == "SCENARIO_METRIC":
+                        metrics[event.payload.scenario] = event.payload.metrics
+
+                        metrics_panel.add_metric(
+                            event.payload.scenario, event.payload.metrics
+                        )
+                    elif event.kind == "SCENARIO_FINISHED":
+                        context = json.loads(event.payload.context)
+
+                        result = context[event.payload.scenario]
+
+                        if result["exception"] is not None:
+                            tasks_panel.update_task_failed(event.payload.scenario)
+
+                            failed.append(event.payload.scenario)
+                        else:
+                            tasks_panel.update_task_success(event.payload.scenario)
+
+                            passed.append(event.payload.scenario)
+
+                    elif event.kind == "SCENARIO_STARTED":
+                        tasks_panel.add_running_task(
+                            event.payload.scenario, event.payload.scenario_id
+                        )
+                    elif event.kind == "TEST_FINISHED":
+                        finished = True
+                        skip_sleep = True
+
+                if not skip_sleep:
+                    time.sleep(1)
+    finally:
+        if not no_cleanup:
+            cleanup(
+                mode,
+                ctx.obj["DEBUG"],
+                test_id,
+                namespace,
+                container_service_address,
+            )
+
+    print_results(
+        term,
+        rich_console,
+        passed,
+        failed,
+        context,
+        metrics,
+        ctx.obj["DEBUG"],
+    )
+
+    if no_exit_unsuccessful:
+        sys.exit(0)
+    elif failed != []:
+        sys.exit(1)
+
+
+def start_test_container(
+    tag: List[str],
+    mode: str,
+    image_id: str,
+    network: str,
+    namespace: str,
+    container_service_address: str,
+) -> str:
+    test_id = f"cicada-test-{str(uuid.uuid4())[:8]}"
 
     if tag == []:
         tag_arg = []
@@ -252,157 +364,91 @@ def run(
             container_service_address,
         )
 
-    # FEATURE: Error if cluster is not up
+    return test_id
 
-    try:
-        # FIXME: move to function
-        context = {}
-        passed = []
-        failed = []
-        finished = False
 
-        while not finished:
-            # poll for events
-            events = datastore.get_test_events(test_id, datastore_client_address)
-            skip_sleep = False
+def cleanup(
+    mode: str,
+    debug: bool,
+    test_id: str,
+    namespace: str,
+    container_service_address: str,
+):
+    if mode == constants.KUBE_CONTAINER_MODE:
+        if debug:
+            click.echo("Cleaning Test Runners")
 
-            for event in events:
-                if event.kind == "SCENARIO_FINISHED":
-                    context = json.loads(event.payload.context)
+        container_service.stop_kube_container(
+            test_id,
+            namespace=namespace,
+            address=container_service_address,
+        )
 
-                    result = context[event.payload.scenario]
+        if debug:
+            click.echo("Cleaned Test Runners")
+            click.echo("Cleaning Scenarios")
 
-                    if result["exception"] is not None:
-                        click.echo(
-                            term.bold
-                            + term.center(
-                                f" {event.payload.scenario}: "
-                                + term.red
-                                + "Failed "
-                                + term.normal
-                                + term.bold,
-                                fillchar="-",
-                            )
-                            + "\n"
-                            + term.normal
-                        )
+        # containers.clean_docker_containers(
+        #     docker_client, "cicada-distributed-scenario"
+        # )
+        container_service.stop_kube_containers(
+            namespace=namespace,
+            labels={"type": "cicada-distributed-scenario", "test": test_id},
+            address=container_service_address,
+        )
 
-                        click.echo(f"Exception: {result['exception']}")
-                        click.echo("\n")
+        if debug:
+            click.echo("Cleaned Scenarios")
+            click.echo("Cleaning Users")
 
-                        failed.append(event.payload.scenario)
-                    else:
-                        click.echo(
-                            term.bold
-                            + term.center(
-                                f" {event.payload.scenario}: "
-                                + term.green
-                                + "Passed "
-                                + term.normal
-                                + term.bold,
-                                fillchar="-",
-                            )
-                            + "\n"
-                            + term.normal
-                        )
+        container_service.stop_kube_containers(
+            namespace=namespace,
+            labels={"type": "cicada-distributed-user", "test": test_id},
+            address=container_service_address,
+        )
 
-                        passed.append(event.payload.scenario)
+        if debug:
+            click.echo("Cleaned Users")
+    else:
+        if debug:
+            click.echo("Cleaning Test Runners")
 
-                    if result["output"] is not None:
-                        click.echo(f"Result: {result['output']}")
-                        click.echo("\n")
+        container_service.stop_docker_container(
+            test_id,
+            address=container_service_address,
+        )
 
-                    if result["logs"] and (
-                        result["exception"] is not None or ctx.obj["DEBUG"]
-                    ):
-                        click.echo("Logs:")
-                        click.echo(result["logs"])
-                        click.echo("\n")
-                else:
-                    click.echo(
-                        term.bold
-                        + term.center(f" {event.payload.message} ", fillchar="-")
-                        + "\n"
-                        + term.normal
-                    )
+        if debug:
+            click.echo("Cleaned Test Runners")
+            click.echo("Cleaning Scenarios")
 
-                if event.kind == "TEST_FINISHED":
-                    finished = True
-                    skip_sleep = True
+        container_service.stop_docker_containers(
+            labels={"type": "cicada-distributed-scenario", "test": test_id},
+            address=container_service_address,
+        )
 
-            if not skip_sleep:
-                time.sleep(1)
-    finally:
-        if not no_cleanup:
-            if mode == constants.KUBE_CONTAINER_MODE:
-                if ctx.obj["DEBUG"]:
-                    click.echo("Cleaning Test Runners")
+        if debug:
+            click.echo("Cleaned Scenarios")
+            click.echo("Cleaning Users")
 
-                container_service.stop_kube_container(
-                    test_id,
-                    namespace=namespace,
-                    address=container_service_address,
-                )
+        container_service.stop_docker_containers(
+            labels={"type": "cicada-distributed-user", "test": test_id},
+            address=container_service_address,
+        )
 
-                if ctx.obj["DEBUG"]:
-                    click.echo("Cleaned Test Runners")
-                    click.echo("Cleaning Scenarios")
+        if debug:
+            click.echo("Cleaned Users")
 
-                # containers.clean_docker_containers(
-                #     docker_client, "cicada-distributed-scenario"
-                # )
-                container_service.stop_kube_container(
-                    "",
-                    namespace=namespace,
-                    labels={"type": "cicada-distributed-scenario", "test": test_id},
-                    address=container_service_address,
-                )
 
-                if ctx.obj["DEBUG"]:
-                    click.echo("Cleaned Scenarios")
-                    click.echo("Cleaning Users")
-
-                container_service.stop_kube_container(
-                    "",
-                    namespace=namespace,
-                    labels={"type": "cicada-distributed-user", "test": test_id},
-                    address=container_service_address,
-                )
-
-                if ctx.obj["DEBUG"]:
-                    click.echo("Cleaned Users")
-            else:
-                if ctx.obj["DEBUG"]:
-                    click.echo("Cleaning Test Runners")
-
-                container_service.stop_docker_container(
-                    test_id,
-                    address=container_service_address,
-                )
-
-                if ctx.obj["DEBUG"]:
-                    click.echo("Cleaned Test Runners")
-                    click.echo("Cleaning Scenarios")
-
-                container_service.stop_docker_container(
-                    "",
-                    labels={"type": "cicada-distributed-scenario", "test": test_id},
-                    address=container_service_address,
-                )
-
-                if ctx.obj["DEBUG"]:
-                    click.echo("Cleaned Scenarios")
-                    click.echo("Cleaning Users")
-
-                container_service.stop_docker_container(
-                    "",
-                    labels={"type": "cicada-distributed-user", "test": test_id},
-                    address=container_service_address,
-                )
-
-                if ctx.obj["DEBUG"]:
-                    click.echo("Cleaned Users")
-
+def print_results(
+    term: Terminal,
+    rich_console: Console,
+    passed: List[str],
+    failed: List[str],
+    context: dict,
+    metrics: Dict[str, Dict[str, str]],
+    debug: bool,
+):
     # FEATURE: report results in static site
     click.echo(
         term.bold + term.center(" Test Complete ", fillchar="=") + "\n" + term.normal
@@ -441,10 +487,50 @@ def run(
         + term.normal
     )
 
-    if no_exit_unsuccessful:
-        sys.exit(0)
-    elif failed != []:
-        sys.exit(1)
+    for scenario in context:
+        result = context[scenario]
+
+        if result["exception"] is not None:
+            click.echo(
+                term.bold
+                + term.center(
+                    f" {scenario}: " + term.red + "Failed " + term.normal + term.bold,
+                    fillchar="-",
+                )
+                + "\n"
+                + term.normal
+            )
+
+            click.echo(f"Exception: {result['exception']}")
+            click.echo("\n")
+        else:
+            click.echo(
+                term.bold
+                + term.center(
+                    f" {scenario}: " + term.green + "Passed " + term.normal + term.bold,
+                    fillchar="-",
+                )
+                + "\n"
+                + term.normal
+            )
+
+        if result["output"] is not None:
+            click.echo(f"Result: {result['output']}")
+            click.echo("\n")
+
+        if result["logs"] and (result["exception"] is not None or debug):
+            click.echo("Logs:")
+            click.echo(result["logs"])
+            click.echo("\n")
+
+        if scenario in metrics:
+            metrics_table = MetricDisplay(scenario)
+
+            metrics_table.update_metrics(metrics[scenario])
+
+            click.echo("Metrics:")
+            rich_console.print(metrics_table.get_renderable())
+            click.echo("\n")
 
 
 # init project (load base files)
