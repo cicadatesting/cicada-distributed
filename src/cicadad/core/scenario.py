@@ -9,7 +9,6 @@ import traceback
 from pydantic import BaseModel, Field
 from dask.distributed import Client, fire_and_forget, secede  # type: ignore
 
-from cicadad.metrics.console import ConsoleMetrics
 from cicadad.util.constants import KUBE_CONTAINER_MODE
 from cicadad.util.context import encode_context
 from cicadad.services import datastore, container_service
@@ -164,8 +163,8 @@ class ScenarioCommands(object):
         self.container_service_address = container_service_address
         self.container_mode = container_mode
         self.context = context
-
         self.scenario_id = scenario_id
+
         self.user_ids: Set[str] = set()
         self.user_locations: Dict[str, str] = {}
         self.user_manager_counts: Dict[str, int] = {}
@@ -450,28 +449,14 @@ class ScenarioCommands(object):
 
     # FEATURE: get number of healthy users in scenario, healthy users per group
 
-    def put_metric(self, name: str, value: float):
-        """Save any metric in datastore.
-
-        Args:
-            name (str): Metric name
-            value (float): Metric value
-        """
-        # NOTE: may need to change this to work with other strategies
-        datastore.add_metric(self.scenario_id, name, value, self.datastore_address)
-
     def collect_metrics(self, latest_results: List[datastore.Result]):
         """Parse latest results and save metrics if any can be parsed from result set.
 
         Args:
             latest_results (List[datastore.Result]): List of latest collected results
         """
-        if self.scenario.metrics_strategy is not None:
-            self.scenario.metrics_strategy.collect_metrics(
-                self.scenario_id,
-                latest_results,
-                self.datastore_address,
-            )
+        for collector in self.scenario.metric_collectors:
+            collector(latest_results, self)
 
 
 def filter_scenarios_by_tag(
@@ -611,7 +596,7 @@ def test_runner(
     container_mode: str,
 ):
     started: Dict[str, str] = {}
-    metrics: Dict[str, ConsoleMetrics] = {}
+    scenarios_by_id: Dict[str, "Scenario"] = {}
     results: Dict[str, dict] = {}
 
     valid_scenarios = filter_scenarios_by_tag(scenarios, tags)
@@ -646,28 +631,30 @@ def test_runner(
             )
 
             started[scenario.name] = scenario_id
-
-            if scenario.metrics_strategy is not None:
-                metrics[scenario.name] = scenario.metrics_strategy
+            scenarios_by_id[scenario_id] = scenario
 
     # listen to completed events and start scenarios with dependencies
     # FEATURE: scenario timeout counter here as well
     while len(results) != len(valid_scenarios):
         for scenario_name in [sn for sn in started if sn not in results]:
-            if scenario_name in metrics:
-                strategy = metrics[scenario_name]
+            scenario = scenarios_by_id[started[scenario_name]]
 
+            if scenario.console_metric_displays is not None:
                 datastore.add_test_event(
                     test_id=test_id,
                     event=datastore.TestEvent(
                         kind="SCENARIO_METRIC",
                         payload=datastore.ScenarioMetric(
                             scenario=scenario_name,
-                            metrics=strategy.get_current(
-                                started[scenario_name], datastore_address
-                            ),
+                            metrics={
+                                name: display_fn(
+                                    name, started[scenario_name], datastore_address
+                                )
+                                for name, display_fn in scenario.console_metric_displays.items()
+                            },
                         ),
                     ),
+                    address=datastore_address,
                 )
 
             result = datastore.move_scenario_result(
@@ -713,9 +700,7 @@ def test_runner(
                 )
 
                 started[scenario.name] = scenario_id
-
-                if scenario.metrics_strategy is not None:
-                    metrics[scenario.name] = scenario.metrics_strategy
+                scenarios_by_id[scenario_id] = scenario
             elif all(dep.name in results for dep in scenario.dependencies):
                 # has all dependencies but some are failed
                 started[scenario.name] = str(uuid.uuid4())[:8]
@@ -1254,6 +1239,8 @@ LoadModelFn = Callable[[ScenarioCommands, dict], Any]
 ResultAggregatorFn = Callable[[Optional[Any], List[datastore.Result]], Any]
 ResultVerifierFn = Callable[[List[datastore.Result]], List[str]]
 OutputTransformerFn = Callable[[Optional[Any]], Any]
+MetricCollector = Callable[[List[datastore.Result], ScenarioCommands], None]
+ConsoleMetricDisplays = Dict[str, Callable[[str, str, str], Optional[str]]]
 
 
 class Scenario(BaseModel):
@@ -1266,7 +1253,8 @@ class Scenario(BaseModel):
     result_verifier: Optional[ResultVerifierFn] = Field(basic_verification)
     output_transformer: Optional[OutputTransformerFn]
     users_per_container: int = 50
-    metrics_strategy: Optional[ConsoleMetrics]  # TODO: replace with abstract class
+    metric_collectors: List[MetricCollector] = []
+    console_metric_displays: Optional[ConsoleMetricDisplays]
     tags: List[str] = []
 
     class Config:

@@ -19,9 +19,9 @@ def test_console_stats(metrics_mock):
         "len": 1,
     }
 
-    console_stats = console.ConsoleStats("test", sample_collector)
+    console_stats = console.console_stats()
 
-    metrics_string = console_stats.get_metric("foo")
+    metrics_string = console_stats("foo", "bar")
 
     assert (
         metrics_string
@@ -33,9 +33,9 @@ def test_console_stats(metrics_mock):
 def test_console_stats_none(metrics_mock):
     metrics_mock.return_value = None
 
-    console_stats = console.ConsoleStats("test", sample_collector)
+    console_stats = console.console_stats()
 
-    metrics_string = console_stats.get_metric("foo")
+    metrics_string = console_stats("foo", "bar")
 
     assert metrics_string is None, "Metrics string not equal to expected"
 
@@ -44,9 +44,9 @@ def test_console_stats_none(metrics_mock):
 def test_console_count(metrics_mock):
     metrics_mock.return_value = 60
 
-    console_count = console.ConsoleCount("test", sample_collector)
+    console_count = console.console_count()
 
-    metrics_string = console_count.get_metric("foo")
+    metrics_string = console_count("foo", "bar")
 
     assert metrics_string == "60", "Metrics string not equal to expected"
 
@@ -55,9 +55,9 @@ def test_console_count(metrics_mock):
 def test_console_count_none(metrics_mock):
     metrics_mock.return_value = None
 
-    console_count = console.ConsoleCount("test", sample_collector)
+    console_count = console.console_count()
 
-    metrics_string = console_count.get_metric("foo")
+    metrics_string = console_count("foo", "bar")
 
     assert metrics_string is None, "Metrics string not equal to expected"
 
@@ -66,9 +66,9 @@ def test_console_count_none(metrics_mock):
 def test_console_latest(metrics_mock):
     metrics_mock.return_value = 1.2345
 
-    console_latest = console.ConsoleLatest("test", sample_collector)
+    console_latest = console.console_latest()
 
-    metrics_string = console_latest.get_metric("foo")
+    metrics_string = console_latest("foo", "bar")
 
     assert metrics_string == "1.234", "Metrics string not equal to expected"
 
@@ -77,9 +77,9 @@ def test_console_latest(metrics_mock):
 def test_console_latest_none(metrics_mock):
     metrics_mock.return_value = None
 
-    console_latest = console.ConsoleLatest("test", sample_collector)
+    console_latest = console.console_latest()
 
-    metrics_string = console_latest.get_metric("foo")
+    metrics_string = console_latest("foo", "bar")
 
     assert metrics_string is None, "Metrics string not equal to expected"
 
@@ -88,9 +88,9 @@ def test_console_latest_none(metrics_mock):
 def test_console_percent(metrics_mock):
     metrics_mock.return_value = 1.2345
 
-    console_percent = console.ConsolePercent("test", sample_collector)
+    console_percent = console.console_percent(1)
 
-    metrics_string = console_percent.get_metric("foo", split_point=1)
+    metrics_string = console_percent("foo", "bar")
 
     assert metrics_string == "1.234", "Metrics string not equal to expected"
 
@@ -99,8 +99,8 @@ def test_console_percent(metrics_mock):
 def test_console_percent_none(metrics_mock):
     metrics_mock.return_value = None
 
-    console_percent = console.ConsolePercent("test", sample_collector)
+    console_percent = console.console_percent(1)
 
-    metrics_string = console_percent.get_metric("foo", split_point=1)
+    metrics_string = console_percent("foo", "bar")
 
     assert metrics_string is None, "Metrics string not equal to expected"
