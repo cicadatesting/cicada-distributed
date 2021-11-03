@@ -551,17 +551,19 @@ def test_test_runner(
     s2 = Mock()
     s3 = Mock()
 
-    ms = Mock()
+    cmd_foo = Mock()
 
-    ms.get_current.return_value = {"foo": "bar"}
+    cmd_foo.return_value = "xyz"
+
+    cmds = {"foo": cmd_foo}
 
     s1.name = "s1"
     s2.name = "s2"
     s3.name = "s3"
 
-    s1.metrics_strategy = ms
-    s2.metrics_strategy = None
-    s3.metrics_strategy = None
+    s1.console_metric_displays = cmds
+    s2.console_metric_displays = None
+    s3.console_metric_displays = None
 
     s1.dependencies = []
     s2.dependencies = [s1]

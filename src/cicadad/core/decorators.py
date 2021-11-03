@@ -1,6 +1,8 @@
 from typing import Any, Callable, Union
 
 from cicadad.core.scenario import (
+    ConsoleMetricDisplays,
+    MetricCollector,
     Scenario,
     LoadModelFn,
     UserLoopFn,
@@ -9,7 +11,6 @@ from cicadad.core.scenario import (
     OutputTransformerFn,
 )
 from cicadad.core.engine import Engine
-from cicadad.metrics.console import ConsoleMetrics
 
 
 def scenario(engine: Engine, name: str = None):
@@ -149,16 +150,36 @@ def output_transformer(transformer_fn: OutputTransformerFn):
     return wrapper
 
 
-def metrics_strategy(strategy: ConsoleMetrics):
-    # TODO: replace with abstract class
-    """Specify how metrics are collected and displayed during the scenario
+def metrics_collector(collector: MetricCollector):
+    """Add a collector function to parse and send metrics from scenario.
 
     Args:
-        strategy (ConsoleMetrics): Scenario metric strategy
+        collector (MetricCollector): Collector function
     """
 
     def wrapper(fn):
-        set_scenario_attribute(fn, "metrics_strategy", strategy)
+        collectors = get_scenario_attribute(fn, "metric_collectors")
+        entry = [collector]
+
+        if collectors is None:
+            set_scenario_attribute(fn, "metric_collectors", entry)
+        else:
+            set_scenario_attribute(fn, "metric_collectors", collectors + entry)
+
+        return fn
+
+    return wrapper
+
+
+def console_metric_displays(displays: ConsoleMetricDisplays):
+    """Sets map of names to metric displays for scenario.
+
+    Args:
+        displays (ConsoleMetricDisplays): Map of names to console metric display getters
+    """
+
+    def wrapper(fn):
+        set_scenario_attribute(fn, "console_metric_displays", displays)
 
         return fn
 

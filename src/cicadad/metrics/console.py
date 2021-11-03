@@ -1,4 +1,4 @@
-from typing import Callable, Dict, Iterable, List, Optional
+from typing import Callable, Iterable, List
 
 from cicadad.services import datastore
 from cicadad.util.constants import DEFAULT_DATASTORE_ADDRESS
@@ -7,40 +7,35 @@ from cicadad.util.constants import DEFAULT_DATASTORE_ADDRESS
 ConsoleCollectorFn = Callable[[List[datastore.Result]], Iterable[float]]
 
 
-class ConsoleMetricField(object):
-    def __init__(
-        self, name: str, collector: Optional[ConsoleCollectorFn] = None
-    ) -> None:
-        self.name = name
-        self.collector = collector
+def console_collector(name: str, collector: ConsoleCollectorFn):
+    """Send metric created by collector function to datastore.
 
-    def collect_metric(
-        self,
+    Args:
+        name (str): Name of metric
+        collector (ConsoleCollectorFn): Function to convert results to list of metric values
+    """
+
+    def collect_metric(results: List[datastore.Result], scenario_commands):
+        for value in collector(results):
+            datastore.add_metric(
+                scenario_commands.scenario_id,
+                name,
+                value,
+                scenario_commands.datastore_address,
+            )
+
+    return collect_metric
+
+
+def console_stats():
+    """Get stats for metric from datastore."""
+
+    def get(
+        name: str,
         scenario_id: str,
-        results: List[datastore.Result],
         datastore_address: str = DEFAULT_DATASTORE_ADDRESS,
     ):
-        if self.collector is not None:
-            for value in self.collector(results):
-                datastore.add_metric(scenario_id, self.name, value, datastore_address)
-
-    def get_metric(
-        self, scenario_id: str, datastore_address: str, **kwargs
-    ) -> Optional[str]:
-        raise NotImplementedError("Add metric not implemented")
-
-
-class ConsoleStats(ConsoleMetricField):
-    def get_metric(
-        self,
-        scenario_id: str,
-        datastore_address: str = DEFAULT_DATASTORE_ADDRESS,
-        **kwargs,
-    ):
-        # get stats from datastore
-        stats = datastore.get_metric_statistics(
-            scenario_id, self.name, datastore_address
-        )
+        stats = datastore.get_metric_statistics(scenario_id, name, datastore_address)
 
         if stats is None:
             return None
@@ -53,78 +48,64 @@ class ConsoleStats(ConsoleMetricField):
             f"Len: {stats['len']}"
         )
 
+    return get
 
-class ConsoleCount(ConsoleMetricField):
-    def get_metric(
-        self,
+
+def console_count():
+    """Get count metric from datastore."""
+
+    def get(
+        name: str,
         scenario_id: str,
         datastore_address: str = DEFAULT_DATASTORE_ADDRESS,
-        **kwargs,
     ):
-        # get stats from datastore
-        count = datastore.get_metric_total(scenario_id, self.name, datastore_address)
+        count = datastore.get_metric_total(scenario_id, name, datastore_address)
 
         if count is None:
             return None
 
         return str(round(count, 3))
 
+    return get
 
-class ConsoleLatest(ConsoleMetricField):
-    def get_metric(
-        self,
+
+def console_latest():
+    """Get latest metric from datastore."""
+
+    def get(
+        name: str,
         scenario_id: str,
         datastore_address: str = DEFAULT_DATASTORE_ADDRESS,
-        **kwargs,
     ):
-        # get stats from datastore
-        last = datastore.get_last_metric(scenario_id, self.name, datastore_address)
+        last = datastore.get_last_metric(scenario_id, name, datastore_address)
 
         if last is None:
             return None
 
         return str(round(last, 3))
 
+    return get
 
-class ConsolePercent(ConsoleMetricField):
-    def get_metric(
-        self,
+
+def console_percent(split_point: float):
+    """Get percent above split point for metric from datastore.
+
+    Args:
+        split_point (float): Point to split metric values at
+    """
+
+    def get(
+        name: str,
         scenario_id: str,
-        # split_point: float,
         datastore_address: str = DEFAULT_DATASTORE_ADDRESS,
-        **kwargs,
     ):
-        # get stats from datastore
-        last = datastore.get_metric_rate(
-            scenario_id, self.name, kwargs["split_point"], datastore_address
+        rate = datastore.get_metric_rate(
+            scenario_id, name, split_point, datastore_address
         )
 
-        if last is None:
+        if rate is None:
             return None
 
-        return str(round(last, 3))
+        return str(round(rate, 3))
 
-
-class ConsoleMetrics(object):
-    def __init__(self, *fields: ConsoleMetricField) -> None:
-        self.fields = fields
-
-    def collect_metrics(
-        self,
-        scenario_id: str,
-        results: List[datastore.Result],
-        datastore_address: str = DEFAULT_DATASTORE_ADDRESS,
-    ):
-        for field in self.fields:
-            field.collect_metric(scenario_id, results, datastore_address)
-
-    def get_current(
-        self,
-        scenario_id: str,
-        datastore_address: str = DEFAULT_DATASTORE_ADDRESS,
-        **kwargs,
-    ) -> Dict[str, Optional[str]]:
-        return {
-            field.name: field.get_metric(scenario_id, datastore_address, **kwargs)
-            for field in self.fields
-        }
+    return get
