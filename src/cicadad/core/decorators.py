@@ -19,6 +19,7 @@ def scenario(engine: Engine, name: str = None, raise_exception: bool = True):
     Args:
         engine (Engine): Engine to attach scenario to
         name (str, optional): Name to give to scenario. Defaults to function name if None.
+        raise_exception (bool): Raise exception if user loop fails.
     """
 
     def wrapper(fn):
