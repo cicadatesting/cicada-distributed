@@ -162,8 +162,6 @@ type ScenarioResult struct {
 	Logs      string
 	Timestamp string
 	TimeTaken float64
-	Succeeded int32
-	Failed    int32
 }
 
 func (datastore *Datastore) AddUserResult(userID string, result []byte) error {
@@ -184,8 +182,6 @@ func (datastore *Datastore) SetScenarioResult(
 	exception *string,
 	logs string,
 	timeTaken float64,
-	succeeded int32,
-	failed int32,
 ) error {
 	// set scenario result key
 	// set expiration?
@@ -197,8 +193,6 @@ func (datastore *Datastore) SetScenarioResult(
 		Logs:      logs,
 		Timestamp: time.Now().Format(time.RFC3339),
 		TimeTaken: timeTaken,
-		Succeeded: succeeded,
-		Failed:    failed,
 	}
 
 	b, err := msgpack.Marshal(&result)
