@@ -8,7 +8,7 @@ build-dev:
 	docker build -t ${CONTAINER_SERVICE_IMAGE_NAME}:pre-release .
 
 build:
-	docker build -t ${CONTAINER_SERVICE_IMAGE_NAME}:1.4.0 .
+	docker build -t ${CONTAINER_SERVICE_IMAGE_NAME}:1.4.1 .
 
 run-local:
 	docker run -d --rm -p 8283:8283 --network cicada-distributed-network ${DATASTORE_IMAGE_NAME}:latest
