@@ -523,6 +523,10 @@ def print_results(
             click.echo(result["logs"])
             click.echo("\n")
 
+        click.echo(f"Time Taken: {result['time_taken']} Seconds")
+        click.echo(f"Succeeded: {result['succeeded']} Loop(s)")
+        click.echo(f"Failed: {result['failed']} Loop(s)")
+
         if scenario in metrics:
             metrics_table = MetricDisplay(scenario)
 

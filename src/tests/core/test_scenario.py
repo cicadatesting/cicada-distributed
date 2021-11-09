@@ -814,7 +814,7 @@ def test_n_seconds():
     sc = Mock()
     ctx = {}
 
-    sc.get_latest_results.side_effect = [[1], [2, 3]]
+    sc.get_latest_results.side_effect = [[1], [2, 3], [4]]
 
     closure(sc, ctx)
 
