@@ -88,6 +88,8 @@ func (s *Server) SetScenarioResult(ctx context.Context, in *api.SetScenarioResul
 		exception,
 		in.GetLogs(),
 		in.GetTimeTaken(),
+		in.GetSucceeded(),
+		in.GetFailed(),
 	)
 
 	if err != nil {
@@ -138,6 +140,8 @@ func (s *Server) MoveScenarioResult(ctx context.Context, in *api.MoveScenarioRes
 		Logs:      result.Logs,
 		Timestamp: result.Timestamp,
 		TimeTaken: result.TimeTaken,
+		Succeeded: result.Succeeded,
+		Failed:    result.Failed,
 	}
 
 	return &response, nil
