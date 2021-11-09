@@ -13,7 +13,7 @@ from cicadad.core.scenario import (
 from cicadad.core.engine import Engine
 
 
-def scenario(engine: Engine, name: str = None):
+def scenario(engine: Engine, name: str = None, raise_exception: bool = True):
     """Mark a function as a scenario
 
     Args:
@@ -26,6 +26,7 @@ def scenario(engine: Engine, name: str = None):
             raise TypeError("Function is already a Scenario")
 
         scenario = make_scenario(name=name or fn.__qualname__, fn=fn)
+        scenario.raise_exception = raise_exception
 
         engine.add_scenario(scenario)
 
