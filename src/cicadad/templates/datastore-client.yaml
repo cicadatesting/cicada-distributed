@@ -27,7 +27,7 @@ spec:
       - env:
         - name: REDIS_ENDPOINT
           value: cicada-distributed-redis
-        image: cicadatesting/cicada-distributed-datastore-client:1.4.1
+        image: cicadatesting/cicada-distributed-datastore-client:1.4.2
         imagePullPolicy: IfNotPresent
         name: cicada-distributed-datastore-client
         ports:
