@@ -96,6 +96,8 @@ def set_scenario_result(
     exception: Any,
     logs: str,
     time_taken: float,
+    succeeded: int,
+    failed: int,
     address: str = DEFAULT_DATASTORE_ADDRESS,
 ):
     with grpc.insecure_channel(address, compression=grpc.Compression.Gzip) as channel:
@@ -108,6 +110,8 @@ def set_scenario_result(
             ),
             logs=logs,
             timeTaken=time_taken,
+            succeeded=succeeded,
+            failed=failed,
         )
 
         stub.SetScenarioResult(request)
@@ -146,6 +150,8 @@ def move_scenario_result(
                 "logs": response.logs,
                 "timestamp": response.timestamp,
                 "time_taken": response.timeTaken,
+                "succeeded": response.succeeded,
+                "failed": response.failed,
             }
         except grpc.RpcError as err:
             if err.code() == grpc.StatusCode.NOT_FOUND:

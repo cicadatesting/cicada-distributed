@@ -54,6 +54,8 @@ message SetScenarioResultRequest {
     google.protobuf.StringValue exception = 3;
     string logs = 4;
     double timeTaken = 5;
+    int32 succeeded = 6;
+    int32 failed = 7;
 }
 
 message MoveUserResultsRequest {
@@ -76,6 +78,8 @@ message MoveScenarioResultResponse {
     string logs = 4;
     string timestamp = 5;
     double timeTaken = 6;
+    int32 succeeded = 7;
+    int32 failed = 8;
 }
 
 message DistributeWorkRequest {

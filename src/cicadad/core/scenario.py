@@ -170,6 +170,7 @@ class ScenarioCommands(object):
         self.user_manager_counts: Dict[str, int] = {}
         self.num_users = 0
         self.buffered_work = 0
+        self.num_results_collected = 0
         self.aggregated_results = None
         self.errors: List[str] = []
 
@@ -405,6 +406,8 @@ class ScenarioCommands(object):
             )
 
             all_results.extend(results)
+
+        self.num_results_collected += len(all_results)
 
         return all_results
 
@@ -799,7 +802,7 @@ def scenario_runner(
             else:
                 output = scenario_commands.aggregated_results
 
-            if scenario_commands.errors != []:
+            if scenario_commands.errors != [] and scenario.raise_exception:
                 error_strs = [
                     f"{len(scenario_commands.errors)} error(s) were raised in scenario {scenario.name}:"
                 ] + scenario_commands.errors
@@ -820,12 +823,16 @@ def scenario_runner(
     # Clean up
     scenario_commands.scale_users(0)
 
+    failed = len(scenario_commands.errors)
+
     datastore.set_scenario_result(
         scenario_id=scenario_id,
         output=output,
         exception=exception,
         logs=buffer.getvalue(),
-        time_taken=(end - start).seconds,
+        time_taken=(end - start).total_seconds(),
+        succeeded=scenario_commands.num_results_collected - failed,
+        failed=failed,
         address=datastore_address,
     )
 
@@ -1066,7 +1073,7 @@ def n_seconds(
             scenario_commands.verify_results(latest_results)
             scenario_commands.collect_metrics(latest_results)
 
-            if datetime.now() < start_time + timedelta(seconds=seconds):
+            if datetime.now() > start_time + timedelta(seconds=seconds):
                 break
 
             time.sleep(wait_period)
@@ -1251,6 +1258,7 @@ class Scenario(BaseModel):
     dependencies: List["Scenario"] = []
     result_aggregator: Optional[ResultAggregatorFn]
     result_verifier: Optional[ResultVerifierFn] = Field(basic_verification)
+    raise_exception: bool = True  # TODO: make decorator
     output_transformer: Optional[OutputTransformerFn]
     users_per_container: int = 50
     metric_collectors: List[MetricCollector] = []
