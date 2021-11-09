@@ -1,7 +1,7 @@
 import base64
 import json
 
-CICADA_VERSION = "1.4.1"
+CICADA_VERSION = "1.4.2"
 
 DEFAULT_DOCKER_NETWORK = "cicada-distributed-network"
 DEFAULT_KUBE_NAMESPACE = "default"

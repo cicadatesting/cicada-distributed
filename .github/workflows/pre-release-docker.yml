@@ -6,7 +6,7 @@ on:
     types:
       - completed
 env:
-  cicadaVersion: "1.4.1"
+  cicadaVersion: "1.4.2"
 jobs:
   push-base-image:
     runs-on: ubuntu-latest
