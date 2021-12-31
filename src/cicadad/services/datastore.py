@@ -1,5 +1,4 @@
 from typing import Any, Dict, Iterable, List, Optional, Union
-from datetime import datetime
 import pickle  # nosec
 import json
 
@@ -10,22 +9,9 @@ import grpc  # type: ignore
 from pydantic import BaseModel
 from google.protobuf import wrappers_pb2
 
+from cicadad.core.types import Result
 from cicadad.protos import datastore_pb2, datastore_pb2_grpc
 from cicadad.util.constants import DEFAULT_DATASTORE_ADDRESS
-
-
-class Result(BaseModel):
-    id: Optional[str]
-    output: Optional[Any]
-    exception: Optional[Any]
-    logs: Optional[str]
-    timestamp: Optional[datetime]
-    time_taken: Optional[int]
-
-    class Config:
-        json_encoders = {
-            Exception: lambda e: str(e),
-        }
 
 
 class TestStatus(BaseModel):

@@ -3,12 +3,9 @@ from typing import Dict, List
 from distributed.client import Client  # type: ignore
 import click
 
-from cicadad.core.scenario import (
-    Scenario,
-    test_runner,
-    scenario_runner,
-    user_scheduler,
-)
+from cicadad.core.scenario import Scenario
+from cicadad.core.runners import scenario_runner, test_runner, user_scheduler
+from cicadad.util.context import decode_context
 from cicadad.util.constants import (
     DEFAULT_CONTAINER_MODE,
     DEFAULT_CONTAINER_SERVICE_ADDRESS,
@@ -17,7 +14,6 @@ from cicadad.util.constants import (
     DEFAULT_DOCKER_NETWORK,
     DEFAULT_KUBE_NAMESPACE,
 )
-from cicadad.util.context import decode_context
 
 
 class Engine:
