@@ -1,34 +1,14 @@
-from typing import Any, Dict, Iterable, List, Optional, Union
+from typing import Any, Iterable, List, Optional
 import pickle  # nosec
 import json
 
 import grpc  # type: ignore
 
-# from cassandra.cluster import Cluster, Session
-# from cassandra.auth import PlainTextAuthProvider
-from pydantic import BaseModel
 from google.protobuf import wrappers_pb2
 
-from cicadad.core.types import Result
+from cicadad.core.types import Result, TestEvent, UserEvent
 from cicadad.protos import datastore_pb2, datastore_pb2_grpc
 from cicadad.util.constants import DEFAULT_DATASTORE_ADDRESS
-
-
-class TestStatus(BaseModel):
-    scenario: Optional[str]
-    scenario_id: Optional[str]
-    message: str
-    context: Optional[str]
-
-
-class ScenarioMetric(BaseModel):
-    scenario: str
-    metrics: Dict[str, Optional[str]]
-
-
-class TestEvent(BaseModel):
-    kind: str
-    payload: Union[TestStatus, ScenarioMetric]
 
 
 def add_test_event(
@@ -183,11 +163,6 @@ def add_user_event(
         )
 
         stub.AddUserEvent(request)
-
-
-class UserEvent(BaseModel):
-    kind: str
-    payload: dict
 
 
 def get_user_events(user_id: str, kind: str, address: str = DEFAULT_DATASTORE_ADDRESS):

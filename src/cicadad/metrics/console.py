@@ -1,22 +1,26 @@
 from typing import Callable, Iterable, List
 
-from cicadad.services import datastore
+from cicadad.core.types import Result, IScenarioCommands
 from cicadad.util.constants import DEFAULT_DATASTORE_ADDRESS
+from cicadad.services import datastore
 
 
-ConsoleCollectorFn = Callable[[List[datastore.Result]], Iterable[float]]
+ConsoleCollectorFn = Callable[[List[Result]], Iterable[float]]
 
 
 def console_collector(name: str, collector: ConsoleCollectorFn):
     """Send metric created by collector function to datastore.
+
+    Helper for scenarios that want to leverage the datastore to store metrics.
 
     Args:
         name (str): Name of metric
         collector (ConsoleCollectorFn): Function to convert results to list of metric values
     """
 
-    def collect_metric(results: List[datastore.Result], scenario_commands):
+    def collect_metric(results: List[Result], scenario_commands: IScenarioCommands):
         for value in collector(results):
+            # TODO: use scenario_commands.collect_datastore_metrics
             datastore.add_metric(
                 scenario_commands.scenario_id,
                 name,

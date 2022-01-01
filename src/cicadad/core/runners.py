@@ -19,8 +19,8 @@ from cicadad.services import container_service, datastore
 
 
 def filter_scenarios_by_tag(
-    scenarios: Iterable["Scenario"], tags: List[str]
-) -> List["Scenario"]:
+    scenarios: Iterable[Scenario], tags: List[str]
+) -> List[Scenario]:
     """Filter scenarios that have tags in the list of tags provided.
 
     Returns all scenarios if tag list is empty.
@@ -39,7 +39,7 @@ def filter_scenarios_by_tag(
 
 
 def start_scenario(
-    scenario: "Scenario",
+    scenario: Scenario,
     scenario_id: str,
     results: Dict[str, dict],
     container_mode: str,
@@ -145,7 +145,7 @@ def start_scenario(
 
 
 def test_runner(
-    scenarios: Iterable["Scenario"],
+    scenarios: Iterable[Scenario],
     tags: List[str],
     test_id: str,
     image: str,
@@ -156,7 +156,7 @@ def test_runner(
     container_mode: str,
 ):
     started: Dict[str, str] = {}
-    scenarios_by_id: Dict[str, "Scenario"] = {}
+    scenarios_by_id: Dict[str, Scenario] = {}
     results: Dict[str, dict] = {}
 
     valid_scenarios = filter_scenarios_by_tag(scenarios, tags)
@@ -396,7 +396,7 @@ def scenario_runner(
 
 def user_scheduler(
     scheduler: Client,
-    scenario: "Scenario",
+    scenario: Scenario,
     user_manager_id: str,
     datastore_address: str,
     context: dict,
@@ -431,7 +431,7 @@ def user_scheduler(
 
 
 def user_runner(
-    scenario: "Scenario",
+    scenario: Scenario,
     user_id: str,
     datastore_address: str,
     context: dict,

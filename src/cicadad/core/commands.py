@@ -6,7 +6,7 @@ import uuid
 import time
 
 from cicadad.core.scenario import Scenario
-from cicadad.core.types import IScenarioCommands, IUserCommands, Result
+from cicadad.core.types import IScenarioCommands, IUserCommands, Result, UserEvent
 from cicadad.util import printing
 from cicadad.util.constants import KUBE_CONTAINER_MODE
 from cicadad.util.context import encode_context
@@ -42,7 +42,7 @@ class ScenarioCommands(IScenarioCommands):
             context (dict): Context data to pass to users
         """
         self.scenario = scenario
-        self.test_id = test_id
+        self.__test_id = test_id
         self.image = image  # TODO: track test info in datastore
         self.network = network
         self.namespace = namespace
@@ -50,7 +50,8 @@ class ScenarioCommands(IScenarioCommands):
         self.container_service_address = container_service_address
         self.container_mode = container_mode
         self.context = context
-        self.scenario_id = scenario_id
+        self.__scenario_id = scenario_id
+        # TODO: make test ID, scenario ID, read only properties
 
         self.user_ids: Set[str] = set()  # TODO: track in datastore
         self.user_locations: Dict[str, str] = {}
@@ -60,6 +61,16 @@ class ScenarioCommands(IScenarioCommands):
         self.__num_results_collected = 0
         self.__aggregated_results = None
         self.__errors: List[str] = []
+
+    @property
+    def test_id(self) -> str:
+        """Get ID of current test"""
+        return self.__test_id
+
+    @property
+    def scenario_id(self) -> str:
+        """Get ID of current scenario"""
+        return self.__scenario_id
 
     @property
     def aggregated_results(self) -> Any:
@@ -113,6 +124,7 @@ class ScenarioCommands(IScenarioCommands):
             remaining_users -= users_for_manager
 
         # start user managers for remaining users
+        # TODO: start user/user manager in container service
         while remaining_users > 0:
             user_manager_id = f"user-manager-{str(uuid.uuid4())[:8]}"
             encoded_context = encode_context(self.context)
@@ -126,7 +138,7 @@ class ScenarioCommands(IScenarioCommands):
                         labels={
                             "type": "cicada-distributed-user",
                             "scenario": self.scenario.name,
-                            "test": self.test_id,
+                            "test": self.__test_id,
                         },
                         image=self.image,
                         command=[
@@ -152,7 +164,7 @@ class ScenarioCommands(IScenarioCommands):
                         labels={
                             "type": "cicada-distributed-user",
                             "scenario": self.scenario.name,
-                            "test": self.test_id,
+                            "test": self.__test_id,
                         },
                         image=self.image,
                         command=[
@@ -313,7 +325,7 @@ class ScenarioCommands(IScenarioCommands):
 class UserCommands(IUserCommands):
     def __init__(
         self,
-        scenario: "Scenario",
+        scenario: Scenario,
         user_id: str,
         datastore_address: str,
     ):
@@ -326,7 +338,7 @@ class UserCommands(IUserCommands):
         """
         self.scenario = scenario
         self.user_id = user_id
-        self.event_buffer: List[datastore.UserEvent] = []
+        self.event_buffer: List[UserEvent] = []
         self.datastore_address = datastore_address
 
         self.__available_work = 0
