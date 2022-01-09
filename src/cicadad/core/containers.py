@@ -389,86 +389,47 @@ def docker_redis_down(client: docker.DockerClient):
     docker_container_down_by_name(client, "cicada-distributed-redis")
 
 
-def docker_datastore_client_up(client: docker.DockerClient, network: str):
-    """Start Datastore CLient container
+def docker_backend_up(client: docker.DockerClient, network: str):
+    """Start Backend CLient container.
 
     Args:
         client (docker.DockerClient): Docker client
-        network (str): Network to add Datastore CLient container to
+        network (str): Network to add backend container to
 
     Returns:
-        Datastore client container: Created datastore client container
+        Backend client container: Created backend client container
     """
     if os.getenv("ENV") == "local":
-        image = "cicadatesting/cicada-distributed-datastore-client:latest"
+        image = "cicadatesting/cicada-distributed-backend:latest"
     elif os.getenv("ENV") == "dev":
-        image = "cicadatesting/cicada-distributed-datastore-client:pre-release"
+        image = "cicadatesting/cicada-distributed-backend:pre-release"
     else:
-        image = f"cicadatesting/cicada-distributed-datastore-client:{CICADA_VERSION}"
+        image = f"cicadatesting/cicada-distributed-backend:{CICADA_VERSION}"
         pull_docker_image(client, image)
 
     args = DockerServerArgs(
         image=image,
-        name="cicada-distributed-datastore-client",
-        labels=["cicada-distributed-datastore-client"],
+        name="cicada-distributed-backend",
+        labels=["cicada-distributed-backend"],
         host_port=8283,
         container_port=8283,
         network=network,
-    )
-
-    return docker_container_up(client, "cicada-distributed-datastore-client", args)
-
-
-def docker_datastore_client_down(client: docker.DockerClient):
-    """Stop datastore client container
-
-    Args:
-        client (docker.DockerClient): Docker client
-    """
-    docker_container_down_by_name(client, "cicada-distributed-datastore-client")
-
-
-def docker_container_service_up(client: docker.DockerClient, network: str):
-    """Start Container Service
-
-    Args:
-        client (docker.DockerClient): Docker client
-        network (str): Network to add Container Service to
-
-    Returns:
-        Container: Container Service
-    """
-    if os.getenv("ENV") == "local":
-        image = "cicadatesting/cicada-distributed-container-service:latest"
-    elif os.getenv("ENV") == "dev":
-        image = "cicadatesting/cicada-distributed-container-service:pre-release"
-    else:
-        image = f"cicadatesting/cicada-distributed-container-service:{CICADA_VERSION}"
-        pull_docker_image(client, image)
-
-    args = DockerServerArgs(
-        image=image,
-        name="cicada-distributed-container-service",
-        labels=["cicada-distributed-container-service"],
+        env={"RUNNER_TYPE": DOCKER_CONTAINER_MODE},
         volumes=[
             Volume(source="/var/run/docker.sock", destination="/var/run/docker.sock")
         ],
-        host_port=8284,
-        container_port=8284,
-        env={"RUNNER_TYPE": DOCKER_CONTAINER_MODE},
-        network=network,
     )
 
-    return docker_container_up(client, "cicada-distributed-container-service", args)
+    return docker_container_up(client, "cicada-distributed-backend", args)
 
 
-def docker_container_service_down(client: docker.DockerClient):
-    """Stop Container Service
+def docker_backend_down(client: docker.DockerClient):
+    """Stop backend container
 
     Args:
         client (docker.DockerClient): Docker client
     """
-    docker_container_down_by_name(client, "cicada-distributed-container-service")
+    docker_container_down_by_name(client, "cicada-distributed-backend")
 
 
 def make_kube_template(template_filename: str):
@@ -484,12 +445,8 @@ def make_kube_redis_template() -> str:
     return make_kube_template("redis.yaml")
 
 
-def make_kube_datastore_client_template() -> str:
-    return make_kube_template("datastore-client.yaml")
-
-
-def make_kube_container_service_template() -> str:
-    return make_kube_template("container-service.yaml")
+def make_kube_backend_template() -> str:
+    return make_kube_template("backend.yaml")
 
 
 def make_kube_job_template() -> str:
@@ -499,8 +456,7 @@ def make_kube_job_template() -> str:
 def make_concatenated_kube_templates():
     templates = [
         make_kube_redis_template(),
-        make_kube_datastore_client_template(),
-        make_kube_container_service_template(),
+        make_kube_backend_template(),
         make_kube_job_template(),
     ]
 

@@ -11,11 +11,18 @@ from distributed.threadpoolexecutor import secede
 
 from cicadad.core.commands import ScenarioCommands, UserCommands
 from cicadad.core.scenario import Scenario
-from cicadad.core.types import Result
+from cicadad.core.types import (
+    IScenarioBackend,
+    ITestBackend,
+    IUserBackend,
+    IUserManagerBackend,
+    Result,
+    ScenarioMetric,
+    TestEvent,
+    TestStatus,
+)
 from cicadad.util import printing
-from cicadad.util.constants import KUBE_CONTAINER_MODE
 from cicadad.util.context import encode_context
-from cicadad.services import container_service, datastore
 
 
 def filter_scenarios_by_tag(
@@ -40,154 +47,56 @@ def filter_scenarios_by_tag(
 
 def start_scenario(
     scenario: Scenario,
-    scenario_id: str,
     results: Dict[str, dict],
-    container_mode: str,
-    image: str,
-    test_id: str,
-    network: str,
-    namespace: str,
-    datastore_address: str,
-    container_service_address: str,
-):
+    backend: ITestBackend,
+) -> str:
     encoded_context = encode_context(results)
 
-    if container_mode == KUBE_CONTAINER_MODE:
-        container_service.start_kube_container(
-            container_service.StartKubeContainerArgs(
-                image=image,
-                name=scenario_id,
-                command=[
-                    "run-scenario",
-                    "--name",
-                    scenario.name,
-                    "--test-id",
-                    test_id,
-                    "--scenario-id",
-                    scenario_id,
-                    "--image",
-                    image,
-                    "--network",
-                    network,
-                    "--namespace",
-                    namespace,
-                    "--encoded-context",
-                    encoded_context,
-                    "--datastore-address",
-                    datastore_address,
-                    "--container-service-address",
-                    container_service_address,
-                    "--container-mode",
-                    container_mode,
-                ],
-                labels={
-                    "type": "cicada-distributed-scenario",
-                    "scenario": scenario.name,
-                    "test": test_id,
-                },
-                # env: Dict[str, str]={}
-                namespace=namespace,
-            ),
-            container_service_address,
-        )
-    else:
-        container_service.start_docker_container(
-            container_service.StartDockerContainerArgs(
-                image=image,
-                name=scenario_id,
-                command=[
-                    "run-scenario",
-                    "--name",
-                    scenario.name,
-                    "--test-id",
-                    test_id,
-                    "--scenario-id",
-                    scenario_id,
-                    "--image",
-                    image,
-                    "--network",
-                    network,
-                    "--namespace",
-                    namespace,
-                    "--encoded-context",
-                    encoded_context,
-                    "--datastore-address",
-                    datastore_address,
-                    "--container-service-address",
-                    container_service_address,
-                    "--container-mode",
-                    container_mode,
-                ],
-                labels={
-                    "type": "cicada-distributed-scenario",
-                    "scenario": scenario.name,
-                    "test": test_id,
-                },
-                # env: Dict[str, str]={}
-                network=network,
-            ),
-            container_service_address,
-        )
+    scenario_id = backend.create_scenario(
+        scenario_name=scenario.name,
+        context=encoded_context,
+        users_per_instance=scenario.users_per_instance,
+        tags=scenario.tags,
+    )
 
-    datastore.add_test_event(
-        test_id=test_id,
-        event=datastore.TestEvent(
+    backend.add_test_event(
+        event=TestEvent(
             kind="SCENARIO_STARTED",
-            payload=datastore.TestStatus(
+            payload=TestStatus(
                 scenario=scenario.name,
                 scenario_id=scenario_id,
                 message=f"Started scenario: {scenario.name} ({scenario_id})",
                 context=json.dumps(results),
             ),
         ),
-        address=datastore_address,
     )
 
+    return scenario_id
 
-def test_runner(
-    scenarios: Iterable[Scenario],
-    tags: List[str],
-    test_id: str,
-    image: str,
-    network: str,
-    namespace: str,
-    datastore_address: str,
-    container_service_address: str,
-    container_mode: str,
-):
+
+def test_runner(scenarios: Iterable[Scenario], tags: List[str], backend: ITestBackend):
     started: Dict[str, str] = {}
     scenarios_by_id: Dict[str, Scenario] = {}
     results: Dict[str, dict] = {}
 
     valid_scenarios = filter_scenarios_by_tag(scenarios, tags)
 
-    datastore.add_test_event(
-        test_id=test_id,
-        event=datastore.TestEvent(
+    backend.add_test_event(
+        event=TestEvent(
             kind="TEST_STARTED",
-            payload=datastore.TestStatus(
+            payload=TestStatus(
                 message=f"Collected {len(valid_scenarios)} Scenario(s)",
             ),
         ),
-        address=datastore_address,
     )
 
     # Start scenarios with no dependencies
     for scenario in valid_scenarios:
         if scenario.dependencies == []:
-            scenario_id = f"scenario-{str(uuid.uuid4())[:8]}"
-
-            start_scenario(
-                scenario,
-                scenario_id,
-                results,
-                container_mode,
-                image,
-                test_id,
-                network,
-                namespace,
-                datastore_address,
-                container_service_address,
+            scenario_id = start_scenario(
+                scenario=scenario,
+                results=results,
+                backend=backend,
             )
 
             started[scenario.name] = scenario_id
@@ -200,43 +109,40 @@ def test_runner(
             scenario = scenarios_by_id[started[scenario_name]]
 
             if scenario.console_metric_displays is not None:
-                datastore.add_test_event(
-                    test_id=test_id,
-                    event=datastore.TestEvent(
+                backend.add_test_event(
+                    event=TestEvent(
                         kind="SCENARIO_METRIC",
-                        payload=datastore.ScenarioMetric(
+                        payload=ScenarioMetric(
                             scenario=scenario_name,
                             metrics={
                                 name: display_fn(
-                                    name, started[scenario_name], datastore_address
+                                    name,
+                                    started[scenario_name],
+                                    backend.get_console_metrics_backend(),
                                 )
                                 for name, display_fn in scenario.console_metric_displays.items()
                             },
                         ),
                     ),
-                    address=datastore_address,
                 )
 
-            result = datastore.move_scenario_result(
+            result = backend.move_scenario_result(
                 started[scenario_name],
-                datastore_address,
             )
 
             if result is not None:
                 results[scenario_name] = result
 
-                datastore.add_test_event(
-                    test_id=test_id,
-                    event=datastore.TestEvent(
+                backend.add_test_event(
+                    event=TestEvent(
                         kind="SCENARIO_FINISHED",
-                        payload=datastore.TestStatus(
+                        payload=TestStatus(
                             scenario=scenario_name,
                             scenario_id=started[scenario_name],
                             message=f"Finished Scenario: {scenario_name}",
                             context=json.dumps(results),
                         ),
                     ),
-                    address=datastore_address,
                 )
 
         for scenario in [s for s in valid_scenarios if s.name not in started]:
@@ -244,19 +150,10 @@ def test_runner(
                 dep.name in results and results[dep.name]["exception"] is None
                 for dep in scenario.dependencies
             ):
-                scenario_id = f"scenario-{str(uuid.uuid4())[:8]}"
-
-                start_scenario(
-                    scenario,
-                    scenario_id,
-                    results,
-                    container_mode,
-                    image,
-                    test_id,
-                    network,
-                    namespace,
-                    datastore_address,
-                    container_service_address,
+                scenario_id = start_scenario(
+                    scenario=scenario,
+                    results=results,
+                    backend=backend,
                 )
 
                 started[scenario.name] = scenario_id
@@ -274,45 +171,36 @@ def test_runner(
                     ).json()
                 )
 
-                datastore.add_test_event(
-                    test_id=test_id,
-                    event=datastore.TestEvent(
+                backend.add_test_event(
+                    event=TestEvent(
                         kind="SCENARIO_FINISHED",
-                        payload=datastore.TestStatus(
+                        payload=TestStatus(
                             scenario=scenario.name,
                             scenario_id=started[scenario.name],
                             message=f"Skipped Scenario: {scenario.name}",
                             context=json.dumps(results),
                         ),
                     ),
-                    address=datastore_address,
                 )
 
         # NOTE: maybe make this configurable or shorter?
         time.sleep(1)
 
-    datastore.add_test_event(
-        test_id=test_id,
-        event=datastore.TestEvent(
+    backend.add_test_event(
+        event=TestEvent(
             kind="TEST_FINISHED",
-            payload=datastore.TestStatus(
+            payload=TestStatus(
                 message=f"Finished running {len(valid_scenarios)} Scenario(s)",
             ),
         ),
-        address=datastore_address,
     )
 
 
 def scenario_runner(
     scenario: Scenario,
     test_id: str,
-    image: str,  # TODO: save network, namespace, container mode and image to test config
-    network: str,
-    namespace: str,
     scenario_id: str,
-    datastore_address: str,  # TODO: abstract datastore and test runner classes
-    container_service_address: str,
-    container_mode: str,
+    backend: IScenarioBackend,
     context: dict,
 ):
     """Set up scenario environment and run scenario. Capture output and exceptions.
@@ -320,26 +208,16 @@ def scenario_runner(
     Args:
         scenario (Scenario): Scenario being run
         test_id (str): Test id to send results
-        image (str): Image for scenario
-        network (str): Network to run scenario containers in
-        namespace (str): Kube namespace to place jobs in
         scenario_id (str): ID generated for scenario run
-        datastore_address (str): Address of datastore passed to users
-        container_service (str): Address of container service to start and stop users
-        container_mode (str): DOCKER or KUBE container mode
+        backend (IScenarioBackend): backend methods available to scenario
         context (dict): Test context to pass to users
     """
     scenario_commands = ScenarioCommands(
-        scenario,
-        test_id,
-        image,
-        network,
-        namespace,
-        scenario_id,
-        datastore_address,
-        container_service_address,
-        container_mode,
-        context,
+        scenario=scenario,
+        test_id=test_id,
+        scenario_id=scenario_id,
+        backend=backend,
+        context=context,
     )
 
     buffer = io.StringIO()
@@ -382,23 +260,20 @@ def scenario_runner(
 
     failed = len(scenario_commands.errors)
 
-    datastore.set_scenario_result(
-        scenario_id=scenario_id,
+    backend.set_scenario_result(
         output=output,
         exception=exception,
         logs=buffer.getvalue(),
         time_taken=(end - start).total_seconds(),
         succeeded=scenario_commands.num_results_collected - failed,
         failed=failed,
-        address=datastore_address,
     )
 
 
 def user_scheduler(
     scheduler: Client,
     scenario: Scenario,
-    user_manager_id: str,
-    datastore_address: str,
+    backend: IUserManagerBackend,
     context: dict,
 ):
     """Schedules users inside user manager on events from scenario.
@@ -407,33 +282,30 @@ def user_scheduler(
         scheduler (Client): Dask client to start users
         scenario (Scenario): User Scenario
         user_manager_id (str): ID of this user manager
-        datastore_address (str): Address of datastore to recieve events from
+        backend (IUserManagerBackend): Backend implementation for user manager to use
         context (dict): Test context
     """
     while True:
-        events = datastore.get_user_events(
-            user_manager_id, "START_USERS", datastore_address
-        )
+        for user_id in backend.get_new_users():
+            fut = scheduler.submit(
+                user_runner,
+                scenario=scenario,
+                user_id=user_id,
+                backend=backend.get_user_backend(user_id),
+                context=context,
+                pure=False,
+            )
 
-        for event in events:
-            for user_id in event.payload["IDs"]:
-                fut = scheduler.submit(
-                    user_runner,
-                    scenario=scenario,
-                    user_id=user_id,
-                    datastore_address=datastore_address,
-                    context=context,
-                    pure=False,
-                )
+            # NOTE: may be better waiting for all futures to finish
+            fire_and_forget(fut)
 
-                # NOTE: may be better waiting for all futures to finish
-                fire_and_forget(fut)
+        time.sleep(1)
 
 
 def user_runner(
     scenario: Scenario,
     user_id: str,
-    datastore_address: str,
+    backend: IUserBackend,
     context: dict,
 ):
     """Set up environment for user and run user.
@@ -441,7 +313,7 @@ def user_runner(
     Args:
         scenario (Scenario): Scenario being run
         user_id (str): ID generated for user
-        datastore_address (str): Address of datastore client to save results
+        backend (IUserBackend): Backend client to save results
         context (dict): Test context containing previous scenario results
     """
     secede()
@@ -449,7 +321,7 @@ def user_runner(
     user_commands = UserCommands(
         scenario,
         user_id,
-        datastore_address,
+        backend,
     )
 
     # FEATURE: report errors here back to scenario

@@ -21,7 +21,7 @@ from cicadad.core.types import (
 
 
 def while_has_work(polling_timeout_ms: int = 1000):
-    """Run user if work is available or continue polling
+    """Run user if work is available or continue polling.
 
     Args:
         polling_timeout_ms (int): Time to wait for work before cycling
@@ -45,7 +45,7 @@ def while_has_work(polling_timeout_ms: int = 1000):
 
 
 def while_alive():
-    """Run user if hasn't been shut down yet"""
+    """Run user if hasn't been shut down yet."""
 
     def closure(user_commands: IUserCommands, context: dict):
         while user_commands.is_up():
@@ -63,7 +63,7 @@ def while_alive():
 
 
 def iterations_per_second_limited(limit: int):
-    """Allows a user to run a limited number of iterations per second.
+    """Allow a user to run a limited number of iterations per second.
 
     Args:
         limit (int): Max iterations per second for user
@@ -138,7 +138,7 @@ def n_iterations(
 
             scenario_commands.aggregate_results(latest_results)
             scenario_commands.verify_results(latest_results)
-            scenario_commands.collect_metrics(latest_results)
+            scenario_commands.collect_datastore_metrics(latest_results)
             num_results += len(latest_results)
 
             time.sleep(wait_period)
@@ -170,8 +170,9 @@ def n_seconds(
     wait_period: int = 1,
     skip_scaledown=False,
 ):
-    """Run the scenario for a specified duration. Should be used with the
-    'while_alive' user loop.
+    """Run the scenario for a specified duration.
+
+    Should be used with the 'while_alive' user loop.
 
     Args:
         seconds (int): Number of seconds to run scenario
@@ -191,7 +192,7 @@ def n_seconds(
 
             scenario_commands.aggregate_results(latest_results)
             scenario_commands.verify_results(latest_results)
-            scenario_commands.collect_metrics(latest_results)
+            scenario_commands.collect_datastore_metrics(latest_results)
 
             if datetime.now() > start_time + timedelta(seconds=seconds):
                 break
@@ -254,7 +255,7 @@ def n_users_ramping(
 
             scenario_commands.aggregate_results(latest_results)
             scenario_commands.verify_results(latest_results)
-            scenario_commands.collect_metrics(latest_results)
+            scenario_commands.collect_datastore_metrics(latest_results)
 
             time.sleep(wait_period)
 
@@ -277,8 +278,7 @@ def ramp_users_to_threshold(
     wait_period: int = 1,
     skip_scaledown: bool = False,
 ):
-    """Increase number of users in scenario until a threshold based on the
-    aggregated results is reached.
+    """Increase number of users in scenario until a threshold based on the aggregated results is reached.
 
     Update aggregate with number of users determined by scenario.
 
@@ -305,7 +305,7 @@ def ramp_users_to_threshold(
 
             scenario_commands.aggregate_results(latest_results)
             scenario_commands.verify_results(latest_results)
-            scenario_commands.collect_metrics(latest_results)
+            scenario_commands.collect_datastore_metrics(latest_results)
 
             time.sleep(wait_period)
 
@@ -329,7 +329,12 @@ def ramp_users_to_threshold(
     return closure
 
 
-def load_stages(*stages: LoadModelFn):
+def load_stages(*stages: LoadModelFn) -> LoadModelFn:
+    """Type of load model loop that allows multiple load models to be chained together.
+
+    Returns:
+        [LoadModelFn]: Combined load model closure
+    """
     # FEATURE: signal user loop that stage has changed from scenario commands
     def closure(scenario_commands: IScenarioCommands, context: dict):
         for stage in stages:
@@ -373,6 +378,8 @@ def basic_verification(latest_results: List[Result], include_logs=True):
 
 
 class Scenario(BaseModel):
+    """Store information and methods of testing scenario."""
+
     name: str
     fn: Callable
     user_loop: Optional[UserLoopFn] = Field(while_has_work())
@@ -382,12 +389,14 @@ class Scenario(BaseModel):
     result_verifier: Optional[ResultVerifierFn] = Field(basic_verification)
     raise_exception: bool = True
     output_transformer: Optional[OutputTransformerFn]
-    users_per_container: int = 50
+    users_per_instance: int = 50
     metric_collectors: List[MetricCollector] = []
     console_metric_displays: Optional[ConsoleMetricDisplays]
     tags: List[str] = []
 
     class Config:
+        """Needed to allow storage of all types."""
+
         arbitrary_types_allowed = True
 
 

@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from cicadad.metrics import console
 
@@ -9,9 +9,10 @@ def sample_collector(latest_results):
     ]
 
 
-@patch("cicadad.services.datastore.get_metric_statistics")
-def test_console_stats(metrics_mock):
-    metrics_mock.return_value = {
+def test_console_stats():
+    backend = Mock()
+
+    backend.get_metric_statistics.return_value = {
         "min": 1.23456,
         "median": 1.23456,
         "max": 1.23456,
@@ -21,7 +22,7 @@ def test_console_stats(metrics_mock):
 
     console_stats = console.console_stats()
 
-    metrics_string = console_stats("foo", "bar")
+    metrics_string = console_stats("foo", "bar", backend)
 
     assert (
         metrics_string
@@ -29,78 +30,85 @@ def test_console_stats(metrics_mock):
     ), "Metrics string not equal to expected"
 
 
-@patch("cicadad.services.datastore.get_metric_statistics")
-def test_console_stats_none(metrics_mock):
-    metrics_mock.return_value = None
+def test_console_stats_none():
+    backend = Mock()
+
+    backend.get_metric_statistics.return_value = None
 
     console_stats = console.console_stats()
 
-    metrics_string = console_stats("foo", "bar")
+    metrics_string = console_stats("foo", "bar", backend)
 
     assert metrics_string is None, "Metrics string not equal to expected"
 
 
-@patch("cicadad.services.datastore.get_metric_total")
-def test_console_count(metrics_mock):
-    metrics_mock.return_value = 60
+def test_console_count():
+    backend = Mock()
+
+    backend.get_metric_total.return_value = 60
 
     console_count = console.console_count()
 
-    metrics_string = console_count("foo", "bar")
+    metrics_string = console_count("foo", "bar", backend)
 
     assert metrics_string == "60", "Metrics string not equal to expected"
 
 
-@patch("cicadad.services.datastore.get_metric_total")
-def test_console_count_none(metrics_mock):
-    metrics_mock.return_value = None
+def test_console_count_none():
+    backend = Mock()
+
+    backend.get_metric_total.return_value = None
 
     console_count = console.console_count()
 
-    metrics_string = console_count("foo", "bar")
+    metrics_string = console_count("foo", "bar", backend)
 
     assert metrics_string is None, "Metrics string not equal to expected"
 
 
-@patch("cicadad.services.datastore.get_last_metric")
-def test_console_latest(metrics_mock):
-    metrics_mock.return_value = 1.2345
+def test_console_latest():
+    backend = Mock()
+
+    backend.get_last_metric.return_value = 1.2345
 
     console_latest = console.console_latest()
 
-    metrics_string = console_latest("foo", "bar")
+    metrics_string = console_latest("foo", "bar", backend)
 
     assert metrics_string == "1.234", "Metrics string not equal to expected"
 
 
-@patch("cicadad.services.datastore.get_last_metric")
-def test_console_latest_none(metrics_mock):
-    metrics_mock.return_value = None
+def test_console_latest_none():
+    backend = Mock()
+
+    backend.get_last_metric.return_value = None
 
     console_latest = console.console_latest()
 
-    metrics_string = console_latest("foo", "bar")
+    metrics_string = console_latest("foo", "bar", backend)
 
     assert metrics_string is None, "Metrics string not equal to expected"
 
 
-@patch("cicadad.services.datastore.get_metric_rate")
-def test_console_percent(metrics_mock):
-    metrics_mock.return_value = 1.2345
+def test_console_percent():
+    backend = Mock()
+
+    backend.get_metric_rate.return_value = 1.2345
 
     console_percent = console.console_percent(1)
 
-    metrics_string = console_percent("foo", "bar")
+    metrics_string = console_percent("foo", "bar", backend)
 
     assert metrics_string == "1.234", "Metrics string not equal to expected"
 
 
-@patch("cicadad.services.datastore.get_metric_rate")
-def test_console_percent_none(metrics_mock):
-    metrics_mock.return_value = None
+def test_console_percent_none():
+    backend = Mock()
+
+    backend.get_metric_rate.return_value = None
 
     console_percent = console.console_percent(1)
 
-    metrics_string = console_percent("foo", "bar")
+    metrics_string = console_percent("foo", "bar", backend)
 
     assert metrics_string is None, "Metrics string not equal to expected"

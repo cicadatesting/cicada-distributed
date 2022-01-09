@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta
 from typing import Dict, List
 import json
-import uuid
 import time
 import sys
 import os
@@ -11,10 +10,11 @@ from rich.live import Live
 from rich.console import Console
 from blessed import Terminal  # type: ignore
 import click
-import docker  # type: ignore
+import docker
+from cicadad.core.types import ICLIBackend
+from cicadad.services.backend import CLIBackend  # type: ignore
 
 from cicadad.util.console import LivePanel, MetricDisplay, MetricsPanel, TasksPanel
-from cicadad.services import datastore, container_service
 from cicadad.core import containers
 from cicadad.util import constants
 from cicadad import templates as templates_module
@@ -86,25 +86,22 @@ def start_cluster(ctx, network, create_network, mode):
             create_network,
         )
 
+        if ctx.obj["DEBUG"]:
+            click.echo("Starting Redis")
+
         redis_container = containers.docker_redis_up(docker_client, network)
 
         if ctx.obj["DEBUG"]:
             click.echo(f"Created Redis: {redis_container.id}")
+            click.echo("Starting Backend")
 
-        datastore_client = containers.docker_datastore_client_up(
+        backend = containers.docker_backend_up(
             docker_client,
             network,
         )
 
         if ctx.obj["DEBUG"]:
-            click.echo(f"Created Datastore Client: {datastore_client.id}")
-
-        container_service = containers.docker_container_service_up(
-            docker_client, network
-        )
-
-        if ctx.obj["DEBUG"]:
-            click.echo(f"Created Container Service: {container_service.id}")
+            click.echo(f"Created Backend: {backend.id}")
     else:
         raise ValueError(f"Invalid mode: {mode}")
 
@@ -114,15 +111,10 @@ def start_cluster(ctx, network, create_network, mode):
 def stop_cluster(ctx):
     docker_client = docker.from_env()
 
-    containers.docker_container_service_down(docker_client)
+    containers.docker_backend_down(docker_client)
 
     if ctx.obj["DEBUG"]:
-        click.echo("Stopped Container Service")
-
-    containers.docker_datastore_client_down(docker_client)
-
-    if ctx.obj["DEBUG"]:
-        click.echo("Stopped Datastore Client")
+        click.echo("Stopped Backend")
 
     containers.docker_redis_down(docker_client)
 
@@ -150,8 +142,7 @@ def stop_cluster(ctx):
 @click.option("--tag", "-t", type=str, multiple=True, default=[])
 @click.option("--mode", type=str, default=constants.DEFAULT_CONTAINER_MODE)
 @click.option("--namespace", type=str, default=constants.DEFAULT_KUBE_NAMESPACE)
-@click.option("--datastore-client-address", type=str, default="localhost:8283")
-@click.option("--container-service-address", type=str, default="localhost:8284")
+@click.option("--backend-address", type=str, default="localhost:8283")
 @click.option(
     "--test-timeout",
     type=int,
@@ -169,12 +160,12 @@ def run(
     tag,
     mode,
     namespace,
-    datastore_client_address,
-    container_service_address,
+    backend_address,
     test_timeout,
     no_exit_unsuccessful,
     no_cleanup,
 ):
+    backend = CLIBackend(backend_address)
     docker_client = docker.from_env()
     term = Terminal()
 
@@ -197,7 +188,7 @@ def run(
         image_id,
         network,
         namespace,
-        container_service_address,
+        backend,
     )
 
     # FEATURE: Error if cluster is not up
@@ -232,7 +223,7 @@ def run(
                 live.update(live_panel.get_renderable())
 
                 # poll for events
-                events = datastore.get_test_events(test_id, datastore_client_address)
+                events = backend.get_test_events(test_id)
                 skip_sleep = False
 
                 for event in events:
@@ -269,11 +260,9 @@ def run(
     finally:
         if not no_cleanup:
             cleanup(
-                mode,
                 ctx.obj["DEBUG"],
                 test_id,
-                namespace,
-                container_service_address,
+                backend,
             )
 
     print_results(
@@ -298,146 +287,31 @@ def start_test_container(
     image_id: str,
     network: str,
     namespace: str,
-    container_service_address: str,
+    backend: ICLIBackend,
 ) -> str:
-    test_id = f"cicada-test-{str(uuid.uuid4())[:8]}"
-
-    if tag == []:
-        tag_arg = []
-    else:
-        tag_arg = [e for t in tag for e in ["--tag", t]]
-
     if mode == constants.KUBE_CONTAINER_MODE:
-        container_service.start_kube_container(
-            container_service.StartKubeContainerArgs(
-                image=image_id,
-                name=test_id,
-                command=[
-                    "run-test",
-                    "--test-id",
-                    test_id,
-                    "--image",
-                    image_id,
-                    "--network",
-                    network,
-                    "--namespace",
-                    namespace,
-                    "--container-mode",
-                    mode,
-                ]
-                + tag_arg,
-                labels={
-                    "type": "cicada-distributed-test",
-                    "test": test_id,
-                },
-                namespace=namespace,
-            ),
-            container_service_address,
-        )
-    else:
-        # NOTE: mode is checked earlier
-        container_service.start_docker_container(
-            container_service.StartDockerContainerArgs(
-                image=image_id,
-                name=test_id,
-                command=[
-                    "run-test",
-                    "--test-id",
-                    test_id,
-                    "--image",
-                    image_id,
-                    "--network",
-                    network,
-                    "--namespace",
-                    namespace,
-                    "--container-mode",
-                    mode,
-                ]
-                + tag_arg,
-                labels={
-                    "type": "cicada-distributed-test",
-                    "test": test_id,
-                },
-                # env: Dict[str, str]={}
-                network=network,
-            ),
-            container_service_address,
+        return backend.create_test(
+            scheduling_metadata=json.dumps({"image": image_id, "namespace": namespace}),
+            backend_address=constants.DEFAULT_BACKEND_ADDRESS,
+            tags=tag,
         )
 
-    return test_id
+    # Defaults to docker implementation
+    return backend.create_test(
+        scheduling_metadata=json.dumps({"image": image_id, "network": network}),
+        backend_address=constants.DEFAULT_BACKEND_ADDRESS,
+        tags=tag,
+    )
 
 
-def cleanup(
-    mode: str,
-    debug: bool,
-    test_id: str,
-    namespace: str,
-    container_service_address: str,
-):
-    if mode == constants.KUBE_CONTAINER_MODE:
-        if debug:
-            click.echo("Cleaning Test Runners")
+def cleanup(debug: bool, test_id: str, backend: ICLIBackend):
+    if debug:
+        click.echo("Cleaning Test Instances")
 
-        container_service.stop_kube_container(
-            test_id,
-            namespace=namespace,
-            address=container_service_address,
-        )
+    backend.clean_test_instances(test_id)
 
-        if debug:
-            click.echo("Cleaned Test Runners")
-            click.echo("Cleaning Scenarios")
-
-        # containers.clean_docker_containers(
-        #     docker_client, "cicada-distributed-scenario"
-        # )
-        container_service.stop_kube_containers(
-            namespace=namespace,
-            labels={"type": "cicada-distributed-scenario", "test": test_id},
-            address=container_service_address,
-        )
-
-        if debug:
-            click.echo("Cleaned Scenarios")
-            click.echo("Cleaning Users")
-
-        container_service.stop_kube_containers(
-            namespace=namespace,
-            labels={"type": "cicada-distributed-user", "test": test_id},
-            address=container_service_address,
-        )
-
-        if debug:
-            click.echo("Cleaned Users")
-    else:
-        if debug:
-            click.echo("Cleaning Test Runners")
-
-        container_service.stop_docker_container(
-            test_id,
-            address=container_service_address,
-        )
-
-        if debug:
-            click.echo("Cleaned Test Runners")
-            click.echo("Cleaning Scenarios")
-
-        container_service.stop_docker_containers(
-            labels={"type": "cicada-distributed-scenario", "test": test_id},
-            address=container_service_address,
-        )
-
-        if debug:
-            click.echo("Cleaned Scenarios")
-            click.echo("Cleaning Users")
-
-        container_service.stop_docker_containers(
-            labels={"type": "cicada-distributed-user", "test": test_id},
-            address=container_service_address,
-        )
-
-        if debug:
-            click.echo("Cleaned Users")
+    if debug:
+        click.echo("Cleaned test instances")
 
 
 def print_results(

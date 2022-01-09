@@ -16,8 +16,8 @@ Docker, visit https://docs.docker.com/get-docker/.
 
 # Example
 
-Before running tests, you must start `redis`, `datastore-client`, and the `container-service`
-containers. To start the cluster, run:
+Before running tests, you must start `redis`, and the `backend` containers.
+To start the cluster, run:
 
 ```bash
 cicada-distributed start-cluster

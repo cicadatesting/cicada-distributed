@@ -34,13 +34,9 @@ jobs:
       - name: build-base-image
         run: |
           make build-base-dev
-      - name: build-container-service
+      - name: build-backend
         run: |
-          cd container-service
-          make build-dev
-      - name: build-datastore-client
-        run: |
-          cd datastore-client
+          cd backend
           make build-dev
       - name: smoke-test
         run: |
@@ -78,13 +74,9 @@ jobs:
       - name: build-base-image
         run: |
           make build-base-dev
-      - name: build-container-service
+      - name: build-backend
         run: |
-          cd container-service
-          make build-dev
-      - name: build-datastore-client
-        run: |
-          cd datastore-client
+          cd backend
           make build-dev
       - name: setup-cluster
         run: |
