@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Optional
 import pickle  # nosec
 import json
 import random
-from distributed.client import Future
+from distributed.client import Future  # type: ignore
 
 import grpc  # type: ignore
 

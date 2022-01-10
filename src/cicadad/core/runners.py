@@ -6,8 +6,8 @@ import io
 import traceback
 import uuid
 
-from distributed.client import Client, fire_and_forget
-from distributed.threadpoolexecutor import secede
+from distributed.client import Client, fire_and_forget  # type: ignore
+from distributed.threadpoolexecutor import secede  # type: ignore
 
 from cicadad.core.commands import ScenarioCommands, UserCommands
 from cicadad.core.scenario import Scenario

@@ -203,8 +203,8 @@ func TestDistributeWorkEqual(t *testing.T) {
 	}
 
 	mrc.AssertNumberOfCalls(t, "ListPush", 2)
-	mrc.AssertCalled(t, "ListPush", "abc-work", []interface{}{5})
-	mrc.AssertCalled(t, "ListPush", "def-work", []interface{}{5})
+	mrc.AssertCalled(t, "ListPush", "abc-work", 5)
+	mrc.AssertCalled(t, "ListPush", "def-work", 5)
 }
 
 func TestDistributeWorkUnequal(t *testing.T) {
@@ -222,8 +222,8 @@ func TestDistributeWorkUnequal(t *testing.T) {
 	}
 
 	mrc.AssertNumberOfCalls(t, "ListPush", 2)
-	mrc.AssertCalled(t, "ListPush", mock.Anything, []interface{}{5})
-	mrc.AssertCalled(t, "ListPush", mock.Anything, []interface{}{6})
+	mrc.AssertCalled(t, "ListPush", mock.Anything, 5)
+	mrc.AssertCalled(t, "ListPush", mock.Anything, 6)
 }
 
 func TestGetUserWork(t *testing.T) {

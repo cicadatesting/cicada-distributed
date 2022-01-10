@@ -10,7 +10,7 @@ from rich.live import Live
 from rich.console import Console
 from blessed import Terminal  # type: ignore
 import click
-import docker
+import docker  # type: ignore
 from cicadad.core.types import ICLIBackend
 from cicadad.services.backend import CLIBackend  # type: ignore
 
