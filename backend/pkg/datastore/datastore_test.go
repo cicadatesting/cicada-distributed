@@ -93,7 +93,7 @@ func TestCreateUsersNew(t *testing.T) {
 	mrc.On("ListPush", mock.Anything, mock.Anything).Return(nil)
 	mrc.On("ListLength", mock.Anything).Return(int64(0), nil)
 
-	datastore := RedisDatastore{rc: mrc}
+	datastore := MemoryDatastore{dc: mrc}
 
 	userManagerIDs, err := datastore.CreateUsers("123", 60)
 
@@ -119,7 +119,7 @@ func TestCreateUsersExisting(t *testing.T) {
 	mrc.On("ListPush", mock.Anything, mock.Anything).Return(nil)
 	mrc.On("ListLength", mock.Anything).Return(int64(0), nil)
 
-	datastore := RedisDatastore{rc: mrc}
+	datastore := MemoryDatastore{dc: mrc}
 
 	userManagerIDs, err := datastore.CreateUsers("123", 60)
 
@@ -147,7 +147,7 @@ func TestStopUsers(t *testing.T) {
 	mrc.On("ListPush", mock.Anything, mock.Anything).Return(nil)
 	mrc.On("MapKeyDelete", mock.Anything, mock.Anything).Return(nil)
 
-	datastore := RedisDatastore{rc: mrc}
+	datastore := MemoryDatastore{dc: mrc}
 
 	userManagerIDs, err := datastore.StopUsers("123", 4)
 
@@ -177,7 +177,7 @@ func TestStopUsersTooMany(t *testing.T) {
 	mrc.On("ListPush", mock.Anything, mock.Anything).Return(nil)
 	mrc.On("MapKeyDelete", mock.Anything, mock.Anything).Return(nil)
 
-	datastore := RedisDatastore{rc: mrc}
+	datastore := MemoryDatastore{dc: mrc}
 
 	userManagerIDs, err := datastore.StopUsers("123", 10)
 
@@ -194,7 +194,7 @@ func TestDistributeWorkEqual(t *testing.T) {
 	mrc.On("MapGetKeys", mock.Anything).Return([]string{"abc", "def"}, nil)
 	mrc.On("ListPush", mock.Anything, mock.Anything).Return(nil)
 
-	datastore := RedisDatastore{rc: mrc}
+	datastore := MemoryDatastore{dc: mrc}
 
 	err := datastore.DistributeWork("123", 10)
 
@@ -213,7 +213,7 @@ func TestDistributeWorkUnequal(t *testing.T) {
 	mrc.On("MapGetKeys", mock.Anything).Return([]string{"abc", "def"}, nil)
 	mrc.On("ListPush", mock.Anything, mock.Anything).Return(nil)
 
-	datastore := RedisDatastore{rc: mrc}
+	datastore := MemoryDatastore{dc: mrc}
 
 	err := datastore.DistributeWork("123", 11)
 
@@ -232,7 +232,7 @@ func TestGetUserWork(t *testing.T) {
 	mrc.On("ListLength", mock.Anything).Return(int64(2), nil)
 	mrc.On("ListPopInt", mock.Anything).Return(5, nil)
 
-	datastore := RedisDatastore{rc: mrc}
+	datastore := MemoryDatastore{dc: mrc}
 
 	work, err := datastore.GetUserWork("abc")
 
@@ -252,7 +252,7 @@ func TestMoveUserResults(t *testing.T) {
 	mrc.On("ListLength", mock.Anything).Return(int64(5), nil)
 	mrc.On("ListPopBytes", mock.Anything).Return(b, nil)
 
-	datastore := RedisDatastore{rc: mrc}
+	datastore := MemoryDatastore{dc: mrc}
 
 	results, err := datastore.MoveUserResults("abc", 9)
 

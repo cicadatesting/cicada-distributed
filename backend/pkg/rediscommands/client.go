@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/cicadatesting/backend/pkg/types"
 	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
 )
@@ -34,11 +35,31 @@ func (rc *RedisCommands) ListPush(key string, value interface{}) error {
 }
 
 func (rc *RedisCommands) GetBytes(key string) ([]byte, error) {
-	return rc.client.Get(context.Background(), key).Bytes()
+	bytes, err := rc.client.Get(context.Background(), key).Bytes()
+
+	if err == redis.Nil {
+		return nil, types.NotFound
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return bytes, nil
 }
 
 func (rc *RedisCommands) GetFloat(key string) (float64, error) {
-	return rc.client.Get(context.Background(), key).Float64()
+	val, err := rc.client.Get(context.Background(), key).Float64()
+
+	if err == redis.Nil {
+		return 0, types.NotFound
+	}
+
+	if err != nil {
+		return 0, err
+	}
+
+	return val, nil
 }
 
 func (rc *RedisCommands) Set(key string, value interface{}, expiration time.Duration) error {
@@ -56,6 +77,10 @@ func (rc *RedisCommands) AddToSet(key string, score float64) error {
 
 func (rc *RedisCommands) GetMin(key string) (float64, error) {
 	scores, err := rc.client.ZRangeWithScores(context.Background(), key, 0, 1).Result()
+
+	if err == redis.Nil {
+		return 0, types.NotFound
+	}
 
 	if err != nil {
 		return 0, err
@@ -118,7 +143,17 @@ func (rc *RedisCommands) RangeCount(key string, min, max float64) (int64, error)
 		maxS = "+inf"
 	}
 
-	return rc.client.ZCount(context.Background(), key, minS, maxS).Result()
+	count, err := rc.client.ZCount(context.Background(), key, minS, maxS).Result()
+
+	if err == redis.Nil {
+		return 0, types.NotFound
+	}
+
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
 }
 
 func (rc *RedisCommands) MapSetKey(mapName, key string, value []byte) error {

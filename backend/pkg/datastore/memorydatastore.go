@@ -6,22 +6,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"math"
 	"math/rand"
 	"time"
 
 	"github.com/cicadatesting/backend/pkg/application"
-	"github.com/go-redis/redis/v8"
+	"github.com/cicadatesting/backend/pkg/types"
 	"github.com/google/uuid"
 	"github.com/vmihailenco/msgpack/v5"
 )
-
-const NotFound = NotFoundError("Not Found")
-
-type NotFoundError string
-
-func (e NotFoundError) Error() string { return string(e) }
 
 func concatenatedKey(a string, b ...string) string {
 	h := sha1.New()
@@ -82,11 +75,11 @@ func metricsLastKey(scenarioID, name string) string {
 	return fmt.Sprintf("%s-%s-metrics-last", scenarioID, name)
 }
 
-type RedisDatastore struct {
-	rc IRedisCommands
+type MemoryDatastore struct {
+	dc IDatastoreCommands
 }
 
-type IRedisCommands interface {
+type IDatastoreCommands interface {
 	ListLength(key string) (int64, error)
 	ListPopBytes(key string) ([]byte, error)
 	ListPopInt(key string) (int, error)
@@ -107,33 +100,30 @@ type IRedisCommands interface {
 	MapKeyDelete(mapName string, key string) error
 }
 
-func NewRedisDatastore(rc IRedisCommands) *RedisDatastore {
-	return &RedisDatastore{rc: rc}
+func NewMemoryDatastore(rc IDatastoreCommands) *MemoryDatastore {
+	return &MemoryDatastore{dc: rc}
 }
 
-func (datastore *RedisDatastore) addEvent(key, kind string, payload []byte) error {
+func (datastore *MemoryDatastore) addEvent(key, kind string, payload []byte) error {
 	b, err := msgpack.Marshal(&application.Event{Kind: kind, Payload: payload})
 
 	if err != nil {
-		log.Println("Unable to parse event:", err)
 		return fmt.Errorf("Unable to parse event: %v", err)
 	}
 
-	err = datastore.rc.ListPush(key, b)
+	err = datastore.dc.ListPush(key, b)
 
 	if err != nil {
-		log.Println("Error adding event:", err)
 		return fmt.Errorf("Error adding event: %v", err)
 	}
 
 	return nil
 }
 
-func (datastore *RedisDatastore) getEvents(key string) ([]application.Event, error) {
-	len, err := datastore.rc.ListLength(key)
+func (datastore *MemoryDatastore) getEvents(key string) ([]application.Event, error) {
+	len, err := datastore.dc.ListLength(key)
 
 	if err != nil {
-		log.Println("Error getting event count:", err)
 		return nil, fmt.Errorf("Error getting event count: %v", err)
 	}
 
@@ -141,10 +131,9 @@ func (datastore *RedisDatastore) getEvents(key string) ([]application.Event, err
 
 	for i := int64(0); i < len; i++ {
 		event := application.Event{}
-		b, err := datastore.rc.ListPopBytes(key)
+		b, err := datastore.dc.ListPopBytes(key)
 
 		if err != nil {
-			log.Println("Error getting event:", err)
 			return nil, fmt.Errorf("Error getting event: %v", err)
 		}
 
@@ -160,9 +149,9 @@ func (datastore *RedisDatastore) getEvents(key string) ([]application.Event, err
 	return events, nil
 }
 
-func (datastore *RedisDatastore) getUserIDs(scenarioID, userManagerID string) ([]string, error) {
+func (datastore *MemoryDatastore) getUserIDs(scenarioID, userManagerID string) ([]string, error) {
 	userIDs := []string{}
-	userIDsBytes, err := datastore.rc.MapGetKeyBytes(scenarioUserManagersKey(scenarioID), userManagerID)
+	userIDsBytes, err := datastore.dc.MapGetKeyBytes(scenarioUserManagersKey(scenarioID), userManagerID)
 
 	if err != nil {
 		return nil, fmt.Errorf("Error getting users under user manager %s: %v", userManagerID, err)
@@ -175,7 +164,7 @@ func (datastore *RedisDatastore) getUserIDs(scenarioID, userManagerID string) ([
 	return userIDs, nil
 }
 
-func (datastore *RedisDatastore) CreateTest(backendAddress, schedulingMetadata string, tags []string) (string, error) {
+func (datastore *MemoryDatastore) CreateTest(backendAddress, schedulingMetadata string, tags []string) (string, error) {
 	testID := fmt.Sprintf("cicada-test-%s", uuid.NewString()[:8])
 
 	test := application.Test{
@@ -191,7 +180,7 @@ func (datastore *RedisDatastore) CreateTest(backendAddress, schedulingMetadata s
 		return "", fmt.Errorf("Error marshalling test: %v", err)
 	}
 
-	err = datastore.rc.Set(testID, b, time.Hour)
+	err = datastore.dc.Set(testID, b, time.Hour)
 
 	if err != nil {
 		return "", fmt.Errorf("Error setting test in datastore: %v", err)
@@ -200,13 +189,13 @@ func (datastore *RedisDatastore) CreateTest(backendAddress, schedulingMetadata s
 	return testID, nil
 }
 
-func (datastore *RedisDatastore) GetTest(testID string) (*application.Test, error) {
+func (datastore *MemoryDatastore) GetTest(testID string) (*application.Test, error) {
 	test := application.Test{}
 
-	b, err := datastore.rc.GetBytes(testID)
+	b, err := datastore.dc.GetBytes(testID)
 
-	if err == redis.Nil {
-		return nil, NotFound
+	if err == types.NotFound {
+		return nil, types.NotFound
 	}
 
 	if err != nil {
@@ -222,7 +211,7 @@ func (datastore *RedisDatastore) GetTest(testID string) (*application.Test, erro
 	return &test, nil
 }
 
-func (datastore *RedisDatastore) CreateScenario(testID, scenarioName, context string, usersPerInstance int, tags []string) (string, error) {
+func (datastore *MemoryDatastore) CreateScenario(testID, scenarioName, context string, usersPerInstance int, tags []string) (string, error) {
 	scenarioID := fmt.Sprintf("scenario-%s", uuid.NewString()[:8])
 
 	scenario := application.Scenario{
@@ -240,7 +229,7 @@ func (datastore *RedisDatastore) CreateScenario(testID, scenarioName, context st
 		return "", fmt.Errorf("Error marshalling scenario: %v", err)
 	}
 
-	err = datastore.rc.Set(scenarioID, b, time.Hour)
+	err = datastore.dc.Set(scenarioID, b, time.Hour)
 
 	if err != nil {
 		return "", fmt.Errorf("Error setting scenario in datastore: %v", err)
@@ -249,8 +238,8 @@ func (datastore *RedisDatastore) CreateScenario(testID, scenarioName, context st
 	return scenarioID, nil
 }
 
-func (datastore *RedisDatastore) GetScenario(scenarioID string) (*application.Scenario, error) {
-	b, err := datastore.rc.GetBytes(scenarioID)
+func (datastore *MemoryDatastore) GetScenario(scenarioID string) (*application.Scenario, error) {
+	b, err := datastore.dc.GetBytes(scenarioID)
 
 	if err != nil {
 		return nil, fmt.Errorf("Error getting scenario: %v", err)
@@ -267,17 +256,17 @@ func (datastore *RedisDatastore) GetScenario(scenarioID string) (*application.Sc
 	return &scenario, nil
 }
 
-func (datastore *RedisDatastore) CreateUsers(scenarioID string, amount int) ([]string, error) {
+func (datastore *MemoryDatastore) CreateUsers(scenarioID string, amount int) ([]string, error) {
 	if amount < 1 {
 		return []string{}, nil
 	}
 
 	// get scenario (to get users per instance)
 	scenario := application.Scenario{}
-	scenarioBytes, err := datastore.rc.GetBytes(scenarioID)
+	scenarioBytes, err := datastore.dc.GetBytes(scenarioID)
 
-	if err == redis.Nil {
-		return nil, NotFound
+	if err == types.NotFound {
+		return nil, types.NotFound
 	}
 
 	if err != nil {
@@ -291,7 +280,7 @@ func (datastore *RedisDatastore) CreateUsers(scenarioID string, amount int) ([]s
 	}
 
 	// get user managers for scenario
-	userManagers, err := datastore.rc.MapGetKeys(scenarioUserManagersKey(scenarioID))
+	userManagers, err := datastore.dc.MapGetKeys(scenarioUserManagersKey(scenarioID))
 
 	if err != nil {
 		return nil, fmt.Errorf("Error getting scenario user manager: %v", err)
@@ -327,7 +316,7 @@ func (datastore *RedisDatastore) CreateUsers(scenarioID string, amount int) ([]s
 			return nil, fmt.Errorf("Error marshalling user ids: %v", err)
 		}
 
-		err = datastore.rc.MapSetKey(scenarioUserManagersKey(scenarioID), userManagerID, b)
+		err = datastore.dc.MapSetKey(scenarioUserManagersKey(scenarioID), userManagerID, b)
 
 		if err != nil {
 			return nil, fmt.Errorf("Error adding user ids: %v", err)
@@ -353,7 +342,7 @@ func (datastore *RedisDatastore) CreateUsers(scenarioID string, amount int) ([]s
 			return nil, fmt.Errorf("Error marshalling user ids: %v", err)
 		}
 
-		err = datastore.rc.MapSetKey(scenarioUserManagersKey(scenarioID), userManagerID, b)
+		err = datastore.dc.MapSetKey(scenarioUserManagersKey(scenarioID), userManagerID, b)
 
 		if err != nil {
 			return nil, fmt.Errorf("Error setting user manager: %v", err)
@@ -395,8 +384,8 @@ func (datastore *RedisDatastore) CreateUsers(scenarioID string, amount int) ([]s
 	return newUserManagers, nil
 }
 
-func (datastore *RedisDatastore) StopUsers(scenarioID string, amount int) ([]string, error) {
-	userManagers, err := datastore.rc.MapGetKeys(scenarioUserManagersKey(scenarioID))
+func (datastore *MemoryDatastore) StopUsers(scenarioID string, amount int) ([]string, error) {
+	userManagers, err := datastore.dc.MapGetKeys(scenarioUserManagersKey(scenarioID))
 
 	if err != nil {
 		return nil, fmt.Errorf("Error getting scenario user manager: %v", err)
@@ -437,7 +426,7 @@ func (datastore *RedisDatastore) StopUsers(scenarioID string, amount int) ([]str
 
 		// Delete user managers or send stop user events
 		if len(remainingUsers) < 1 {
-			err := datastore.rc.MapKeyDelete(scenarioUserManagersKey(scenarioID), userManagerID)
+			err := datastore.dc.MapKeyDelete(scenarioUserManagersKey(scenarioID), userManagerID)
 
 			if err != nil {
 				return nil, fmt.Errorf("Error removing user manager key: %v", err)
@@ -451,7 +440,7 @@ func (datastore *RedisDatastore) StopUsers(scenarioID string, amount int) ([]str
 				return nil, fmt.Errorf("Error marshalling user ids: %v", err)
 			}
 
-			err = datastore.rc.MapSetKey(scenarioUserManagersKey(scenarioID), userManagerID, b)
+			err = datastore.dc.MapSetKey(scenarioUserManagersKey(scenarioID), userManagerID, b)
 
 			if err != nil {
 				return nil, fmt.Errorf("Error setting user manager: %v", err)
@@ -464,21 +453,20 @@ func (datastore *RedisDatastore) StopUsers(scenarioID string, amount int) ([]str
 	return userManagersToStop, nil
 }
 
-func (datastore *RedisDatastore) AddTestEvent(testID, kind string, payload []byte) error {
+func (datastore *MemoryDatastore) AddTestEvent(testID, kind string, payload []byte) error {
 	return datastore.addEvent(testEventKey(testID), kind, payload)
 }
 
-func (datastore *RedisDatastore) GetTestEvents(testID string) ([]application.Event, error) {
+func (datastore *MemoryDatastore) GetTestEvents(testID string) ([]application.Event, error) {
 	return datastore.getEvents(testEventKey(testID))
 }
 
-func (datastore *RedisDatastore) AddUserResults(userManagerID string, results [][]byte) error {
+func (datastore *MemoryDatastore) AddUserResults(userManagerID string, results [][]byte) error {
 	// rpush into user result key
 	for _, result := range results {
-		err := datastore.rc.ListPush(userResultKey(userManagerID), result)
+		err := datastore.dc.ListPush(userResultKey(userManagerID), result)
 
 		if err != nil {
-			log.Println("Error adding user result:", err)
 			return fmt.Errorf("Error adding user result: %v", err)
 		}
 	}
@@ -486,7 +474,7 @@ func (datastore *RedisDatastore) AddUserResults(userManagerID string, results []
 	return nil
 }
 
-func (datastore *RedisDatastore) SetScenarioResult(
+func (datastore *MemoryDatastore) SetScenarioResult(
 	scenarioID string,
 	output *string,
 	exception *string,
@@ -512,38 +500,35 @@ func (datastore *RedisDatastore) SetScenarioResult(
 	b, err := msgpack.Marshal(&result)
 
 	if err != nil {
-		log.Println("Error parsing event:", err)
 		return fmt.Errorf("Error parsing event: %v", err)
 	}
 
-	err = datastore.rc.Set(scenarioResultKey(scenarioID), b, time.Hour)
+	err = datastore.dc.Set(scenarioResultKey(scenarioID), b, time.Hour)
 
 	if err != nil {
-		log.Println("Error adding scenario result:", err)
 		return fmt.Errorf("Error adding scenario result: %v", err)
 	}
 
 	return nil
 }
 
-func (datastore *RedisDatastore) MoveUserResults(scenarioID string, limit int) ([][]byte, error) {
+func (datastore *MemoryDatastore) MoveUserResults(scenarioID string, limit int) ([][]byte, error) {
 	// for each user, lpop all elements of user result
 	// may need to unlink key (with lock)
 	results := [][]byte{}
 	remaining := limit
 
 	// get user manager ids for scenario
-	userManagers, err := datastore.rc.MapGetKeys(scenarioUserManagersKey(scenarioID))
+	userManagers, err := datastore.dc.MapGetKeys(scenarioUserManagersKey(scenarioID))
 
 	if err != nil {
 		return nil, fmt.Errorf("Error getting scenario user manager: %v", err)
 	}
 
 	for _, userManagerID := range userManagers {
-		len, err := datastore.rc.ListLength(userResultKey(userManagerID))
+		len, err := datastore.dc.ListLength(userResultKey(userManagerID))
 
 		if err != nil {
-			log.Println("Error getting number of results:", err)
 			return nil, fmt.Errorf("Error getting number of results: %v", err)
 		}
 
@@ -553,10 +538,9 @@ func (datastore *RedisDatastore) MoveUserResults(scenarioID string, limit int) (
 				return results, nil
 			}
 
-			result, err := datastore.rc.ListPopBytes(userResultKey(userManagerID))
+			result, err := datastore.dc.ListPopBytes(userResultKey(userManagerID))
 
 			if err != nil {
-				log.Println("Error getting user result:", err)
 				return nil, fmt.Errorf("Error getting user result: %v", err)
 			}
 
@@ -568,36 +552,34 @@ func (datastore *RedisDatastore) MoveUserResults(scenarioID string, limit int) (
 	return results, nil
 }
 
-func (datastore *RedisDatastore) MoveScenarioResult(scenarioID string) (*application.ScenarioResult, error) {
+func (datastore *MemoryDatastore) MoveScenarioResult(scenarioID string) (*application.ScenarioResult, error) {
 	// get value for key
 	// may need to unlink key (with lock)
 	result := application.ScenarioResult{}
-	b, err := datastore.rc.GetBytes(scenarioResultKey(scenarioID))
+	b, err := datastore.dc.GetBytes(scenarioResultKey(scenarioID))
 
-	if err == redis.Nil {
-		return nil, NotFound
+	if err == types.NotFound {
+		return nil, types.NotFound
 	}
 
 	if err != nil {
-		log.Println("Error getting scenario result:", err)
 		return nil, fmt.Errorf("Error getting scenario result: %v", err)
 	}
 
 	err = msgpack.Unmarshal(b, &result)
 
 	if err != nil {
-		log.Println("Error loading scenario result:", err)
 		return nil, fmt.Errorf("Error loading scenario result: %v", err)
 	}
 
 	return &result, nil
 }
 
-func (datastore *RedisDatastore) DistributeWork(scenarioID string, amount int) error {
+func (datastore *MemoryDatastore) DistributeWork(scenarioID string, amount int) error {
 	// for each user ID, determine amount of work
 	// rpush work into each user work key
 	// Get users for scenario
-	userManagers, err := datastore.rc.MapGetKeys(scenarioUserManagersKey(scenarioID))
+	userManagers, err := datastore.dc.MapGetKeys(scenarioUserManagersKey(scenarioID))
 
 	if err != nil {
 		return fmt.Errorf("Error getting scenario user manager: %v", err)
@@ -606,7 +588,7 @@ func (datastore *RedisDatastore) DistributeWork(scenarioID string, amount int) e
 	numUsers := len(userManagers)
 
 	if numUsers < 1 {
-		err := datastore.rc.ListPush(scenarioBufferedWorkKey(scenarioID), amount)
+		err := datastore.dc.ListPush(scenarioBufferedWorkKey(scenarioID), amount)
 
 		if err != nil {
 			return fmt.Errorf("Error adding buffered work: %v", err)
@@ -627,19 +609,17 @@ func (datastore *RedisDatastore) DistributeWork(scenarioID string, amount int) e
 	// add work to each user manager
 	for i := 0; i < withRemainingWork; i++ {
 		// NOTE: may be useful to implement in terms of user events
-		err := datastore.rc.ListPush(userWorkKey(userManagers[i]), baseWork+1)
+		err := datastore.dc.ListPush(userWorkKey(userManagers[i]), baseWork+1)
 
 		if err != nil {
-			log.Println("Error adding work:", err)
 			return fmt.Errorf("Error adding work: %v", err)
 		}
 	}
 
 	for j := withRemainingWork; j < numUsers; j++ {
-		err := datastore.rc.ListPush(userWorkKey(userManagers[j]), baseWork)
+		err := datastore.dc.ListPush(userWorkKey(userManagers[j]), baseWork)
 
 		if err != nil {
-			log.Println("Error adding work:", err)
 			return fmt.Errorf("Error adding work: %v", err)
 		}
 	}
@@ -647,8 +627,8 @@ func (datastore *RedisDatastore) DistributeWork(scenarioID string, amount int) e
 	return nil
 }
 
-func (datastore *RedisDatastore) distributeBufferedWork(scenarioID string) error {
-	len, err := datastore.rc.ListLength(scenarioBufferedWorkKey(scenarioID))
+func (datastore *MemoryDatastore) distributeBufferedWork(scenarioID string) error {
+	len, err := datastore.dc.ListLength(scenarioBufferedWorkKey(scenarioID))
 
 	if err != nil {
 		return fmt.Errorf("Error getting buffered work list length: %v", err)
@@ -657,10 +637,9 @@ func (datastore *RedisDatastore) distributeBufferedWork(scenarioID string) error
 	totalWork := 0
 
 	for i := int64(0); i < len; i++ {
-		work, err := datastore.rc.ListPopInt(scenarioBufferedWorkKey(scenarioID))
+		work, err := datastore.dc.ListPopInt(scenarioBufferedWorkKey(scenarioID))
 
 		if err != nil {
-			log.Println("Error getting user work:", err)
 			return fmt.Errorf("Error getting user work: %v", err)
 		}
 
@@ -674,23 +653,21 @@ func (datastore *RedisDatastore) distributeBufferedWork(scenarioID string) error
 	return nil
 }
 
-func (datastore *RedisDatastore) GetUserWork(userManagerID string) (int, error) {
+func (datastore *MemoryDatastore) GetUserWork(userManagerID string) (int, error) {
 	// lpop all work for user work key and return total
 	// may need to unlink key
-	len, err := datastore.rc.ListLength(userWorkKey(userManagerID))
+	len, err := datastore.dc.ListLength(userWorkKey(userManagerID))
 
 	if err != nil {
-		log.Println("Error getting user work count:", err)
 		return 0, fmt.Errorf("Error getting user work count: %v", err)
 	}
 
 	totalWork := 0
 
 	for i := int64(0); i < len; i++ {
-		work, err := datastore.rc.ListPopInt(userWorkKey(userManagerID))
+		work, err := datastore.dc.ListPopInt(userWorkKey(userManagerID))
 
 		if err != nil {
-			log.Println("Error getting user work:", err)
 			return 0, fmt.Errorf("Error getting user work: %v", err)
 		}
 
@@ -700,17 +677,17 @@ func (datastore *RedisDatastore) GetUserWork(userManagerID string) (int, error) 
 	return totalWork, nil
 }
 
-func (datastore *RedisDatastore) GetUserEvents(userManagerID, kind string) ([]application.Event, error) {
+func (datastore *MemoryDatastore) GetUserEvents(userManagerID, kind string) ([]application.Event, error) {
 	// FEATURE: limit events returned
 	return datastore.getEvents(userEventKey(userManagerID, kind))
 }
 
-func (datastore *RedisDatastore) AddUserEvent(scenarioID, kind string, payload []byte) error {
+func (datastore *MemoryDatastore) AddUserEvent(scenarioID, kind string, payload []byte) error {
 	// for each user manager in scenario, send event
-	userManagers, err := datastore.rc.MapGetKeys(scenarioUserManagersKey(scenarioID))
+	userManagers, err := datastore.dc.MapGetKeys(scenarioUserManagersKey(scenarioID))
 
 	if len(userManagers) < 1 {
-		err := datastore.rc.ListPush(scenarioBufferedEventsKey(scenarioID), payload)
+		err := datastore.dc.ListPush(scenarioBufferedEventsKey(scenarioID), payload)
 
 		if err != nil {
 			return fmt.Errorf("Error adding buffered work: %v", err)
@@ -732,8 +709,8 @@ func (datastore *RedisDatastore) AddUserEvent(scenarioID, kind string, payload [
 	return nil
 }
 
-func (datastore *RedisDatastore) distributeBufferedUserEvents(scenarioID string) error {
-	len, err := datastore.rc.ListLength(scenarioBufferedEventsKey(scenarioID))
+func (datastore *MemoryDatastore) distributeBufferedUserEvents(scenarioID string) error {
+	len, err := datastore.dc.ListLength(scenarioBufferedEventsKey(scenarioID))
 
 	if err != nil {
 		return fmt.Errorf("Error getting buffered work list length: %v", err)
@@ -743,10 +720,9 @@ func (datastore *RedisDatastore) distributeBufferedUserEvents(scenarioID string)
 
 	for i := int64(0); i < len; i++ {
 		event := application.Event{}
-		b, err := datastore.rc.ListPopBytes(scenarioBufferedEventsKey(scenarioID))
+		b, err := datastore.dc.ListPopBytes(scenarioBufferedEventsKey(scenarioID))
 
 		if err != nil {
-			log.Println("Error getting event:", err)
 			return fmt.Errorf("Error getting event: %v", err)
 		}
 
@@ -759,7 +735,7 @@ func (datastore *RedisDatastore) distributeBufferedUserEvents(scenarioID string)
 		events = append(events, event)
 	}
 
-	userManagers, err := datastore.rc.MapGetKeys(scenarioUserManagersKey(scenarioID))
+	userManagers, err := datastore.dc.MapGetKeys(scenarioUserManagersKey(scenarioID))
 
 	if err != nil {
 		return fmt.Errorf("Error getting scenario user manager: %v", err)
@@ -778,87 +754,78 @@ func (datastore *RedisDatastore) distributeBufferedUserEvents(scenarioID string)
 	return nil
 }
 
-func (datastore *RedisDatastore) AddMetric(scenarioID, name string, value float64) error {
-	err := datastore.rc.AddToSet(metricSetKey(scenarioID, name), value)
+func (datastore *MemoryDatastore) AddMetric(scenarioID, name string, value float64) error {
+	err := datastore.dc.AddToSet(metricSetKey(scenarioID, name), value)
 
 	if err != nil {
-		log.Println("Error adding metric to set:", err)
 		return fmt.Errorf("Error adding metric to set: %v", err)
 	}
 
-	err = datastore.rc.IncrementCounter(metricsIncKey(scenarioID, name), value)
+	err = datastore.dc.IncrementCounter(metricsIncKey(scenarioID, name), value)
 
 	if err != nil {
-		log.Println("Error adding metric count:", err)
 		return fmt.Errorf("Error adding metric count: %v", err)
 	}
 
-	err = datastore.rc.Set(metricsLastKey(scenarioID, name), value, time.Hour)
+	err = datastore.dc.Set(metricsLastKey(scenarioID, name), value, time.Hour)
 
 	if err != nil {
-		log.Println("Error setting metric:", err)
 		return fmt.Errorf("Error setting metric: %v", err)
 	}
 
 	return nil
 }
 
-func (datastore *RedisDatastore) GetLastMetric(scenarioID, name string) (float64, error) {
-	last, err := datastore.rc.GetFloat(metricsLastKey(scenarioID, name))
+func (datastore *MemoryDatastore) GetLastMetric(scenarioID, name string) (float64, error) {
+	last, err := datastore.dc.GetFloat(metricsLastKey(scenarioID, name))
 
-	if err == redis.Nil {
-		return 0, NotFound
+	if err == types.NotFound {
+		return 0, types.NotFound
 	}
 
 	if err != nil {
-		log.Println("Error getting last metric:", err)
 		return 0, fmt.Errorf("Error getting last metric: %v", err)
 	}
 
 	return last, nil
 }
 
-func (datastore *RedisDatastore) GetMetricStatistics(scenarioID, name string) (*application.MetricStatistics, error) {
-	min, err := datastore.rc.GetMin(metricSetKey(scenarioID, name))
+func (datastore *MemoryDatastore) GetMetricStatistics(scenarioID, name string) (*application.MetricStatistics, error) {
+	min, err := datastore.dc.GetMin(metricSetKey(scenarioID, name))
 
-	if err == redis.Nil {
-		return nil, NotFound
+	if err == types.NotFound {
+		return nil, types.NotFound
 	}
 
 	if err != nil {
-		log.Println("Error getting min:", err)
 		return nil, fmt.Errorf("Error getting min: %v", err)
 	}
 
-	len, err := datastore.rc.GetCardinality(metricSetKey(scenarioID, name))
+	len, err := datastore.dc.GetCardinality(metricSetKey(scenarioID, name))
 
 	if err != nil {
-		log.Println("Error getting stats count:", err)
 		return nil, fmt.Errorf("Error getting stats count: %v", err)
 	}
 
-	max, err := datastore.rc.GetMax(metricSetKey(scenarioID, name), len)
+	max, err := datastore.dc.GetMax(metricSetKey(scenarioID, name), len)
 
 	if err != nil {
-		log.Println("Error getting max:", err)
 		return nil, fmt.Errorf("Error getting max: %v", err)
 	}
 
-	median, err := datastore.rc.GetMedian(metricSetKey(scenarioID, name), len)
+	median, err := datastore.dc.GetMedian(metricSetKey(scenarioID, name), len)
 
 	if err != nil {
-		log.Println("Error getting median:", err)
 		return nil, fmt.Errorf("Error getting median: %v", err)
 	}
 
-	total, err := datastore.rc.GetFloat(metricsIncKey(scenarioID, name))
+	total, err := datastore.dc.GetFloat(metricsIncKey(scenarioID, name))
 
-	if err == redis.Nil {
-		return nil, NotFound
+	if err == types.NotFound {
+		return nil, types.NotFound
 	}
 
 	if err != nil {
-		log.Println("Error getting total:", err)
 		return nil, fmt.Errorf("Error getting total: %v", err)
 	}
 
@@ -873,37 +840,34 @@ func (datastore *RedisDatastore) GetMetricStatistics(scenarioID, name string) (*
 	}, nil
 }
 
-func (datastore *RedisDatastore) GetMetricTotal(scenarioID, name string) (float64, error) {
-	total, err := datastore.rc.GetFloat(metricsIncKey(scenarioID, name))
+func (datastore *MemoryDatastore) GetMetricTotal(scenarioID, name string) (float64, error) {
+	total, err := datastore.dc.GetFloat(metricsIncKey(scenarioID, name))
 
-	if err == redis.Nil {
-		return 0, NotFound
+	if err == types.NotFound {
+		return 0, types.NotFound
 	}
 
 	if err != nil {
-		log.Println("Error getting total:", err)
 		return 0, fmt.Errorf("Error getting total: %v", err)
 	}
 
 	return total, nil
 }
 
-func (datastore *RedisDatastore) GetRate(scenarioID, name string, splitPoint float64) (float64, error) {
-	count, err := datastore.rc.RangeCount(metricSetKey(scenarioID, name), splitPoint, -1)
+func (datastore *MemoryDatastore) GetRate(scenarioID, name string, splitPoint float64) (float64, error) {
+	count, err := datastore.dc.RangeCount(metricSetKey(scenarioID, name), splitPoint, -1)
 
-	if err == redis.Nil {
-		return 0, NotFound
+	if err == types.NotFound {
+		return 0, types.NotFound
 	}
 
 	if err != nil {
-		log.Println("Error getting rate:", err)
 		return 0, fmt.Errorf("Error getting rate: %v", err)
 	}
 
-	len, err := datastore.rc.GetCardinality(metricSetKey(scenarioID, name))
+	len, err := datastore.dc.GetCardinality(metricSetKey(scenarioID, name))
 
 	if err != nil {
-		log.Println("Error getting stats count:", err)
 		return 0, fmt.Errorf("Error getting stats count: %v", err)
 	}
 

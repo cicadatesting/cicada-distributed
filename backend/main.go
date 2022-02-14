@@ -5,38 +5,90 @@ import (
 	"log"
 	"net"
 	"os"
+	"os/signal"
+	"strings"
+	"sync"
+	"syscall"
 
 	"github.com/cicadatesting/backend/api"
 	"github.com/cicadatesting/backend/cmd"
 	"github.com/cicadatesting/backend/pkg/application"
+	"github.com/cicadatesting/backend/pkg/badgercommands"
 	"github.com/cicadatesting/backend/pkg/datastore"
 	"github.com/cicadatesting/backend/pkg/rediscommands"
 	"github.com/cicadatesting/backend/pkg/scheduling"
+	"github.com/dgraph-io/badger/v3"
 	"github.com/docker/docker/client"
 	"github.com/go-redis/redis/v8"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
 
-func main() {
-	// Initialize redis
-	redisAddress := os.Getenv("REDIS_ENDPOINT")
+func teardown(teardownFns [](func() error)) error {
+	errors := []string{}
 
-	if redisAddress == "" {
-		redisAddress = "cicada-distributed-redis"
+	for _, teardownFn := range teardownFns {
+		err := teardownFn()
+
+		if err != nil {
+			errors = append(errors, err.Error())
+		}
 	}
 
-	s := grpc.NewServer()
-	rds := redis.NewClient(&redis.Options{
-		Addr:     fmt.Sprintf("%s:6379", redisAddress),
-		Password: "", // no password set
-		DB:       0,  // use default DB
-	})
+	if len(errors) > 0 {
+		return fmt.Errorf("Teardown errors: %s", strings.Join(errors, ","))
+	}
 
-	datastore := datastore.NewRedisDatastore(
-		rediscommands.NewRedisCommands(rds),
-	)
+	return nil
+}
+
+func main() {
+	teardownFns := [](func() error){}
+
+	datastoreType := os.Getenv("DATASTORE_TYPE")
+	logLevel := os.Getenv("LOG_LEVEL")
+	var datastoreInstance application.Datastore
+
+	if logLevel == "DEBUG" {
+		logrus.SetLevel(logrus.DebugLevel)
+	} else {
+		logrus.SetLevel(logrus.ErrorLevel)
+	}
+
+	if datastoreType == "REDIS" {
+		// Initialize redis
+		redisAddress := os.Getenv("REDIS_ENDPOINT")
+
+		if redisAddress == "" {
+			redisAddress = "cicada-distributed-redis"
+		}
+
+		rds := redis.NewClient(&redis.Options{
+			Addr:     fmt.Sprintf("%s:6379", redisAddress),
+			Password: "", // no password set
+			DB:       0,  // use default DB
+		})
+
+		datastoreInstance = datastore.NewMemoryDatastore(
+			rediscommands.NewRedisCommands(rds),
+		)
+	} else {
+		db, err := badger.Open(
+			badger.DefaultOptions("").WithInMemory(true).WithLoggingLevel(badger.WARNING),
+		)
+
+		if err != nil {
+			log.Fatalf("Failed to create in memory database: %v", err)
+		}
+
+		datastoreInstance = datastore.NewMemoryDatastore(
+			badgercommands.NewBadgerCommands(db),
+		)
+
+		defer db.Close()
+	}
 
 	// initialize scheduling client
 	runnerType := os.Getenv("RUNNER_TYPE")
@@ -80,10 +132,33 @@ func main() {
 		}
 
 		scheduler = scheduling.NewKubeScheduler(clientset)
+	} else {
+		localScheduler := scheduling.NewLocalScheduler()
+
+		teardownFns = append(teardownFns, localScheduler.Teardown)
+		scheduler = localScheduler
 	}
 
 	// create server
-	backend := application.NewBackend(datastore, scheduler)
+	s := grpc.NewServer()
+	backend := application.NewBackend(datastoreInstance, scheduler)
+
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+
+	go func() {
+		<-sigCh
+
+		logrus.Debug("tearing down")
+
+		teardown(teardownFns)
+		s.Stop()
+
+		logrus.Debug("finished teardown")
+		wg.Done()
+	}()
 
 	server := cmd.NewServer(backend)
 
@@ -94,9 +169,11 @@ func main() {
 	}
 
 	api.RegisterBackendServer(s, server)
-	log.Printf("server listening at %v", lis.Addr())
+	logrus.Debug("server listening at %v", lis.Addr())
 
 	if err := s.Serve(lis); err != nil {
-		log.Fatalf("failed to serve: %v", err)
+		logrus.Error("failed to serve: %v", err)
 	}
+
+	wg.Wait()
 }

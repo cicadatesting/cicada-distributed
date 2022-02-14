@@ -551,6 +551,11 @@ class IUserManagerBackend(ABC):
         """
         pass
 
+    @abstractmethod
+    def send_user_results(self):
+        """Flush buffer full of user results."""
+        pass
+
 
 UserLoopFn = Callable[[IUserCommands, dict], None]
 LoadModelFn = Callable[[IScenarioCommands, dict], Any]

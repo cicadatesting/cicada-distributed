@@ -1,5 +1,5 @@
-import time
 from typing import Any, Dict, List, Optional
+import time
 import pickle  # nosec
 import json
 import random
@@ -137,23 +137,12 @@ class UserBufferActor(object):
 
     def send_user_results(self) -> Future:
         """Flushes buffer of user results and sends them to datastore."""
+        # TODO: user results should be less than 1MB
         _add_user_results(
             self.__user_manager_id, self.__results, self.__backend_address
         )
 
         self.__results = []
-
-
-def send_user_results_interval(buffer: UserBufferActor, period: int = ONE_SEC_MS):
-    """Send results periodically.
-
-    Args:
-        buffer (UserBufferActor): Buffer to flush results from
-        period (int, optional): Time to wait before flushing in ms. Defaults to 1000.
-    """
-    while True:
-        time.sleep(period / ONE_SEC_MS)
-        buffer.send_user_results().result()
 
 
 class UserBackend(IUserBackend):
@@ -196,6 +185,10 @@ class UserManagerBackend(IUserManagerBackend):
             user_id=user_id,
             buffer=self.__buffer,
         )
+
+    def send_user_results(self):
+        # TODO: error handling for sending results -> shutdown program if this fails
+        self.__buffer.send_user_results().result()
 
 
 class ScenarioBackend(IScenarioBackend):

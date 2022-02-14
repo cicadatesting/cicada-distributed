@@ -1,4 +1,5 @@
 from typing import Dict, List
+import atexit
 
 from distributed.client import Client, fire_and_forget  # type: ignore
 import click
@@ -10,13 +11,11 @@ from cicadad.services.backend import (
     TestBackend,
     UserBufferActor,
     UserManagerBackend,
-    send_user_results_interval,
 )
 from cicadad.util.context import decode_context
 from cicadad.util.constants import (
     DEFAULT_BACKEND_ADDRESS,
     DEFAULT_CONTEXT_STRING,
-    ONE_SEC_MS,
 )
 
 
@@ -122,18 +121,20 @@ class Engine:
         buffer = buffer_fut.result()
 
         # create task to periodically flush results
-        send_results_interval_fut = client.submit(
-            send_user_results_interval, buffer=buffer, period=ONE_SEC_MS
-        )
+        # send_results_interval_fut = client.submit(
+        #     send_user_results_interval, buffer=buffer, period=ONE_SEC_MS
+        # )
 
         fire_and_forget(buffer_fut)
-        fire_and_forget(send_results_interval_fut)
+        # fire_and_forget(send_results_interval_fut)
 
         backend = UserManagerBackend(
             user_manager_id=user_manager_id,
             buffer=buffer,
             address=backend_address,
         )
+
+        atexit.register(lambda: backend.send_user_results().result())
 
         user_scheduler(
             client,

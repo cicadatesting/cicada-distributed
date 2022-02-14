@@ -1,7 +1,9 @@
 from typing import Any, Dict, List, Optional
 import os
+import platform
 import uuid
 import socket
+import subprocess
 
 from pydantic import BaseModel
 from docker.errors import APIError, NotFound  # type: ignore
@@ -10,10 +12,11 @@ import docker  # type: ignore
 from cicadad.util.constants import (
     CICADA_VERSION,
     DEFAULT_DOCKER_NETWORK,
-    DOCKER_CONTAINER_MODE,
+    DOCKER_SCHEDULING_MODE,
 )
 from cicadad import configs as configs_module
 from cicadad import templates as templates_module
+from cicadad import backend as backend_module
 
 
 class Volume(BaseModel):
@@ -414,7 +417,7 @@ def docker_backend_up(client: docker.DockerClient, network: str):
         host_port=8283,
         container_port=8283,
         network=network,
-        env={"RUNNER_TYPE": DOCKER_CONTAINER_MODE},
+        env={"RUNNER_TYPE": DOCKER_SCHEDULING_MODE, "DATASTORE_TYPE": "REDIS"},
         volumes=[
             Volume(source="/var/run/docker.sock", destination="/var/run/docker.sock")
         ],
@@ -430,6 +433,80 @@ def docker_backend_down(client: docker.DockerClient):
         client (docker.DockerClient): Docker client
     """
     docker_container_down_by_name(client, "cicada-distributed-backend")
+
+
+def determine_local_backend_binary(os_name: str, arch: str) -> Optional[str]:
+    """Determine which backend binary to use for running locally.
+
+    Args:
+        os_name (str): Name of system operating system (linux, darwin, windows)
+        arch (str): Processor architecture
+
+    Returns:
+        Optional[str]: Path to backend binary if found
+    """
+    binary_path = None
+
+    if arch == "aarch64":
+        if os_name == "linux":
+            binary_path = os.path.join(
+                os.path.dirname(backend_module.__file__), "backend-linux-arm64"
+            )
+        elif os_name == "darwin":
+            binary_path = os.path.join(
+                os.path.dirname(backend_module.__file__), "backend-darwin-arm64"
+            )
+    elif "64" in arch:
+        # assume 64 bit
+        if os_name == "windows":
+            binary_path = os.path.join(
+                os.path.dirname(backend_module.__file__), "backend-amd64.exe"
+            )
+        elif os_name == "linux":
+            binary_path = os.path.join(
+                os.path.dirname(backend_module.__file__), "backend-linux-amd64"
+            )
+        elif os_name == "darwin":
+            binary_path = os.path.join(
+                os.path.dirname(backend_module.__file__), "backend-darwin-amd64"
+            )
+    elif "arm" in arch:
+        if os_name == "linux":
+            binary_path = os.path.join(
+                os.path.dirname(backend_module.__file__), "backend-linux-arm"
+            )
+    else:
+        # assume 32 bit
+        if os_name == "linux":
+            binary_path = os.path.join(
+                os.path.dirname(backend_module.__file__), "backend-linux-32"
+            )
+
+    return binary_path
+
+
+def start_local_backend(debug: bool):
+    """Start local backend process.
+
+    Raises:
+        ValueError: No backend distribution found to start.
+
+    Returns:
+        [type]: [description]
+    """
+    # determine os and architecture
+    os_name = platform.system().lower()
+    arch = platform.machine()
+
+    binary_path = determine_local_backend_binary(os_name, arch)
+
+    if binary_path is None:
+        raise ValueError(f"No backend distribution found for {arch} + {os_name}")
+
+    # start process
+    return subprocess.Popen(
+        ["env", "LOG_LEVEL=DEBUG" if debug else "LOG_LEVEL=ERROR", binary_path]
+    )
 
 
 def make_kube_template(template_filename: str):

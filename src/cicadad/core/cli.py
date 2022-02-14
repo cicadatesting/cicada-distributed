@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from typing import Dict, List
+import atexit
 import json
 import time
 import sys
@@ -73,11 +74,11 @@ def init(ctx, build_path):
 @click.pass_context
 @click.option("--network", type=str, default=constants.DEFAULT_DOCKER_NETWORK)
 @click.option("--create-network/--no-create-network", default=True)
-@click.option("--mode", default=constants.DEFAULT_CONTAINER_MODE)
+@click.option("--mode", default=constants.DOCKER_SCHEDULING_MODE)
 def start_cluster(ctx, network, create_network, mode):
-    if mode == constants.KUBE_CONTAINER_MODE:
+    if mode == constants.KUBE_SCHEDULING_MODE:
         click.echo(containers.make_concatenated_kube_templates())
-    elif mode == constants.DOCKER_CONTAINER_MODE:
+    elif mode == constants.DOCKER_SCHEDULING_MODE:
         docker_client = docker.from_env()
 
         containers.configure_docker_network(
@@ -135,24 +136,45 @@ def stop_cluster(ctx):
 
 @cli.command()
 @click.pass_context
+@click.option("--test-file", type=str, default="test.py", show_default=True)
+@click.option(
+    "--log-path",
+    type=str,
+    default=".",
+    help="Path to put local log files in (such as 'logs')",
+    show_default=True,
+)
 @click.option("--image", type=str, required=False)
-@click.option("--build-path", type=str, default=".")
-@click.option("--dockerfile", type=str, default="Dockerfile")
+@click.option("--build-path", type=str, default=".", show_default=True)
+@click.option("--dockerfile", type=str, default="Dockerfile", show_default=True)
 @click.option("--network", type=str, default=constants.DEFAULT_DOCKER_NETWORK)
-@click.option("--tag", "-t", type=str, multiple=True, default=[])
-@click.option("--mode", type=str, default=constants.DEFAULT_CONTAINER_MODE)
-@click.option("--namespace", type=str, default=constants.DEFAULT_KUBE_NAMESPACE)
+@click.option("--tag", "-t", type=str, multiple=True, default=[], show_default=True)
+@click.option(
+    "--mode",
+    type=str,
+    default=constants.DEFAULT_SCHEDULING_MODE,
+    help="LOCAL, DOCKER, or KUBE",
+    show_default=True,
+)
+@click.option(
+    "--namespace", type=str, default=constants.DEFAULT_KUBE_NAMESPACE, show_default=True
+)
 @click.option("--backend-address", type=str, default="localhost:8283")
 @click.option(
     "--test-timeout",
     type=int,
     default=None,
     help="Time limit in seconds for entire test to finish",
+    show_default=True,
 )
-@click.option("--no-exit-unsuccessful", is_flag=True)
-@click.option("--no-cleanup", is_flag=True)
+@click.option("--no-exit-unsuccessful", is_flag=True, help="Return 0 even if failures")
+@click.option(
+    "--no-cleanup", is_flag=True, help="Do not clean up test processes or containers"
+)
 def run(
     ctx,
+    test_file,
+    log_path,
     image,
     build_path,
     dockerfile,
@@ -169,9 +191,25 @@ def run(
     docker_client = docker.from_env()
     term = Terminal()
 
-    if image:
+    if mode == constants.LOCAL_SCHEDULING_MODE:
+        # make sure test file exists
+        # FIXME: may need own function
+        if not os.path.isfile(test_file):
+            raise ValueError(f"Test file not found: {test_file}")
+
+        image_id = os.path.abspath(test_file)
+        local_backend = containers.start_local_backend(ctx.obj["DEBUG"])
+
+        if ctx.obj["DEBUG"]:
+            click.echo(f"Started local backend: {local_backend.pid}")
+
+        # FEATURE: wait for backend to healthcheck
+        time.sleep(3)
+
+        atexit.register(lambda: local_backend.terminate())
+    elif image:
         image_id = image
-    elif mode == constants.DOCKER_CONTAINER_MODE:
+    elif mode == constants.DOCKER_SCHEDULING_MODE:
         image_id = containers.build_docker_image(
             client=docker_client,
             path=build_path,
@@ -179,13 +217,14 @@ def run(
         )
     else:
         raise ValueError(
-            f"Must specify image if not running in {constants.DEFAULT_CONTAINER_MODE} mode"
+            f"Must specify image if not running in {constants.DEFAULT_SCHEDULING_MODE} mode"
         )
 
-    test_id = start_test_container(
+    test_id = start_test_instance(
         tag,
         mode,
         image_id,
+        log_path,
         network,
         namespace,
         backend,
@@ -275,33 +314,44 @@ def run(
         ctx.obj["DEBUG"],
     )
 
-    if no_exit_unsuccessful:
-        sys.exit(0)
-    elif failed != []:
+    if failed != [] and not no_exit_unsuccessful:
         sys.exit(1)
 
 
-def start_test_container(
+def start_test_instance(
     tag: List[str],
     mode: str,
     image_id: str,
+    log_path: str,
     network: str,
     namespace: str,
     backend: ICLIBackend,
 ) -> str:
-    if mode == constants.KUBE_CONTAINER_MODE:
+    print("start test tag:", tag)
+    if mode == constants.KUBE_SCHEDULING_MODE:
         return backend.create_test(
             scheduling_metadata=json.dumps({"image": image_id, "namespace": namespace}),
+            backend_address=constants.CONTAINER_BACKEND_ADDRESS,
+            tags=tag,
+        )
+    elif mode == constants.DOCKER_SCHEDULING_MODE:
+        return backend.create_test(
+            scheduling_metadata=json.dumps({"image": image_id, "network": network}),
+            backend_address=constants.CONTAINER_BACKEND_ADDRESS,
+            tags=tag,
+        )
+    else:
+        return backend.create_test(
+            scheduling_metadata=json.dumps(
+                {
+                    "pythonExecutable": sys.executable,
+                    "testFilePath": image_id,
+                    "logdir": log_path,
+                }
+            ),
             backend_address=constants.DEFAULT_BACKEND_ADDRESS,
             tags=tag,
         )
-
-    # Defaults to docker implementation
-    return backend.create_test(
-        scheduling_metadata=json.dumps({"image": image_id, "network": network}),
-        backend_address=constants.DEFAULT_BACKEND_ADDRESS,
-        tags=tag,
-    )
 
 
 def cleanup(debug: bool, test_id: str, backend: ICLIBackend):

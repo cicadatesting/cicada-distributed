@@ -56,7 +56,7 @@ func (s *KubeScheduler) CreateTest(testID, backendAddress, schedulingMetadata st
 	)
 
 	if err != nil {
-		return fmt.Errorf("Error starting test docker container: %v", err)
+		return fmt.Errorf("Error starting test kube pod: %v", err)
 	}
 
 	return nil

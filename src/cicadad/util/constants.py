@@ -5,9 +5,10 @@ CICADA_VERSION = "1.4.2"
 
 DEFAULT_DOCKER_NETWORK = "cicada-distributed-network"
 DEFAULT_KUBE_NAMESPACE = "default"
-DOCKER_CONTAINER_MODE = "DOCKER"
-KUBE_CONTAINER_MODE = "KUBE"
-DEFAULT_CONTAINER_MODE = DOCKER_CONTAINER_MODE
+LOCAL_SCHEDULING_MODE = "LOCAL"
+DOCKER_SCHEDULING_MODE = "DOCKER"
+KUBE_SCHEDULING_MODE = "KUBE"
+DEFAULT_SCHEDULING_MODE = LOCAL_SCHEDULING_MODE
 
 DEFAULT_CONTEXT_STRING = base64.b64encode(json.dumps({}).encode("ascii")).decode(
     "ascii"
@@ -18,6 +19,9 @@ DEFAULT_CONTEXT_STRING = base64.b64encode(json.dumps({}).encode("ascii")).decode
 LOG_FORMAT = "%(asctime)s | %(levelname)-8s | %(name)s:%(funcName)s -- %(message)s"
 DATE_FORMAT = "%m-%d %H:%M"
 
-DEFAULT_BACKEND_ADDRESS = "cicada-distributed-backend:8283"
+LOCALHOST_BACKEND_ADDRESS = "[::]:8283"
+CONTAINER_BACKEND_ADDRESS = "cicada-distributed-backend:8283"
+
+DEFAULT_BACKEND_ADDRESS = LOCALHOST_BACKEND_ADDRESS
 
 ONE_SEC_MS = 1000

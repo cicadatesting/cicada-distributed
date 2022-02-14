@@ -9,7 +9,32 @@ on:
       - edited
       - synchronize
 jobs:
-  smoke-test:
+  integration-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Set up Python 3.6
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.6
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade build wheel
+          python3 -m pip install --user --upgrade twine
+          make install-dev-dependencies
+      - name: build-library
+        run: |
+          make package
+          make install-dev-local
+      - name: run-smoke-test
+        run: |
+          cd integration-test
+          ls
+          ENV=local cicada-distributed --debug run -t run --log-path logs --no-exit-unsuccessful
+          ls
+          ls logs
+  smoke-test-docker:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

@@ -3,12 +3,12 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"github.com/cicadatesting/backend/api"
 	"github.com/cicadatesting/backend/pkg/application"
-	"github.com/cicadatesting/backend/pkg/datastore"
+	"github.com/cicadatesting/backend/pkg/types"
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -29,7 +29,7 @@ func (s *Server) CreateTest(ctx context.Context, in *api.CreateTestRequest) (*ap
 	testID, err := s.backend.CreateTest(in.GetBackendAddress(), in.GetSchedulingMetadata(), in.GetTags())
 
 	if err != nil {
-		log.Println(err)
+		logrus.Error(err)
 	}
 
 	return &api.CreateTestResponse{TestID: testID}, err
@@ -45,7 +45,7 @@ func (s *Server) CreateScenario(ctx context.Context, in *api.CreateScenarioReque
 	)
 
 	if err != nil {
-		log.Println(err)
+		logrus.Error(err)
 	}
 
 	return &api.CreateScenarioResponse{ScenarioID: scenarioID}, err
@@ -55,7 +55,7 @@ func (s *Server) CreateUsers(ctx context.Context, in *api.CreateUsersRequest) (*
 	userManagerIDs, err := s.backend.CreateUsers(in.GetScenarioID(), in.GetTestID(), int(in.GetAmount()))
 
 	if err != nil {
-		log.Println(err)
+		logrus.Error(err)
 	}
 
 	return &api.CreateUsersResponse{UserManagerIDs: userManagerIDs}, err
@@ -65,7 +65,7 @@ func (s *Server) StopUsers(ctx context.Context, in *api.StopUsersRequest) (*empt
 	err := s.backend.StopUsers(in.GetScenarioID(), int(in.GetAmount()))
 
 	if err != nil {
-		log.Println(err)
+		logrus.Error(err)
 	}
 
 	return &empty.Empty{}, err
@@ -75,7 +75,7 @@ func (s *Server) CleanTestInstances(ctx context.Context, in *api.CleanTestInstan
 	err := s.backend.CleanTestInstances(in.GetTestID())
 
 	if err != nil {
-		log.Println(err)
+		logrus.Error(err)
 	}
 
 	return &empty.Empty{}, err
@@ -89,7 +89,7 @@ func (s *Server) AddTestEvent(ctx context.Context, in *api.AddEventRequest) (*em
 	)
 
 	if err != nil {
-		log.Println("Error adding test events:", err)
+		logrus.Error("Error adding test events:", err)
 		return nil, fmt.Errorf("Error adding test events: %v", err)
 	}
 
@@ -100,7 +100,7 @@ func (s *Server) GetTestEvents(ctx context.Context, in *api.GetEventsRequest) (*
 	events, err := s.backend.GetTestEvents(in.GetId())
 
 	if err != nil {
-		log.Println("Error getting test events:", err)
+		logrus.Error("Error getting test events:", err)
 		return nil, fmt.Errorf("Error getting test events: %v", err)
 	}
 
@@ -119,7 +119,7 @@ func (s *Server) AddUserResults(ctx context.Context, in *api.AddUserResultsReque
 	err := s.backend.AddUserResults(in.GetUserManagerID(), in.GetResults())
 
 	if err != nil {
-		log.Println("Error adding user result:", err)
+		logrus.Error("Error adding user result:", err)
 		return nil, fmt.Errorf("Error adding user result: %v", err)
 	}
 
@@ -149,7 +149,7 @@ func (s *Server) SetScenarioResult(ctx context.Context, in *api.SetScenarioResul
 	)
 
 	if err != nil {
-		log.Println("Error adding scenario result:", err)
+		logrus.Error("Error adding scenario result:", err)
 		return nil, fmt.Errorf("Error adding scenario result: %v", err)
 	}
 
@@ -166,7 +166,7 @@ func (s *Server) MoveUserResults(ctx context.Context, in *api.MoveUserResultsReq
 	results, err := s.backend.MoveUserResults(in.GetScenarioID(), limit)
 
 	if err != nil {
-		log.Println("Error getting user results:", err)
+		logrus.Error("Error getting user results:", err)
 		return nil, fmt.Errorf("Error getting user results: %v", err)
 	}
 
@@ -180,12 +180,12 @@ func (s *Server) MoveUserResults(ctx context.Context, in *api.MoveUserResultsReq
 func (s *Server) MoveScenarioResult(ctx context.Context, in *api.MoveScenarioResultRequest) (*api.MoveScenarioResultResponse, error) {
 	result, err := s.backend.MoveScenarioResult(in.GetScenarioID())
 
-	if err == datastore.NotFound {
+	if err == types.NotFound {
 		return nil, status.Error(codes.NotFound, fmt.Sprintf("Result for scenario %s not found", in.GetScenarioID()))
 	}
 
 	if err != nil {
-		log.Println("Error moving scenario result:", err)
+		logrus.Error("Error moving scenario result:", err)
 		return nil, fmt.Errorf("Error moving scenario result: %v", err)
 	}
 
@@ -207,7 +207,7 @@ func (s *Server) DistributeWork(ctx context.Context, in *api.DistributeWorkReque
 	err := s.backend.DistributeWork(in.GetScenarioID(), int(in.GetAmount()))
 
 	if err != nil {
-		log.Println("Error distributing work:", err)
+		logrus.Error("Error distributing work:", err)
 	}
 
 	return &empty.Empty{}, err
@@ -217,7 +217,7 @@ func (s *Server) GetUserWork(ctx context.Context, in *api.GetUserWorkRequest) (*
 	work, err := s.backend.GetUserWork(in.GetUserManagerID())
 
 	if err != nil {
-		log.Println("Error getting user work:", err)
+		logrus.Error("Error getting user work:", err)
 	}
 
 	return &api.GetUserWorkResponse{Work: int32(work)}, err
@@ -231,7 +231,7 @@ func (s *Server) AddUserEvent(ctx context.Context, in *api.AddEventRequest) (*em
 	)
 
 	if err != nil {
-		log.Println("Error adding user event:", err)
+		logrus.Error("Error adding user event:", err)
 	}
 
 	return &empty.Empty{}, err
@@ -241,7 +241,7 @@ func (s *Server) GetUserEvents(ctx context.Context, in *api.GetEventsRequest) (*
 	events, err := s.backend.GetUserEvents(in.GetId(), in.GetKind())
 
 	if err != nil {
-		log.Println("Error getting user events:", err)
+		logrus.Error("Error getting user events:", err)
 		return nil, fmt.Errorf("Error getting user events: %v", err)
 	}
 
@@ -260,7 +260,7 @@ func (s *Server) AddMetric(ctx context.Context, in *api.AddMetricRequest) (*empt
 	err := s.backend.AddMetric(in.GetScenarioID(), in.GetName(), in.GetValue())
 
 	if err != nil {
-		log.Println("Error adding metric:", err)
+		logrus.Error("Error adding metric:", err)
 	}
 
 	return &empty.Empty{}, err
@@ -269,12 +269,12 @@ func (s *Server) AddMetric(ctx context.Context, in *api.AddMetricRequest) (*empt
 func (s *Server) GetMetricTotal(ctx context.Context, in *api.GetMetricRequest) (*api.MetricTotalResponse, error) {
 	total, err := s.backend.GetMetricTotal(in.GetScenarioID(), in.GetName())
 
-	if err == datastore.NotFound {
+	if err == types.NotFound {
 		return nil, status.Error(codes.NotFound, fmt.Sprintf("Metric for %s not found", in.GetName()))
 	}
 
 	if err != nil {
-		log.Println("Error getting metric total:", err)
+		logrus.Error("Error getting metric total:", err)
 	}
 
 	return &api.MetricTotalResponse{Total: total}, err
@@ -283,7 +283,7 @@ func (s *Server) GetMetricTotal(ctx context.Context, in *api.GetMetricRequest) (
 func (s *Server) GetLastMetric(ctx context.Context, in *api.GetMetricRequest) (*api.LastMetricResponse, error) {
 	last, err := s.backend.GetLastMetric(in.GetScenarioID(), in.GetName())
 
-	if err == datastore.NotFound {
+	if err == types.NotFound {
 		return nil, status.Error(codes.NotFound, fmt.Sprintf("Metric for %s not found", in.GetName()))
 	}
 
@@ -293,7 +293,7 @@ func (s *Server) GetLastMetric(ctx context.Context, in *api.GetMetricRequest) (*
 func (s *Server) GetMetricRate(ctx context.Context, in *api.GetMetricRateRequest) (*api.MetricRateResponse, error) {
 	rate, err := s.backend.GetRate(in.GetScenarioID(), in.GetName(), in.GetSplitPoint())
 
-	if err == datastore.NotFound {
+	if err == types.NotFound {
 		return nil, status.Error(codes.NotFound, fmt.Sprintf("Metric for %s not found", in.GetName()))
 	}
 
@@ -303,12 +303,12 @@ func (s *Server) GetMetricRate(ctx context.Context, in *api.GetMetricRateRequest
 func (s *Server) GetMetricStatistics(ctx context.Context, in *api.GetMetricRequest) (*api.MetricStatisticsResponse, error) {
 	stats, err := s.backend.GetMetricStatistics(in.GetScenarioID(), in.GetName())
 
-	if err == datastore.NotFound {
+	if err == types.NotFound {
 		return nil, status.Error(codes.NotFound, fmt.Sprintf("Metric for %s not found", in.GetName()))
 	}
 
 	if err != nil {
-		log.Println("Error getting metric statistics:", err)
+		logrus.Error("Error getting metric statistics:", err)
 		return nil, err
 	}
 

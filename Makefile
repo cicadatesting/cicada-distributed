@@ -3,23 +3,27 @@ BASE_IMAGE_NAME=cicadatesting/cicada-distributed-base-image
 BACKEND_IMAGE_NAME=cicadatesting/cicada-distributed-backend
 CICADA_VERSION=1.4.2
 
+build-bin:
+	cd backend && make build-bin
+	cp backend/build/* src/cicadad/backend
+
 # NOTE: may need to use sudo
 # NOTE: may be helpful to run make clean
-package:
+package: build-bin
 	python3 setup.py sdist bdist_wheel
 
 upload-dev:
 	python3 -m twine upload --repository testpypi dist/*
 
 # NOTE: may need to use sudo
-install-local:
+install-local: build-bin
 	python3 -m pip install -e .
 
 install-dev-dependencies:
 	pip install -r requirements.txt
 
 # NOTE: may need to use sudo
-install-dev-local:
+install-dev-local: build-bin
 	python3 setup.py install
 
 install-dev-remote: install-dev-dependencies

@@ -299,6 +299,7 @@ def user_scheduler(
             # NOTE: may be better waiting for all futures to finish
             fire_and_forget(fut)
 
+        backend.send_user_results()
         time.sleep(1)
 
 

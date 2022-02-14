@@ -8,6 +8,23 @@ on:
 env:
   cicadaVersion: "1.4.2"
 jobs:
+  integration-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Set up Python 3.6
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.6
+      - name: run-smoke-test
+        run: |
+          pip install cicadad==${{ env.cicadaVersion }}
+          cd integration-test
+          ls
+          ENV=local cicada-distributed --debug run -t run --log-path logs --no-exit-unsuccessful
+          ls
+          ls logs
   push-base-image:
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
@@ -55,7 +72,7 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: cicadatesting/cicada-distributed-backend:${{ github.sha }},cicadatesting/cicada-distributed-backend:${{ env.cicadaVersion }},cicadatesting/cicada-distributed-backend:latest
-  smoke-test:
+  smoke-test-docker:
     runs-on: ubuntu-latest
     needs:
       - push-base-image
@@ -80,6 +97,6 @@ jobs:
           ls
           cicada-distributed --debug start-cluster
           docker ps
-          cicada-distributed --debug run
+          cicada-distributed --debug run --mode=DOCKER
           cicada-distributed --debug stop-cluster
           docker ps
