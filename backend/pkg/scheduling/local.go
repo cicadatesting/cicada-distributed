@@ -243,18 +243,24 @@ func (ec *execClient) startTestProcess(name, logdir string, command []string, en
 	cmd := exec.Command(command[0], command[1:]...)
 
 	// pipe logs to file
-	outfile, err := createLogFile(name, logdir)
+	if logrus.GetLevel() == logrus.DebugLevel {
+		cmd.Stdout = os.Stdout
+	} else {
+		outfile, err := createLogFile(name, logdir)
 
-	if err != nil {
-		return err
+		if err != nil {
+			return err
+		}
+
+		cmd.Stdout = outfile
+		ec.logfiles[name] = outfile
 	}
 
-	cmd.Stdout = outfile
 	cmd.Env = convertEnvMap(env)
 	// NOTE: maybe set parent process ID to test for scenario, scenario for users
 	// cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 
-	err = cmd.Start()
+	err := cmd.Start()
 
 	if err != nil {
 		return fmt.Errorf("Error starting test process: %v", err)
@@ -264,7 +270,6 @@ func (ec *execClient) startTestProcess(name, logdir string, command []string, en
 
 	// save process in map
 	ec.processes[name] = cmd
-	ec.logfiles[name] = outfile
 
 	return nil
 }
@@ -290,17 +295,15 @@ func (ec *execClient) stopTestProcess(name string) error {
 	// close writer
 	file, hasFile := ec.logfiles[name]
 
-	if !hasFile {
-		return fmt.Errorf("Log file not found: %s", name)
+	if hasFile {
+		err := file.Close()
+
+		if err != nil {
+			return fmt.Errorf("Error closing logfile: %v", err)
+		}
+
+		delete(ec.logfiles, name)
 	}
-
-	err = file.Close()
-
-	if err != nil {
-		return fmt.Errorf("Error closing logfile: %v", err)
-	}
-
-	delete(ec.logfiles, name)
 
 	return nil
 }

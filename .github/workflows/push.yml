@@ -78,7 +78,7 @@ jobs:
       - name: prepare-cicadad
         run: |
           make install-local
-      - name: run-smoke-test
+      - name: run-integration-test
         run: |
           cd integration-test
           ls

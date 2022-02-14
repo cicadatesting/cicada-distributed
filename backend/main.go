@@ -169,10 +169,10 @@ func main() {
 	}
 
 	api.RegisterBackendServer(s, server)
-	logrus.Debug("server listening at %v", lis.Addr())
+	logrus.Debug("server listening at", lis.Addr())
 
 	if err := s.Serve(lis); err != nil {
-		logrus.Error("failed to serve: %v", err)
+		logrus.Error("failed to serve:", err)
 	}
 
 	wg.Wait()

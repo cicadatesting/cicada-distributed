@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cicadatesting/backend/pkg/types"
 	"github.com/dgraph-io/badger/v3"
 	"github.com/stretchr/testify/assert"
 )
@@ -166,13 +167,9 @@ func TestGetBytesNotFound(t *testing.T) {
 
 	defer commands.Close()
 
-	elem, err := commands.GetBytes("my-item")
+	_, err := commands.GetBytes("my-item")
 
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	assert.Equal(t, []byte(nil), elem)
+	assert.Equal(t, types.NotFound, err)
 }
 
 func TestGetMin(t *testing.T) {
