@@ -71,7 +71,7 @@ jobs:
           ls
           ENV=dev cicada-distributed --debug start-cluster
           docker ps
-          ENV=dev cicada-distributed --debug run
+          ENV=dev cicada-distributed --debug run --mode=DOCKER
           ENV=dev cicada-distributed --debug stop-cluster
           docker ps
   smoke-test-kube:

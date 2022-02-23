@@ -17,9 +17,11 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: 3.6
-      - name: run-smoke-test
+      - name: prepare-cicadad
         run: |
           pip install cicadad==${{ env.cicadaVersion }}
+      - name: run-smoke-test
+        run: |
           cd integration-test
           ls
           ENV=local cicada-distributed --debug run -t run --log-path logs --no-exit-unsuccessful
