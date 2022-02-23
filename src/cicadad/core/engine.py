@@ -1,5 +1,6 @@
 from typing import Dict, List
 import atexit
+import sys
 
 from distributed.client import Client, fire_and_forget  # type: ignore
 import click
@@ -35,6 +36,7 @@ class Engine:
     def start(self):
         """Called internally when test container is started to parse args"""
         # read sys.argv and start scenario or user (Already in container)
+        print("in engine.start:", sys.argv)
         engine_cli(obj=self)
 
     def run_test(
@@ -152,7 +154,10 @@ class Engine:
 @click.group()
 @click.pass_context
 def engine_cli(ctx):
-    ctx.ensure_object(Engine)
+    try:
+        ctx.ensure_object(Engine)
+    except Exception as e:
+        print(e)
 
 
 @engine_cli.command()

@@ -230,8 +230,6 @@ def run(
         backend,
     )
 
-    print("test id:", test_id)
-
     # FEATURE: Error if cluster is not up
 
     context = {}

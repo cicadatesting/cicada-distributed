@@ -1,11 +1,5 @@
-print("starting test.py")
-
-try:
-    from cicadad.core.decorators import dependency, scenario, tag
-    from cicadad.core.engine import Engine
-except Exception as e:
-    print("import error:", e)
-    raise e
+from cicadad.core.decorators import dependency, scenario, tag
+from cicadad.core.engine import Engine
 
 
 engine = Engine()
@@ -50,5 +44,4 @@ def test_e(context):
 
 
 if __name__ == "__main__":
-    print("calling engine.start")
     engine.start()
