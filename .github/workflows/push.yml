@@ -83,6 +83,8 @@ jobs:
         run: |
           cd integration-test
           ls
+          export LC_ALL=C.UTF-8
+          export LANG=C.UTF-8
           ENV=local cicada-distributed --debug run -t run --log-path logs --no-exit-unsuccessful --test-timeout 30
           ls
           ls logs
