@@ -3,7 +3,7 @@ import os
 import platform
 import uuid
 import socket
-import subprocess
+import subprocess  # nosec
 
 from pydantic import BaseModel
 from docker.errors import APIError, NotFound  # type: ignore
@@ -505,7 +505,7 @@ def start_local_backend(debug: bool):
 
     # start process
     return subprocess.Popen(
-        ["env", "LOG_LEVEL=DEBUG" if debug else "LOG_LEVEL=ERROR", binary_path]
+        ["env", "LOG_LEVEL=DEBUG" if debug else "LOG_LEVEL=ERROR", binary_path]  # nosec
     )
 
 

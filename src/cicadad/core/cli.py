@@ -230,6 +230,8 @@ def run(
         backend,
     )
 
+    print("test id:", test_id)
+
     # FEATURE: Error if cluster is not up
 
     context = {}
@@ -327,7 +329,6 @@ def start_test_instance(
     namespace: str,
     backend: ICLIBackend,
 ) -> str:
-    print("start test tag:", tag)
     if mode == constants.KUBE_SCHEDULING_MODE:
         return backend.create_test(
             scheduling_metadata=json.dumps({"image": image_id, "namespace": namespace}),

@@ -52,11 +52,16 @@ class Engine:
         """
         backend = TestBackend(test_id=test_id, address=backend_address)
 
-        test_runner(
-            scenarios=self.scenarios.values(),
-            tags=list(tags),
-            backend=backend,
-        )
+        print("initialized backend")
+
+        try:
+            test_runner(
+                scenarios=self.scenarios.values(),
+                tags=list(tags),
+                backend=backend,
+            )
+        except Exception as e:
+            print("error starting test:", e)
 
     def run_scenario(
         self,

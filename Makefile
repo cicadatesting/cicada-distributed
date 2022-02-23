@@ -16,7 +16,7 @@ upload-dev:
 	python3 -m twine upload --repository testpypi dist/*
 
 # NOTE: may need to use sudo
-install-local: build-bin
+install-local:
 	python3 -m pip install -e .
 
 install-dev-dependencies:
