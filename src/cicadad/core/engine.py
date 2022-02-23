@@ -35,11 +35,7 @@ class Engine:
     def start(self):
         """Called internally when test container is started to parse args"""
         # read sys.argv and start scenario or user (Already in container)
-        try:
-            engine_cli(obj=self)
-        except Exception as e:
-            print("error calling engine_cli:", e)
-            raise e
+        engine_cli(obj=self)
 
     def run_test(
         self,
@@ -56,16 +52,11 @@ class Engine:
         """
         backend = TestBackend(test_id=test_id, address=backend_address)
 
-        print("initialized backend")
-
-        try:
-            test_runner(
-                scenarios=self.scenarios.values(),
-                tags=list(tags),
-                backend=backend,
-            )
-        except Exception as e:
-            print("error starting test:", e)
+        test_runner(
+            scenarios=self.scenarios.values(),
+            tags=list(tags),
+            backend=backend,
+        )
 
     def run_scenario(
         self,
@@ -156,7 +147,6 @@ class Engine:
 @click.group()
 @click.pass_context
 def engine_cli(ctx):
-    print("ensuring object...")
     ctx.ensure_object(Engine)
 
 
@@ -171,14 +161,9 @@ def run_test(
     test_id,
     backend_address,
 ):
-    try:
-        engine: Engine = ctx.obj
+    engine: Engine = ctx.obj
 
-        print("calling run test:", test_id, backend_address)
-
-        engine.run_test(tags=tag, test_id=test_id, backend_address=backend_address)
-    except Exception as e:
-        print("error in run test:", e)
+    engine.run_test(tags=tag, test_id=test_id, backend_address=backend_address)
 
 
 @engine_cli.command()

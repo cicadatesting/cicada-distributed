@@ -32,8 +32,6 @@ jobs:
           cd integration-test
           ls
           ENV=local cicada-distributed --debug run -t run --log-path logs --no-exit-unsuccessful
-          ls
-          ls logs
   smoke-test-docker:
     runs-on: ubuntu-latest
     steps:

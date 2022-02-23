@@ -84,8 +84,6 @@ jobs:
           cd integration-test
           ls
           ENV=local cicada-distributed --debug run -t run --log-path logs --no-exit-unsuccessful --test-timeout 30
-          ls
-          ls logs
   docker-smoke-test:
     runs-on: ubuntu-latest
     steps:
