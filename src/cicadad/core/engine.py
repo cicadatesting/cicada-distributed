@@ -168,6 +168,8 @@ def run_test(
 ):
     engine: Engine = ctx.obj
 
+    print("calling run test:", test_id, backend_address)
+
     engine.run_test(tags=tag, test_id=test_id, backend_address=backend_address)
 
 

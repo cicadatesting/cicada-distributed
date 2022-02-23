@@ -50,4 +50,5 @@ def test_e(context):
 
 
 if __name__ == "__main__":
+    print("calling engine.start")
     engine.start()
