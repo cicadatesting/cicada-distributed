@@ -79,12 +79,14 @@ jobs:
         run: |
           make build-bin
           make install-local
+      - name: C.UTF-8
+        run: |
+          sudo locale-gen C.UTF-8
+          sudo update-locale LANG=C.UTF-8
       - name: run-integration-test
         run: |
           cd integration-test
           ls
-          export LC_ALL=C.UTF-8
-          export LANG=C.UTF-8
           ENV=local cicada-distributed --debug run -t run --log-path logs --no-exit-unsuccessful --test-timeout 30
           ls
           ls logs
