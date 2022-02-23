@@ -1,5 +1,10 @@
+import os
+
 from cicadad.core.decorators import dependency, scenario, tag
 from cicadad.core.engine import Engine
+
+os.environ["LC_ALL"] = "C.UTF-8"
+os.environ["LANG"] = "C.UTF-8"
 
 
 engine = Engine()
