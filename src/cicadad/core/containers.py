@@ -435,12 +435,15 @@ def docker_backend_down(client: docker.DockerClient):
     docker_container_down_by_name(client, "cicada-distributed-backend")
 
 
-def determine_local_backend_binary(os_name: str, arch: str) -> Optional[str]:
+def determine_local_backend_binary(
+    os_name: str, arch: str, debug: bool
+) -> Optional[List[str]]:
     """Determine which backend binary to use for running locally.
 
     Args:
         os_name (str): Name of system operating system (linux, darwin, windows)
         arch (str): Processor architecture
+        debug (bool): Set debug flag in command
 
     Returns:
         Optional[str]: Path to backend binary if found
@@ -482,7 +485,18 @@ def determine_local_backend_binary(os_name: str, arch: str) -> Optional[str]:
                 os.path.dirname(backend_module.__file__), "backend-linux-32"
             )
 
-    return binary_path
+    if binary_path is None:
+        return None
+
+    if os_name == "windows":
+        # FIXME: cannot specify debug for some reason
+        return [
+            "cmd",
+            "/c",
+            f'"{binary_path}"',
+        ]
+    else:
+        return ["env", "LOG_LEVEL=DEBUG" if debug else "LOG_LEVEL=ERROR", binary_path]
 
 
 def start_local_backend(debug: bool):
@@ -498,15 +512,13 @@ def start_local_backend(debug: bool):
     os_name = platform.system().lower()
     arch = platform.machine()
 
-    binary_path = determine_local_backend_binary(os_name, arch)
+    command = determine_local_backend_binary(os_name, arch, debug)
 
-    if binary_path is None:
+    if command is None:
         raise ValueError(f"No backend distribution found for {arch} + {os_name}")
 
     # start process
-    return subprocess.Popen(
-        ["env", "LOG_LEVEL=DEBUG" if debug else "LOG_LEVEL=ERROR", binary_path]  # nosec
-    )
+    return subprocess.Popen(command)  # nosec
 
 
 def make_kube_template(template_filename: str):

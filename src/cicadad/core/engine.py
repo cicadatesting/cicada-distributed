@@ -35,6 +35,7 @@ class Engine:
     def start(self):
         """Called internally when test container is started to parse args"""
         # read sys.argv and start scenario or user (Already in container)
+        # FEATURE: try catch wrap, signal CLI if failures and log error
         engine_cli(obj=self)
 
     def run_test(
