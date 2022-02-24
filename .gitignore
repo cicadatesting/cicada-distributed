@@ -16,3 +16,6 @@ __pycache__/
 /docs/_build/
 .env
 *dask-worker-space
+src/cicadad/backend/*
+!src/cicadad/backend/__init__.py
+pip-wheel-metadata

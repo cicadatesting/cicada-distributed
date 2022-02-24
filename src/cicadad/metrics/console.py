@@ -1,28 +1,24 @@
 from typing import Callable, Iterable, List
 
-from cicadad.services import datastore
-from cicadad.util.constants import DEFAULT_DATASTORE_ADDRESS
+from cicadad.core.types import IConsoleMetricsBackend, IScenarioBackend, Result
 
 
-ConsoleCollectorFn = Callable[[List[datastore.Result]], Iterable[float]]
+ConsoleCollectorFn = Callable[[List[Result]], Iterable[float]]
 
 
 def console_collector(name: str, collector: ConsoleCollectorFn):
-    """Send metric created by collector function to datastore.
+    """Send metric created by collector function to backend.
+
+    Helper for scenarios that want to leverage the backend to store metrics.
 
     Args:
         name (str): Name of metric
         collector (ConsoleCollectorFn): Function to convert results to list of metric values
     """
 
-    def collect_metric(results: List[datastore.Result], scenario_commands):
+    def collect_metric(results: List[Result], backend: IScenarioBackend):
         for value in collector(results):
-            datastore.add_metric(
-                scenario_commands.scenario_id,
-                name,
-                value,
-                scenario_commands.datastore_address,
-            )
+            backend.add_metric(name, value)
 
     return collect_metric
 
@@ -33,9 +29,9 @@ def console_stats():
     def get(
         name: str,
         scenario_id: str,
-        datastore_address: str = DEFAULT_DATASTORE_ADDRESS,
+        backend: IConsoleMetricsBackend,
     ):
-        stats = datastore.get_metric_statistics(scenario_id, name, datastore_address)
+        stats = backend.get_metric_statistics(scenario_id, name)
 
         if stats is None:
             return None
@@ -57,9 +53,9 @@ def console_count():
     def get(
         name: str,
         scenario_id: str,
-        datastore_address: str = DEFAULT_DATASTORE_ADDRESS,
+        backend: IConsoleMetricsBackend,
     ):
-        count = datastore.get_metric_total(scenario_id, name, datastore_address)
+        count = backend.get_metric_total(scenario_id, name)
 
         if count is None:
             return None
@@ -75,9 +71,9 @@ def console_latest():
     def get(
         name: str,
         scenario_id: str,
-        datastore_address: str = DEFAULT_DATASTORE_ADDRESS,
+        backend: IConsoleMetricsBackend,
     ):
-        last = datastore.get_last_metric(scenario_id, name, datastore_address)
+        last = backend.get_last_metric(scenario_id, name)
 
         if last is None:
             return None
@@ -97,11 +93,9 @@ def console_percent(split_point: float):
     def get(
         name: str,
         scenario_id: str,
-        datastore_address: str = DEFAULT_DATASTORE_ADDRESS,
+        backend: IConsoleMetricsBackend,
     ):
-        rate = datastore.get_metric_rate(
-            scenario_id, name, split_point, datastore_address
-        )
+        rate = backend.get_metric_rate(scenario_id, name, split_point)
 
         if rate is None:
             return None

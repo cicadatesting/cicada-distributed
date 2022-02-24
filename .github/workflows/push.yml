@@ -13,6 +13,10 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: 3.6
+      - name: Setup go
+        uses: actions/setup-go@v1
+        with:
+          go-version: '1.17.6'
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
@@ -35,6 +39,10 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: 3.6
+      - name: Setup go
+        uses: actions/setup-go@v1
+        with:
+          go-version: '1.17.6'
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
@@ -43,18 +51,18 @@ jobs:
       - name: Unit Test
         run: |
           pytest src/tests
-  unit-test-datastore-client:
+  unit-test-backend:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - name: Setup go
         uses: actions/setup-go@v1
         with:
-          go-version: '1.16.4'
+          go-version: '1.17.6'
       - run: |
-          cd datastore-client
+          cd backend
           go test -v ./...
-  smoke-test:
+  integration-test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -63,6 +71,32 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: 3.6
+      - name: Setup go
+        uses: actions/setup-go@v1
+        with:
+          go-version: '1.17.6'
+      - name: prepare-cicadad
+        run: |
+          make build-bin
+          make install-local
+      - name: run-integration-test
+        run: |
+          cd integration-test
+          ls
+          ENV=local cicada-distributed --debug run -t run --log-path logs --no-exit-unsuccessful --test-timeout 30
+  docker-smoke-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Set up Python 3.6
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.6
+      - name: Setup go
+        uses: actions/setup-go@v1
+        with:
+          go-version: '1.17.6'
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
       - name: Set up Docker Buildx
@@ -71,13 +105,9 @@ jobs:
         run: |
           make install-local
           make build-base-local
-      - name: build-container-service-local
+      - name: build-backend-local
         run: |
-          cd container-service
-          make build-local
-      - name: build-datastore-client-local
-        run: |
-          cd datastore-client
+          cd backend
           make build-local
       - name: run-smoke-test
         run: |
@@ -87,7 +117,7 @@ jobs:
           ls
           ENV=local cicada-distributed --debug start-cluster
           docker ps
-          ENV=local cicada-distributed --debug run
+          ENV=local cicada-distributed --debug run --mode=DOCKER
           ENV=local cicada-distributed --debug stop-cluster
           docker ps
   kube-smoke-test:
@@ -99,6 +129,10 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: 3.6
+      - name: Setup go
+        uses: actions/setup-go@v1
+        with:
+          go-version: '1.17.6'
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
       - name: Set up Docker Buildx
@@ -107,13 +141,9 @@ jobs:
         run: |
           make install-local
           make build-base-local
-      - name: build-container-service-local
+      - name: build-backend-local
         run: |
-          cd container-service
-          make build-local
-      - name: build-datastore-client-local
-        run: |
-          cd datastore-client
+          cd backend
           make build-local
       - name: setup-cluster
         run: |

@@ -1,6 +1,6 @@
 include src/cicadad/templates/Dockerfile
 include src/cicadad/templates/dev.dockerfile
 include src/cicadad/templates/redis.yaml
-include src/cicadad/templates/datastore-client.yaml
-include src/cicadad/templates/container-service.yaml
+include src/cicadad/templates/backend.yaml
 include src/cicadad/templates/job.yaml
+include src/cicadad/backend
