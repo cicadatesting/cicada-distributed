@@ -18,7 +18,7 @@ build-dev:
 	docker build -t ${BACKEND_IMAGE_NAME}:pre-release .
 
 build:
-	docker build -t ${BACKEND_IMAGE_NAME}:1.4.2 .
+	docker build -t ${BACKEND_IMAGE_NAME}:1.5.0 .
 
 run-local:
 	docker run -d --rm -p 8283:8283 --network cicada-distributed-network ${BACKEND_IMAGE_NAME}:latest

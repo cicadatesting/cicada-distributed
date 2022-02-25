@@ -1,7 +1,7 @@
 
 BASE_IMAGE_NAME=cicadatesting/cicada-distributed-base-image
 BACKEND_IMAGE_NAME=cicadatesting/cicada-distributed-backend
-CICADA_VERSION=1.4.2
+CICADA_VERSION=1.5.0
 
 build-bin:
 	cd backend && make build-bin
@@ -23,7 +23,7 @@ install-dev-dependencies:
 	pip install -r requirements.txt
 
 # NOTE: may need to use sudo
-install-dev-local: build-bin
+install-dev-local:
 	python3 setup.py install
 
 install-dev-remote: install-dev-dependencies
