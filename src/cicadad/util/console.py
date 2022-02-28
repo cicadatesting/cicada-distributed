@@ -63,7 +63,8 @@ class TasksPanel(object):
         self.tasks[name].set_succeeded()
 
     def update_task_failed(self, name: str):
-        self.tasks[name].set_failed()
+        if name in self.tasks:
+            self.tasks[name].set_failed()
 
     def get_renderable(self):
         if self.tasks == {}:

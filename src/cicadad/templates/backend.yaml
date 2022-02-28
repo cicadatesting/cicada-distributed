@@ -1,0 +1,98 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cicada-distributed-backend
+  labels:
+    app.kubernetes.io/name: cicada-distributed-backend
+    app.kubernetes.io/managed-by: cicada-distributed
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cicada-distributed-backend
+  labels:
+    app.kubernetes.io/name: cicada-distributed-backend
+    app.kubernetes.io/managed-by: cicada-distributed
+rules:
+- apiGroups:
+  - batch
+  resources:
+  - jobs
+  verbs:
+  - get
+  - list
+  - create
+  - delete
+  - deletecollection
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: cicada-distributed-backend
+  labels:
+    app.kubernetes.io/name: cicada-distributed-backend
+    app.kubernetes.io/managed-by: cicada-distributed
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cicada-distributed-backend
+subjects:
+- kind: ServiceAccount
+  name: cicada-distributed-backend
+  namespace: default
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: cicada-distributed-backend
+    app.kubernetes.io/name: cicada-distributed-backend
+    app.kubernetes.io/managed-by: cicada-distributed
+  name: cicada-distributed-backend
+spec:
+  selector:
+    matchLabels:
+      app: cicada-distributed-backend
+  template:
+    metadata:
+      labels:
+        app: cicada-distributed-backend
+    spec:
+      containers:
+      - env:
+        - name: REDIS_ENDPOINT
+          value: cicada-distributed-redis
+        - name: RUNNER_TYPE
+          value: KUBE
+        image: cicadatesting/cicada-distributed-backend:1.5.0
+        imagePullPolicy: IfNotPresent
+        name: cicada-distributed-backend
+        ports:
+        - containerPort: 8283
+          name: http
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+      serviceAccountName: cicada-distributed-backend
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cicada-distributed-backend
+  labels:
+    app.kubernetes.io/name: cicada-distributed-backend
+    app.kubernetes.io/managed-by: cicada-distributed
+spec:
+  ports:
+  - port: 8283
+    protocol: TCP
+    targetPort: 8283
+  selector:
+    app: cicada-distributed-backend
+  sessionAffinity: None
+  type: ClusterIP

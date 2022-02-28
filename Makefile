@@ -1,12 +1,15 @@
 
 BASE_IMAGE_NAME=cicadatesting/cicada-distributed-base-image
-CONTAINER_SERVICE_IMAGE_NAME=cicadatesting/cicada-distributed-container-service
-DATASTORE_IMAGE_NAME=cicadatesting/cicada-distributed-datastore-client
-CICADA_VERSION=1.4.2
+BACKEND_IMAGE_NAME=cicadatesting/cicada-distributed-backend
+CICADA_VERSION=1.5.0
+
+build-bin:
+	cd backend && make build-bin
+	cp backend/build/* src/cicadad/backend
 
 # NOTE: may need to use sudo
 # NOTE: may be helpful to run make clean
-package:
+package: build-bin
 	python3 setup.py sdist bdist_wheel
 
 upload-dev:
@@ -42,25 +45,19 @@ build-base:
 		-t ${BASE_IMAGE_NAME}:${CICADA_VERSION} .
 
 setup-cluster:
-	k3d cluster create -p "8283:30083@server:0" -p "8284:30084@server:0"
+	k3d cluster create -p "8283:30083@server:0"
 
 import-images-local:
-	docker tag ${CONTAINER_SERVICE_IMAGE_NAME}:latest ${CONTAINER_SERVICE_IMAGE_NAME}:local
-	docker tag ${DATASTORE_IMAGE_NAME}:latest ${DATASTORE_IMAGE_NAME}:local
-	k3d image import ${CONTAINER_SERVICE_IMAGE_NAME}:local
-	k3d image import ${DATASTORE_IMAGE_NAME}:local
+	docker tag ${BACKEND_IMAGE_NAME}:latest ${BACKEND_IMAGE_NAME}:local
+	k3d image import ${BACKEND_IMAGE_NAME}:local
 
 import-images-dev:
-	docker tag ${CONTAINER_SERVICE_IMAGE_NAME}:pre-release ${CONTAINER_SERVICE_IMAGE_NAME}:local
-	docker tag ${DATASTORE_IMAGE_NAME}:pre-release ${DATASTORE_IMAGE_NAME}:local
-	k3d image import ${CONTAINER_SERVICE_IMAGE_NAME}:local
-	k3d image import ${DATASTORE_IMAGE_NAME}:local
+	docker tag ${BACKEND_IMAGE_NAME}:pre-release ${BACKEND_IMAGE_NAME}:local
+	k3d image import ${BACKEND_IMAGE_NAME}:local
 
 import-images:
-	docker tag ${CONTAINER_SERVICE_IMAGE_NAME}:${CICADA_VERSION} ${CONTAINER_SERVICE_IMAGE_NAME}:local
-	docker tag ${DATASTORE_IMAGE_NAME}:${CICADA_VERSION} ${DATASTORE_IMAGE_NAME}:local
-	k3d image import ${CONTAINER_SERVICE_IMAGE_NAME}:local
-	k3d image import ${DATASTORE_IMAGE_NAME}:local
+	docker tag ${BACKEND_IMAGE_NAME}:${CICADA_VERSION} ${BACKEND_IMAGE_NAME}:local
+	k3d image import ${BACKEND_IMAGE_NAME}:local
 
 install-kube:
 	cicada-distributed --debug start-cluster --mode=KUBE > kube-cluster/base/cicada-distributed.yaml
