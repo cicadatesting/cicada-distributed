@@ -6,7 +6,7 @@ import time
 import sys
 import os
 import shutil
-import configobj
+import configobj  # type: ignore
 
 from rich.live import Live
 from rich.console import Console
