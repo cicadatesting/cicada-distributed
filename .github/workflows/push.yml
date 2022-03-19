@@ -27,6 +27,7 @@ jobs:
           bandit cicadad -r -c bandit.yaml
       - name: Types
         run: |
+          mypy --install-types
           mypy cicadad
       - name: Lint
         run: |
