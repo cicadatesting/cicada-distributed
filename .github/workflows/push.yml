@@ -27,7 +27,7 @@ jobs:
           bandit cicadad -r -c bandit.yaml
       - name: Types
         run: |
-          python3 -m pip install types-requests grpc
+          python3 -m pip install types-requests types-protobuf
           mypy cicadad
       - name: Lint
         run: |
