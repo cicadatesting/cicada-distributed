@@ -1,6 +1,3 @@
 include cicadad/templates/Dockerfile
-include cicadad/templates/dev.dockerfile
-include cicadad/templates/redis.yaml
-include cicadad/templates/backend.yaml
-include cicadad/templates/job.yaml
+include cicadad/templates/*
 include cicadad/backend/*
