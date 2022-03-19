@@ -26,7 +26,12 @@ func NewServer(backend *application.Backend) *Server {
 }
 
 func (s *Server) CreateTest(ctx context.Context, in *api.CreateTestRequest) (*api.CreateTestResponse, error) {
-	testID, err := s.backend.CreateTest(in.GetBackendAddress(), in.GetSchedulingMetadata(), in.GetTags())
+	testID, err := s.backend.CreateTest(
+		in.GetBackendAddress(),
+		in.GetSchedulingMetadata(),
+		in.GetTags(),
+		in.GetEnv(),
+	)
 
 	if err != nil {
 		logrus.Error(err)
@@ -79,6 +84,17 @@ func (s *Server) CleanTestInstances(ctx context.Context, in *api.CleanTestInstan
 	}
 
 	return &empty.Empty{}, err
+}
+
+func (s *Server) CheckTestInstance(ctx context.Context, in *api.CheckTestInstanceRequest) (*api.CheckTestInstanceResponse, error) {
+	running, err := s.backend.CheckTestInstance(in.GetTestID(), in.GetInstanceID())
+
+	if err != nil {
+		logrus.Error(err)
+		return &api.CheckTestInstanceResponse{}, err
+	}
+
+	return &api.CheckTestInstanceResponse{Running: running}, nil
 }
 
 func (s *Server) AddTestEvent(ctx context.Context, in *api.AddEventRequest) (*empty.Empty, error) {

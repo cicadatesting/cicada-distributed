@@ -27,7 +27,11 @@ func NewDockerScheduler(client *client.Client) *DockerScheduler {
 	return &DockerScheduler{client: &dc}
 }
 
-func (s *DockerScheduler) CreateTest(testID, backendAddress, schedulingMetadata string, tags []string) error {
+func (s *DockerScheduler) CreateTest(
+	testID, backendAddress, schedulingMetadata string,
+	tags []string,
+	env map[string]string,
+) error {
 	// load scheduling metadata
 	dockerSchedulingMetadata := DockerSchedulingMetadata{}
 
@@ -51,7 +55,7 @@ func (s *DockerScheduler) CreateTest(testID, backendAddress, schedulingMetadata 
 			backendAddress,
 		}, tagArg...),
 		map[string]string{"type": "cicada-distributed-test", "test": testID},
-		map[string]string{},
+		env,
 		dockerSchedulingMetadata.Network,
 	)
 
@@ -69,6 +73,7 @@ func (s *DockerScheduler) CreateScenario(
 	backendAddress,
 	schedulingMetadata,
 	encodedContext string,
+	env map[string]string,
 ) error {
 	// load scheduling metadata
 	dockerSchedulingMetadata := DockerSchedulingMetadata{}
@@ -101,7 +106,7 @@ func (s *DockerScheduler) CreateScenario(
 			"test":     testID,
 			"scenario": scenarioName,
 		},
-		map[string]string{},
+		env,
 		dockerSchedulingMetadata.Network,
 	)
 
@@ -115,6 +120,7 @@ func (s *DockerScheduler) CreateScenario(
 func (s *DockerScheduler) CreateUserManagers(
 	userManagerIDs []string,
 	testID, scenarioName, backendAddress, schedulingMetadata, encodedContext string,
+	env map[string]string,
 ) error {
 	// load scheduling metadata
 	dockerSchedulingMetadata := DockerSchedulingMetadata{}
@@ -145,7 +151,7 @@ func (s *DockerScheduler) CreateUserManagers(
 				"test":     testID,
 				"scenario": scenarioName,
 			},
-			map[string]string{},
+			env,
 			dockerSchedulingMetadata.Network,
 		)
 
@@ -177,6 +183,10 @@ func (s *DockerScheduler) CleanTestInstances(testID, schedulingMetadata string) 
 	}
 
 	return nil
+}
+
+func (s *DockerScheduler) CheckTestInstance(instanceID string, schedulingMetadata string) (bool, error) {
+	return s.client.containerIsRunning(instanceID), nil
 }
 
 // type DockerVolume struct {

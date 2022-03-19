@@ -608,8 +608,6 @@ func (bc *BadgerCommands) MapKeyDelete(mapName string, key string) error {
 
 		delete(byteMap, key)
 
-		fmt.Println("map keys now:", len(byteMap))
-
 		// save map
 		newMapBytes, err := msgpack.Marshal(byteMap)
 

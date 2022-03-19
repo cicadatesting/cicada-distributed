@@ -81,15 +81,6 @@ def test_runner(scenarios: Iterable[Scenario], tags: List[str], backend: ITestBa
 
     valid_scenarios = filter_scenarios_by_tag(scenarios, tags)
 
-    backend.add_test_event(
-        event=TestEvent(
-            kind="TEST_STARTED",
-            payload=TestStatus(
-                message=f"Collected {len(valid_scenarios)} Scenario(s)",
-            ),
-        ),
-    )
-
     # Start scenarios with no dependencies
     for scenario in valid_scenarios:
         if scenario.dependencies == []:
@@ -102,8 +93,16 @@ def test_runner(scenarios: Iterable[Scenario], tags: List[str], backend: ITestBa
             started[scenario.name] = scenario_id
             scenarios_by_id[scenario_id] = scenario
 
+    backend.add_test_event(
+        event=TestEvent(
+            kind="TEST_STARTED",
+            payload=TestStatus(
+                message=f"Collected {len(valid_scenarios)} Scenario(s)",
+            ),
+        ),
+    )
+
     # listen to completed events and start scenarios with dependencies
-    # FEATURE: scenario timeout counter here as well
     while len(results) != len(valid_scenarios):
         for scenario_name in [sn for sn in started if sn not in results]:
             scenario = scenarios_by_id[started[scenario_name]]
@@ -140,6 +139,29 @@ def test_runner(scenarios: Iterable[Scenario], tags: List[str], backend: ITestBa
                             scenario=scenario_name,
                             scenario_id=started[scenario_name],
                             message=f"Finished Scenario: {scenario_name}",
+                            context=json.dumps(results),
+                        ),
+                    ),
+                )
+            # NOTE: may be helpful to get two not running calls before canceling scenario
+            elif not backend.scenario_running(started[scenario_name]):
+                results[scenario_name] = json.loads(
+                    Result(
+                        id=str(uuid.uuid4()),
+                        output=None,
+                        exception="Scenario Exited",
+                        logs="",
+                        timestamp=datetime.now(),
+                    ).json()
+                )
+
+                backend.add_test_event(
+                    event=TestEvent(
+                        kind="SCENARIO_FINISHED",
+                        payload=TestStatus(
+                            scenario=scenario_name,
+                            scenario_id=started[scenario_name],
+                            message=f"Scenario Exited Unexpectedly: {scenario_name}",
                             context=json.dumps(results),
                         ),
                     ),
@@ -237,7 +259,11 @@ def scenario_runner(
             else:
                 output = scenario_commands.aggregated_results
 
-            if scenario_commands.errors != [] and scenario.raise_exception:
+            if (
+                scenario_commands.errors != []
+                and output is None
+                and scenario.raise_exception
+            ):
                 error_strs = [
                     f"{len(scenario_commands.errors)} error(s) were raised in scenario {scenario.name}:"
                 ] + scenario_commands.errors
@@ -256,6 +282,7 @@ def scenario_runner(
         traceback.print_tb(exception.__traceback__)
 
     # Clean up
+    # NOTE: possible shutdown hook
     scenario_commands.scale_users(0)
 
     failed = len(scenario_commands.errors)
@@ -285,6 +312,7 @@ def user_scheduler(
         backend (IUserManagerBackend): Backend implementation for user manager to use
         context (dict): Test context
     """
+
     while True:
         for user_id in backend.get_new_users():
             fut = scheduler.submit(

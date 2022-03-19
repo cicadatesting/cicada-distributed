@@ -20,7 +20,7 @@ def test_console_stats():
         "len": 1,
     }
 
-    console_stats = console.console_stats()
+    console_stats = console.console_stats("foo")
 
     metrics_string = console_stats("foo", "bar", backend)
 
@@ -35,7 +35,7 @@ def test_console_stats_none():
 
     backend.get_metric_statistics.return_value = None
 
-    console_stats = console.console_stats()
+    console_stats = console.console_stats("foo")
 
     metrics_string = console_stats("foo", "bar", backend)
 
@@ -47,7 +47,7 @@ def test_console_count():
 
     backend.get_metric_total.return_value = 60
 
-    console_count = console.console_count()
+    console_count = console.console_count("foo")
 
     metrics_string = console_count("foo", "bar", backend)
 
@@ -59,7 +59,7 @@ def test_console_count_none():
 
     backend.get_metric_total.return_value = None
 
-    console_count = console.console_count()
+    console_count = console.console_count("foo")
 
     metrics_string = console_count("foo", "bar", backend)
 
@@ -71,7 +71,7 @@ def test_console_latest():
 
     backend.get_last_metric.return_value = 1.2345
 
-    console_latest = console.console_latest()
+    console_latest = console.console_latest("foo")
 
     metrics_string = console_latest("foo", "bar", backend)
 
@@ -83,7 +83,7 @@ def test_console_latest_none():
 
     backend.get_last_metric.return_value = None
 
-    console_latest = console.console_latest()
+    console_latest = console.console_latest("foo")
 
     metrics_string = console_latest("foo", "bar", backend)
 
@@ -95,7 +95,7 @@ def test_console_percent():
 
     backend.get_metric_rate.return_value = 1.2345
 
-    console_percent = console.console_percent(1)
+    console_percent = console.console_percent("foo", 1)
 
     metrics_string = console_percent("foo", "bar", backend)
 
@@ -107,7 +107,7 @@ def test_console_percent_none():
 
     backend.get_metric_rate.return_value = None
 
-    console_percent = console.console_percent(1)
+    console_percent = console.console_percent("foo", 1)
 
     metrics_string = console_percent("foo", "bar", backend)
 

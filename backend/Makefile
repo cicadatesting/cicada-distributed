@@ -1,5 +1,6 @@
 .PHONY=build
 BACKEND_IMAGE_NAME=cicadatesting/cicada-distributed-backend
+VERSION=1.5.0
 
 build-bin:
 	env GOOS=darwin GOARCH=amd64 go build -o build/backend-darwin-amd64 github.com/cicadatesting/backend
@@ -11,6 +12,15 @@ build-bin:
 	env GOOS=windows GOARCH=amd64 go build -o build/backend-amd64.exe github.com/cicadatesting/backend
 
 
+upload-bin-local:
+	aws s3 cp build s3://releases.cicadatesting.io/latest-binaries --recursive
+
+upload-bin-dev:
+	aws s3 cp build s3://releases.cicadatesting.io/pre-release-binaries --recursive
+
+upload-bin:
+	aws s3 cp build s3://releases.cicadatesting.io/${VERSION}-binaries --recursive
+
 build-local:
 	docker build -t ${BACKEND_IMAGE_NAME}:latest .
 
@@ -18,7 +28,7 @@ build-dev:
 	docker build -t ${BACKEND_IMAGE_NAME}:pre-release .
 
 build:
-	docker build -t ${BACKEND_IMAGE_NAME}:1.5.0 .
+	docker build -t ${BACKEND_IMAGE_NAME}:${VERSION} .
 
 run-local:
 	docker run -d --rm -p 8283:8283 --network cicada-distributed-network ${BACKEND_IMAGE_NAME}:latest

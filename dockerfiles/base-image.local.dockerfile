@@ -10,7 +10,7 @@ RUN pip install -r requirements.txt
 # NOTE: comment/uncomment to install from pypi
 # RUN pip install -i https://test.pypi.org/simple/ cicadad
 
-COPY src/cicadad src/cicadad
+COPY cicadad cicadad
 COPY setup.cfg .
 COPY setup.py .
 

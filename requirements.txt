@@ -2,6 +2,7 @@ docker
 click
 pydantic
 grpcio
+requests
 protobuf
 blessed
 dask

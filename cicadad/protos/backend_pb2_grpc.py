@@ -40,6 +40,11 @@ class BackendStub(object):
                 request_serializer=cicadad_dot_protos_dot_backend__pb2.CleanTestInstancesRequest.SerializeToString,
                 response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
                 )
+        self.CheckTestInstance = channel.unary_unary(
+                '/backend.Backend/CheckTestInstance',
+                request_serializer=cicadad_dot_protos_dot_backend__pb2.CheckTestInstanceRequest.SerializeToString,
+                response_deserializer=cicadad_dot_protos_dot_backend__pb2.CheckTestInstanceResponse.FromString,
+                )
         self.AddTestEvent = channel.unary_unary(
                 '/backend.Backend/AddTestEvent',
                 request_serializer=cicadad_dot_protos_dot_backend__pb2.AddEventRequest.SerializeToString,
@@ -145,6 +150,12 @@ class BackendServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def CleanTestInstances(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def CheckTestInstance(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -267,6 +278,11 @@ def add_BackendServicer_to_server(servicer, server):
                     servicer.CleanTestInstances,
                     request_deserializer=cicadad_dot_protos_dot_backend__pb2.CleanTestInstancesRequest.FromString,
                     response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            ),
+            'CheckTestInstance': grpc.unary_unary_rpc_method_handler(
+                    servicer.CheckTestInstance,
+                    request_deserializer=cicadad_dot_protos_dot_backend__pb2.CheckTestInstanceRequest.FromString,
+                    response_serializer=cicadad_dot_protos_dot_backend__pb2.CheckTestInstanceResponse.SerializeToString,
             ),
             'AddTestEvent': grpc.unary_unary_rpc_method_handler(
                     servicer.AddTestEvent,
@@ -435,6 +451,23 @@ class Backend(object):
         return grpc.experimental.unary_unary(request, target, '/backend.Backend/CleanTestInstances',
             cicadad_dot_protos_dot_backend__pb2.CleanTestInstancesRequest.SerializeToString,
             google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def CheckTestInstance(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/backend.Backend/CheckTestInstance',
+            cicadad_dot_protos_dot_backend__pb2.CheckTestInstanceRequest.SerializeToString,
+            cicadad_dot_protos_dot_backend__pb2.CheckTestInstanceResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
