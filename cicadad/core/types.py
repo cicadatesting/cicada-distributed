@@ -15,7 +15,7 @@ class Result(BaseModel):
     exception: Optional[Any]
     logs: Optional[str]
     timestamp: Optional[datetime]
-    time_taken: Optional[int]
+    time_taken: Optional[float]
     succeeded: Optional[int]
     failed: Optional[int]
 
@@ -228,7 +228,7 @@ class IUserCommands(ABC):
 
     @abstractmethod
     def report_result(
-        self, output: Any, exception: Any, logs: Optional[str], time_taken: int
+        self, output: Any, exception: Any, logs: Optional[str], time_taken: float
     ):
         """Report result for scenario invocation from user to scenario.
 
@@ -236,7 +236,7 @@ class IUserCommands(ABC):
             output (Any): Function output
             exception (Any): Function exception
             logs (Optional[str]): Function logs
-            time_taken (int): Time taken in seconds to call function once
+            time_taken (float): Time taken in seconds to call function once
         """
         pass
 
@@ -269,7 +269,11 @@ class ICLIBackend(ABC):
 
     @abstractmethod
     def create_test(
-        self, scheduling_metadata: str, backend_address: str, tags: List[str]
+        self,
+        scheduling_metadata: str,
+        backend_address: str,
+        tags: List[str],
+        env: Dict[str, str],
     ) -> str:
         """Create a test instance.
 
@@ -398,6 +402,18 @@ class ITestBackend(ABC):
 
         Returns:
             IUserBackend: Backend for users
+        """
+        pass
+
+    @abstractmethod
+    def scenario_running(self, scenario_id: str) -> bool:
+        """Check if scenario is running
+
+        Args:
+            scenario_id (str): ID of scenario to check
+
+        Returns:
+            bool: Scenario is running or not
         """
         pass
 
@@ -559,6 +575,7 @@ class IUserManagerBackend(ABC):
 
 UserLoopFn = Callable[[IUserCommands, dict], None]
 LoadModelFn = Callable[[IScenarioCommands, dict], Any]
+# FEATURE: Give result aggregator access to metrics and num users for scenario
 ResultAggregatorFn = Callable[[Optional[Any], List[Result]], Any]
 ResultVerifierFn = Callable[[List[Result]], List[str]]
 OutputTransformerFn = Callable[[Optional[Any]], Any]

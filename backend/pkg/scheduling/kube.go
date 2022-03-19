@@ -27,7 +27,11 @@ func NewKubeScheduler(clientSet *kubernetes.Clientset) *KubeScheduler {
 	return &KubeScheduler{client: &client}
 }
 
-func (s *KubeScheduler) CreateTest(testID, backendAddress, schedulingMetadata string, tags []string) error {
+func (s *KubeScheduler) CreateTest(
+	testID, backendAddress, schedulingMetadata string,
+	tags []string,
+	env map[string]string,
+) error {
 	// load scheduling metadata
 	kubeSchedulingMetadata := KubeSchedulingMetadata{}
 
@@ -51,7 +55,7 @@ func (s *KubeScheduler) CreateTest(testID, backendAddress, schedulingMetadata st
 			"--backend-address",
 			backendAddress,
 		}, tagArg...),
-		map[string]string{},
+		env,
 		map[string]string{"type": "cicada-distributed-test", "test": testID},
 	)
 
@@ -69,6 +73,7 @@ func (s *KubeScheduler) CreateScenario(
 	backendAddress,
 	schedulingMetadata,
 	encodedContext string,
+	env map[string]string,
 ) error {
 	// load scheduling metadata
 	kubeSchedulingMetadata := KubeSchedulingMetadata{}
@@ -97,7 +102,7 @@ func (s *KubeScheduler) CreateScenario(
 			"--backend-address",
 			backendAddress,
 		},
-		map[string]string{},
+		env,
 		map[string]string{
 			"type":     "cicada-distributed-scenario",
 			"test":     testID,
@@ -115,6 +120,7 @@ func (s *KubeScheduler) CreateScenario(
 func (s *KubeScheduler) CreateUserManagers(
 	userManagerIDs []string,
 	testID, scenarioName, backendAddress, schedulingMetadata, encodedContext string,
+	env map[string]string,
 ) error {
 	// load scheduling metadata
 	kubeSchedulingMetadata := KubeSchedulingMetadata{}
@@ -141,7 +147,7 @@ func (s *KubeScheduler) CreateUserManagers(
 				"--encoded-context",
 				encodedContext,
 			},
-			map[string]string{},
+			env,
 			map[string]string{
 				"type":     "cicada-distributed-user",
 				"test":     testID,
@@ -195,6 +201,18 @@ func (s *KubeScheduler) CleanTestInstances(testID, schedulingMetadata string) er
 	}
 
 	return nil
+}
+
+func (s *KubeScheduler) CheckTestInstance(instanceID string, schedulingMetadata string) (bool, error) {
+	kubeSchedulingMetadata := KubeSchedulingMetadata{}
+
+	err := json.Unmarshal([]byte(schedulingMetadata), &kubeSchedulingMetadata)
+
+	if err != nil {
+		return false, fmt.Errorf("Error loading scheduling metadata: %v", err)
+	}
+
+	return s.client.jobIsRunning(kubeSchedulingMetadata.Namespace, instanceID), nil
 }
 
 func convertEnv(env map[string]string) []coreV1.EnvVar {

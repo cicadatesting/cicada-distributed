@@ -41,6 +41,8 @@ class ScenarioCommands(IScenarioCommands):
         self.__scenario_id = scenario_id
 
         # FEATURE: get number of healthy users in scenario, healthy users per group
+        # have method in IScenarioBackend to get num actual users, num user managers
+        # See if it can replace __num_users counter
         self.__num_users = 0
         self.__num_results_collected = 0
         self.__aggregated_results = None
@@ -207,7 +209,7 @@ class UserCommands(IUserCommands):
         return output, exception, buffer.getvalue()
 
     def report_result(
-        self, output: Any, exception: Any, logs: Optional[str], time_taken: int
+        self, output: Any, exception: Any, logs: Optional[str], time_taken: float
     ):
         result = Result(
             id=str(uuid.uuid4()),

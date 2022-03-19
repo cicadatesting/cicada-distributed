@@ -1,6 +1,7 @@
 from datetime import datetime
 from unittest.mock import Mock, patch
 from cicadad.core import runners
+from cicadad.core.scenario import Scenario
 
 
 def test_filter_scenarios():
@@ -21,9 +22,9 @@ def test_filter_scenarios_empty():
 
 
 def test_test_runner():
-    s1 = Mock()
-    s2 = Mock()
-    s3 = Mock()
+    s1 = Scenario(name="s1", fn=Mock())
+    s2 = Scenario(name="s2", fn=Mock(), timeout=3)
+    s3 = Scenario(name="s3", fn=Mock())
 
     cmd_foo = Mock()
 

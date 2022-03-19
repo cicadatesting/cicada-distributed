@@ -5,22 +5,23 @@ CICADA_VERSION=1.5.0
 
 build-bin:
 	cd backend && make build-bin
-	cp backend/build/* src/cicadad/backend
+	cp backend/build/* cicadad/backend
 
 # NOTE: may need to use sudo
 # NOTE: may be helpful to run make clean
-package: build-bin
+package:
 	python3 setup.py sdist bdist_wheel
 
 upload-dev:
 	python3 -m twine upload --repository testpypi dist/*
 
 # NOTE: may need to use sudo
+# NOTE: Bug with pyproject.toml: https://github.com/pypa/setuptools/issues/2816
 install-local:
-	python3 -m pip install -e .
+	python3 -m pip install .
 
 install-dev-dependencies:
-	pip install -r requirements.txt
+	python3 -m pip install -r requirements.txt
 
 # NOTE: may need to use sudo
 install-dev-local:
@@ -31,7 +32,7 @@ install-dev-remote: install-dev-dependencies
 
 # NOTE: may need to use sudo
 uninstall:
-	python3 -m pip uninstall cicadad
+	python3 -m pip uninstall cicadad --no-cache-dir
 
 build-base-local:
 	docker build -f dockerfiles/base-image.local.dockerfile -t ${BASE_IMAGE_NAME}:latest .
@@ -71,13 +72,19 @@ teardown-cluster:
 	k3d cluster delete
 
 clean:
-	rm -r dist
-	rm -r build
-	rm -r src/cicadad.egg-info
+	rm -rf cicadad.egg-info
+	rm -rf pip-wheel-metadata
+	rm -rf dist
+	rm -rf build
+	rm -rf *dask-worker-space
+	rm -rf *.mypy_cache
+	rm -rf *.pytest_cache
+	rm -rf *__pycache__
+
 
 # NOTE: requires `pip install grpcio-tools`
 proto-compile:
-	cd src && python3 -m grpc_tools.protoc -I . \
+	python3 -m grpc_tools.protoc -I . \
 		--python_out=. \
 		--grpc_python_out=. \
 		cicadad/protos/*.proto

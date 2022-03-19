@@ -1,6 +1,6 @@
-include src/cicadad/templates/Dockerfile
-include src/cicadad/templates/dev.dockerfile
-include src/cicadad/templates/redis.yaml
-include src/cicadad/templates/backend.yaml
-include src/cicadad/templates/job.yaml
-include src/cicadad/backend/*
+include cicadad/templates/Dockerfile
+include cicadad/templates/dev.dockerfile
+include cicadad/templates/redis.yaml
+include cicadad/templates/backend.yaml
+include cicadad/templates/job.yaml
+include cicadad/backend/*

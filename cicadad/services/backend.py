@@ -29,10 +29,16 @@ class CLIBackend(ICLIBackend):
         self.__address = address
 
     def create_test(
-        self, scheduling_metadata: str, backend_address: str, tags: List[str]
+        self,
+        scheduling_metadata: str,
+        backend_address: str,
+        tags: List[str],
+        env: Dict[str, str],
     ) -> str:
         # NOTE: backend address in instance may be different from outside instance on CLI
-        return _create_test(scheduling_metadata, tags, backend_address, self.__address)
+        return _create_test(
+            scheduling_metadata, tags, env, backend_address, self.__address
+        )
 
     def get_test_events(self, test_id: str) -> List[TestEvent]:
         return _get_test_events(test_id, self.__address)
@@ -187,7 +193,6 @@ class UserManagerBackend(IUserManagerBackend):
         )
 
     def send_user_results(self):
-        # TODO: error handling for sending results -> shutdown program if this fails
         self.__buffer.send_user_results().result()
 
 
@@ -310,10 +315,14 @@ class TestBackend(ITestBackend):
     def get_console_metrics_backend(self) -> IConsoleMetricsBackend:
         return ConsoleMetricsBackend(self.__address)
 
+    def scenario_running(self, scenario_id: str) -> bool:
+        return _check_test_instance(self.__test_id, scenario_id, self.__address)
+
 
 def _create_test(
     scheduling_metadata: str,
     tags: List[str],
+    env: Dict[str, str],
     backend_address: str,
     address: str = DEFAULT_BACKEND_ADDRESS,
 ) -> str:
@@ -323,6 +332,7 @@ def _create_test(
             backendAddress=backend_address,
             schedulingMetadata=scheduling_metadata,
             tags=tags,
+            env=env,
         )
 
         response = stub.CreateTest(request)
@@ -388,6 +398,20 @@ def _clean_test_instances(test_id: str, address: str = DEFAULT_BACKEND_ADDRESS):
         request = backend_pb2.CleanTestInstancesRequest(testID=test_id)
 
         stub.CleanTestInstances(request)
+
+
+def _check_test_instance(
+    test_id: str, instance_id: str, address: str = DEFAULT_BACKEND_ADDRESS
+):
+    with grpc.insecure_channel(address, compression=grpc.Compression.Gzip) as channel:
+        stub = backend_pb2_grpc.BackendStub(channel)
+        request = backend_pb2.CheckTestInstanceRequest(
+            testID=test_id, instanceID=instance_id
+        )
+
+        response = stub.CheckTestInstance(request)
+
+        return response.running
 
 
 def _add_test_event(

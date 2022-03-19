@@ -24,6 +24,7 @@ type BackendClient interface {
 	CreateUsers(ctx context.Context, in *CreateUsersRequest, opts ...grpc.CallOption) (*CreateUsersResponse, error)
 	StopUsers(ctx context.Context, in *StopUsersRequest, opts ...grpc.CallOption) (*empty.Empty, error)
 	CleanTestInstances(ctx context.Context, in *CleanTestInstancesRequest, opts ...grpc.CallOption) (*empty.Empty, error)
+	CheckTestInstance(ctx context.Context, in *CheckTestInstanceRequest, opts ...grpc.CallOption) (*CheckTestInstanceResponse, error)
 	AddTestEvent(ctx context.Context, in *AddEventRequest, opts ...grpc.CallOption) (*empty.Empty, error)
 	GetTestEvents(ctx context.Context, in *GetEventsRequest, opts ...grpc.CallOption) (*Events, error)
 	AddUserResults(ctx context.Context, in *AddUserResultsRequest, opts ...grpc.CallOption) (*empty.Empty, error)
@@ -88,6 +89,15 @@ func (c *backendClient) StopUsers(ctx context.Context, in *StopUsersRequest, opt
 func (c *backendClient) CleanTestInstances(ctx context.Context, in *CleanTestInstancesRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
 	out := new(empty.Empty)
 	err := c.cc.Invoke(ctx, "/backend.Backend/CleanTestInstances", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *backendClient) CheckTestInstance(ctx context.Context, in *CheckTestInstanceRequest, opts ...grpc.CallOption) (*CheckTestInstanceResponse, error) {
+	out := new(CheckTestInstanceResponse)
+	err := c.cc.Invoke(ctx, "/backend.Backend/CheckTestInstance", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -238,6 +248,7 @@ type BackendServer interface {
 	CreateUsers(context.Context, *CreateUsersRequest) (*CreateUsersResponse, error)
 	StopUsers(context.Context, *StopUsersRequest) (*empty.Empty, error)
 	CleanTestInstances(context.Context, *CleanTestInstancesRequest) (*empty.Empty, error)
+	CheckTestInstance(context.Context, *CheckTestInstanceRequest) (*CheckTestInstanceResponse, error)
 	AddTestEvent(context.Context, *AddEventRequest) (*empty.Empty, error)
 	GetTestEvents(context.Context, *GetEventsRequest) (*Events, error)
 	AddUserResults(context.Context, *AddUserResultsRequest) (*empty.Empty, error)
@@ -274,6 +285,9 @@ func (UnimplementedBackendServer) StopUsers(context.Context, *StopUsersRequest) 
 }
 func (UnimplementedBackendServer) CleanTestInstances(context.Context, *CleanTestInstancesRequest) (*empty.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CleanTestInstances not implemented")
+}
+func (UnimplementedBackendServer) CheckTestInstance(context.Context, *CheckTestInstanceRequest) (*CheckTestInstanceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CheckTestInstance not implemented")
 }
 func (UnimplementedBackendServer) AddTestEvent(context.Context, *AddEventRequest) (*empty.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AddTestEvent not implemented")
@@ -419,6 +433,24 @@ func _Backend_CleanTestInstances_Handler(srv interface{}, ctx context.Context, d
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(BackendServer).CleanTestInstances(ctx, req.(*CleanTestInstancesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Backend_CheckTestInstance_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CheckTestInstanceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BackendServer).CheckTestInstance(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/backend.Backend/CheckTestInstance",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BackendServer).CheckTestInstance(ctx, req.(*CheckTestInstanceRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -719,6 +751,10 @@ var Backend_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CleanTestInstances",
 			Handler:    _Backend_CleanTestInstances_Handler,
+		},
+		{
+			MethodName: "CheckTestInstance",
+			Handler:    _Backend_CheckTestInstance_Handler,
 		},
 		{
 			MethodName: "AddTestEvent",

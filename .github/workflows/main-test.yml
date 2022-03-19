@@ -22,6 +22,17 @@ jobs:
         uses: actions/setup-go@v1
         with:
           go-version: '1.17.6'
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-region: us-east-2
+          role-to-assume: arn:aws:iam::939879343571:role/github
+          role-session-name: PushBinariesSession
+      - name: Push Binaries
+        run: |
+          cd backend
+          make build-bin
+          make upload-bin-local
       - name: Install dependencies
         run: |
           python3 -m pip install --upgrade build wheel
@@ -35,6 +46,7 @@ jobs:
         run: |
           cd integration-test
           ls
+          ENV=local cicada-distributed --debug start-cluster --mode LOCAL
           ENV=local cicada-distributed --debug run -t run --log-path logs --no-exit-unsuccessful
   smoke-test-docker:
     runs-on: ubuntu-latest
