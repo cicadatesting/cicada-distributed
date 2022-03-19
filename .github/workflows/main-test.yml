@@ -27,7 +27,6 @@ jobs:
         with:
           aws-region: us-east-2
           role-to-assume: arn:aws:iam::939879343571:role/github
-          role-session-name: PushBinariesSession
       - name: Push Binaries
         run: |
           cd backend
