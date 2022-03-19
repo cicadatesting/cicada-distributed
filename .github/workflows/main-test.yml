@@ -48,7 +48,7 @@ jobs:
         run: |
           cd integration-test
           ls
-          ENV=local sudo cicada-distributed --debug start-cluster --mode LOCAL
+          sudo ENV=local cicada-distributed --debug start-cluster --mode LOCAL
           ENV=local cicada-distributed --debug run -t run --log-path logs --no-exit-unsuccessful
   smoke-test-docker:
     runs-on: ubuntu-latest
