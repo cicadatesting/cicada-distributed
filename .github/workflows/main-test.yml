@@ -23,7 +23,7 @@ jobs:
         with:
           go-version: '1.17.6'
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@master
         with:
           aws-region: us-east-2
           role-to-assume: arn:aws:iam::939879343571:role/github
