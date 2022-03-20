@@ -39,12 +39,11 @@ jobs:
         run: |
           python3 -m pip install --upgrade build wheel
           python3 -m pip install --user --upgrade twine
-          make install-dev-dependencies
+          sudo make install-dev-dependencies
       - name: build-library
         run: |
-          make package
+          sudo make package
           sudo make install-dev-local
-          pip freeze
       - name: run-smoke-test
         run: |
           cd integration-test
