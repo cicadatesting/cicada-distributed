@@ -1,5 +1,6 @@
 docker
 click
+configobj
 pydantic
 grpcio
 requests

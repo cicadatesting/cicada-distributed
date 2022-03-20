@@ -44,6 +44,7 @@ jobs:
         run: |
           make package
           sudo make install-dev-local
+          pip freeze
       - name: run-smoke-test
         run: |
           cd integration-test
