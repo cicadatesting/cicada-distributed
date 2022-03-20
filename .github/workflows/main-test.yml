@@ -44,7 +44,6 @@ jobs:
         run: |
           make package
           make install-dev-local
-          chmod +x cicada-distributed
       - name: run-smoke-test
         run: |
           cd integration-test
