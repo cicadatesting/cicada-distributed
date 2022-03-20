@@ -39,17 +39,17 @@ jobs:
         run: |
           python3 -m pip install --upgrade build wheel
           python3 -m pip install --user --upgrade twine
-          sudo make install-dev-dependencies
+          make install-dev-dependencies
       - name: build-library
         run: |
-          sudo make package
-          sudo make install-dev-local
+          make package
+          make install-dev-local
       - name: run-smoke-test
         run: |
           cd integration-test
           ls
-          sudo ENV=local cicada-distributed --debug start-cluster --mode LOCAL
-          ENV=local cicada-distributed --debug run -t run --log-path logs --no-exit-unsuccessful
+          ENV=local cicada-distributed --debug start-cluster --mode LOCAL --install-location /tmp
+          ENV=local cicada-distributed --debug run -t run --log-path logs --no-exit-unsuccessful --backend-location /tmp
   smoke-test-docker:
     runs-on: ubuntu-latest
     steps:

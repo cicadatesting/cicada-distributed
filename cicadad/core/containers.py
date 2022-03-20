@@ -472,17 +472,20 @@ def local_backend_name(os_name: str, arch: str) -> Optional[str]:
     return binary_name
 
 
-def build_backend_command(binary_name: str, os_name: str) -> List[str]:
+def build_backend_command(
+    backend_location: str, binary_name: str, os_name: str
+) -> List[str]:
     """Build command to run binary locally.
 
     Args:
+        backend_location (str): Location backend binaries were installed to
         binary_name (str): Name of binary determined
         os_name (str): Name of system operating system (linux, darwin, windows)
 
     Returns:
         Optional[List[str]]: Command to run backend binary locally
     """
-    binary_path = os.path.join(os.path.dirname(backend_module.__file__), binary_name)
+    binary_path = os.path.join(backend_location, binary_name)
 
     if os_name == "windows":
         return [
@@ -494,14 +497,18 @@ def build_backend_command(binary_name: str, os_name: str) -> List[str]:
         return [binary_path]
 
 
-def start_local_backend(debug: bool):
+def start_local_backend(backend_location: str, debug: bool):
     """Start local backend process.
+
+    Args:
+        backend_location (str): Location backend binaries were installed to
+        debug (bool): Enable debug logs on backend
 
     Raises:
         ValueError: No backend distribution found to start.
 
     Returns:
-        [type]: [description]
+        Process: backend subprocess
     """
     # determine os and architecture
     os_name = platform.system().lower()
@@ -512,7 +519,7 @@ def start_local_backend(debug: bool):
     if binary_name is None:
         raise ValueError(f"No backend distribution found for {arch} + {os_name}")
 
-    command = build_backend_command(binary_name, arch)
+    command = build_backend_command(backend_location, binary_name, arch)
 
     # start process
     return subprocess.Popen(
@@ -520,7 +527,12 @@ def start_local_backend(debug: bool):
     )  # nosec
 
 
-def download_local_backend():
+def download_local_backend(install_location: str):
+    """Download local backend files
+
+    Args:
+        install_location (str): path to install backend files to
+    """
     # determine backend name, which version to download
     os_name = platform.system().lower()
     arch = platform.machine()
@@ -534,7 +546,7 @@ def download_local_backend():
     else:
         release_folder = f"{CICADA_VERSION}-binaries"
 
-    local_filename = os.path.join(os.path.dirname(backend_module.__file__), binary_name)
+    local_filename = os.path.join(install_location, binary_name)
 
     with requests.get(
         f"http://releases.cicadatesting.io/{release_folder}/{binary_name}", stream=True

@@ -20,6 +20,7 @@ from cicadad.util.console import LivePanel, MetricDisplay, MetricsPanel, TasksPa
 from cicadad.core import containers
 from cicadad.util import constants
 from cicadad import templates as templates_module
+from cicadad import backend as backend_module
 
 
 @click.group()
@@ -87,7 +88,12 @@ def init(ctx, build_path):
 @click.option(
     "--mode", default=constants.DOCKER_SCHEDULING_MODE, help="DOCKER, KUBE, or LOCAL"
 )
-def start_cluster(ctx, network, create_network, mode):
+@click.option(
+    "--install-location",
+    default=os.path.dirname(backend_module.__file__),
+    help="Path to install backend binaries to",
+)
+def start_cluster(ctx, network, create_network, mode, install_location):
     """Setup backend
 
     \b
@@ -99,7 +105,7 @@ def start_cluster(ctx, network, create_network, mode):
         if ctx.obj["DEBUG"]:
             click.echo("Downloading Local Backend")
 
-        containers.download_local_backend()
+        containers.download_local_backend(install_location)
     elif mode == constants.KUBE_SCHEDULING_MODE:
         click.echo(containers.make_concatenated_kube_templates())
     elif mode == constants.DOCKER_SCHEDULING_MODE:
@@ -202,6 +208,11 @@ def stop_cluster(ctx):
 )
 @click.option("--backend-address", type=str, default="localhost:8283")
 @click.option(
+    "--backend-location",
+    default=os.path.dirname(backend_module.__file__),
+    help="Path local backend binaries were installed to",
+)
+@click.option(
     "--test-timeout",
     type=int,
     default=None,
@@ -227,6 +238,7 @@ def run(
     build_path,
     dockerfile,
     network,
+    backend_location,
     tag,
     env,
     env_file,
@@ -249,7 +261,9 @@ def run(
             raise ValueError(f"Test file not found: {test_file}")
 
         image_id = os.path.abspath(test_file)
-        local_backend = containers.start_local_backend(ctx.obj["DEBUG"])
+        local_backend = containers.start_local_backend(
+            backend_location, ctx.obj["DEBUG"]
+        )
 
         if ctx.obj["DEBUG"]:
             click.echo(f"Started local backend: {local_backend.pid}")
