@@ -12,7 +12,7 @@ func NewBackend(datastore Datastore, scheduler Scheduler) *Backend {
 }
 
 type Datastore interface {
-	CreateTest(backendAddress, schedulingMetadata string, tags []string) (string, error)
+	CreateTest(backendAddress, schedulingMetadata string, tags []string, env map[string]string) (string, error)
 	GetTest(testID string) (*Test, error)
 	CreateScenario(testID, scenarioName, context string, usersPerInstance int, tags []string) (string, error)
 	GetScenario(scenarioID string) (*Scenario, error)
@@ -44,7 +44,7 @@ type Datastore interface {
 }
 
 type Scheduler interface {
-	CreateTest(testID, backendAddress, schedulingMetadata string, tags []string) error
+	CreateTest(testID, backendAddress, schedulingMetadata string, tags []string, env map[string]string) error
 	CreateScenario(
 		testID,
 		scenarioID,
@@ -52,13 +52,16 @@ type Scheduler interface {
 		backendAddress,
 		schedulingMetadata,
 		encodedContext string,
+		env map[string]string,
 	) error
 	CreateUserManagers(
 		userManagerIDs []string,
 		testID, scenarioName, backendAddress, schedulingMetadata, encodedContext string,
+		env map[string]string,
 	) error
 	StopUserManagers(userManagerIDs []string, schedulingMetadata string) error
 	CleanTestInstances(testID, schedulingMetadata string) error
+	CheckTestInstance(instanceID, schedulingMetadata string) (bool, error)
 }
 
 type Test struct {
@@ -66,6 +69,7 @@ type Test struct {
 	BackendAddress     string
 	SchedulingMetadata string
 	Tags               []string
+	Env                map[string]string
 }
 
 type Scenario struct {
@@ -101,14 +105,14 @@ type MetricStatistics struct {
 	Len     int64
 }
 
-func (b *Backend) CreateTest(backendAddress, schedulingMetadata string, tags []string) (string, error) {
-	testID, err := b.datastore.CreateTest(backendAddress, schedulingMetadata, tags)
+func (b *Backend) CreateTest(backendAddress, schedulingMetadata string, tags []string, env map[string]string) (string, error) {
+	testID, err := b.datastore.CreateTest(backendAddress, schedulingMetadata, tags, env)
 
 	if err != nil {
 		return "", fmt.Errorf("Error creating test: %v", err)
 	}
 
-	err = b.scheduler.CreateTest(testID, backendAddress, schedulingMetadata, tags)
+	err = b.scheduler.CreateTest(testID, backendAddress, schedulingMetadata, tags, env)
 
 	if err != nil {
 		return "", fmt.Errorf("Error starting test: %v", err)
@@ -143,6 +147,7 @@ func (b *Backend) CreateScenario(
 		test.BackendAddress,
 		test.SchedulingMetadata,
 		context,
+		test.Env,
 	)
 
 	if err != nil {
@@ -178,6 +183,7 @@ func (b *Backend) CreateUsers(scenarioID string, testID string, amount int) ([]s
 		test.BackendAddress,
 		test.SchedulingMetadata,
 		scenario.Context,
+		test.Env,
 	)
 
 	if err != nil {
@@ -229,6 +235,22 @@ func (b *Backend) CleanTestInstances(testID string) error {
 	}
 
 	return nil
+}
+
+func (b *Backend) CheckTestInstance(testID, instanceID string) (bool, error) {
+	test, err := b.datastore.GetTest(testID)
+
+	if err != nil {
+		return false, fmt.Errorf("Error getting test: %v", err)
+	}
+
+	running, err := b.scheduler.CheckTestInstance(instanceID, test.SchedulingMetadata)
+
+	if err != nil {
+		return false, fmt.Errorf("Error checking test instance: %v", err)
+	}
+
+	return running, nil
 }
 
 func (b *Backend) AddTestEvent(testID, kind string, payload []byte) error {
@@ -296,5 +318,11 @@ func (b *Backend) GetMetricTotal(scenarioID, name string) (float64, error) {
 }
 
 func (b *Backend) GetRate(scenarioID, name string, splitPoint float64) (float64, error) {
-	return b.datastore.GetRate(scenarioID, name, splitPoint)
+	rate, err := b.datastore.GetRate(scenarioID, name, splitPoint)
+
+	if err != nil {
+		return 0, err
+	}
+
+	return rate * 100, nil
 }

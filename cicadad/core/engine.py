@@ -1,9 +1,11 @@
-from typing import Dict, List
+import traceback
+from typing import Dict, List, Optional
 import atexit
 
 from distributed.client import Client, fire_and_forget  # type: ignore
 import click
 
+from cicadad.core.types import TestEvent, TestStatus
 from cicadad.core.scenario import Scenario
 from cicadad.core.runners import scenario_runner, test_runner, user_scheduler
 from cicadad.services.backend import (
@@ -23,6 +25,8 @@ class Engine:
     def __init__(self) -> None:
         """Entrypoint for Cicada tests. Links tests to Cicada infrastructure"""
         self.scenarios: Dict[str, Scenario] = {}
+        self.test_id: Optional[str] = None
+        self.backend_address: Optional[str] = None
 
     def add_scenario(self, scenario: Scenario):
         """Add a scenario to the engine
@@ -35,8 +39,29 @@ class Engine:
     def start(self):
         """Called internally when test container is started to parse args"""
         # read sys.argv and start scenario or user (Already in container)
-        # FEATURE: try catch wrap, signal CLI if failures and log error
-        engine_cli(obj=self)
+        try:
+            engine_cli(obj=self)
+        except Exception as e:
+            # NOTE: logger message format?
+            print("An unexpected error occured while running the test:", e)
+            traceback.print_tb(e.__traceback__)
+
+            if self.test_id is not None and self.backend_address is not None:
+                backend = TestBackend(
+                    test_id=self.test_id, address=self.backend_address
+                )
+
+                backend.add_test_event(
+                    event=TestEvent(
+                        kind="TEST_ERRORED",
+                        payload=TestStatus(
+                            message=(
+                                f"Unexpected error while running test: {str(e)} :: "
+                                "Check process logs for more details"
+                            ),
+                        ),
+                    ),
+                )
 
     def run_test(
         self,
@@ -121,13 +146,7 @@ class Engine:
 
         buffer = buffer_fut.result()
 
-        # create task to periodically flush results
-        # send_results_interval_fut = client.submit(
-        #     send_user_results_interval, buffer=buffer, period=ONE_SEC_MS
-        # )
-
         fire_and_forget(buffer_fut)
-        # fire_and_forget(send_results_interval_fut)
 
         backend = UserManagerBackend(
             user_manager_id=user_manager_id,
@@ -135,7 +154,7 @@ class Engine:
             address=backend_address,
         )
 
-        atexit.register(lambda: backend.send_user_results().result())
+        atexit.register(lambda: backend.send_user_results())
 
         user_scheduler(
             client,
@@ -163,6 +182,9 @@ def run_test(
     backend_address,
 ):
     engine: Engine = ctx.obj
+
+    engine.test_id = test_id
+    engine.backend_address = backend_address
 
     engine.run_test(tags=tag, test_id=test_id, backend_address=backend_address)
 

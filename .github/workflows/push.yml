@@ -24,13 +24,14 @@ jobs:
           make install-local
       - name: Securtity
         run: |
-          bandit src/cicadad -r -c bandit.yaml
+          bandit cicadad -r -c bandit.yaml
       - name: Types
         run: |
-          mypy src/cicadad
+          python3 -m pip install types-requests types-protobuf
+          mypy cicadad
       - name: Lint
         run: |
-          flake8 src/cicadad
+          flake8 cicadad
   unit-test:
     runs-on: ubuntu-latest
     steps:
@@ -50,7 +51,7 @@ jobs:
           make install-local
       - name: Unit Test
         run: |
-          pytest src/tests
+          pytest tests
   unit-test-backend:
     runs-on: ubuntu-latest
     steps:

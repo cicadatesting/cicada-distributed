@@ -164,7 +164,11 @@ func (datastore *MemoryDatastore) getUserIDs(scenarioID, userManagerID string) (
 	return userIDs, nil
 }
 
-func (datastore *MemoryDatastore) CreateTest(backendAddress, schedulingMetadata string, tags []string) (string, error) {
+func (datastore *MemoryDatastore) CreateTest(
+	backendAddress, schedulingMetadata string,
+	tags []string,
+	env map[string]string,
+) (string, error) {
 	testID := fmt.Sprintf("cicada-test-%s", uuid.NewString()[:8])
 
 	test := application.Test{
@@ -172,6 +176,7 @@ func (datastore *MemoryDatastore) CreateTest(backendAddress, schedulingMetadata 
 		BackendAddress:     backendAddress,
 		SchedulingMetadata: schedulingMetadata,
 		Tags:               tags,
+		Env:                env,
 	}
 
 	b, err := msgpack.Marshal(&test)
@@ -310,7 +315,7 @@ func (datastore *MemoryDatastore) CreateUsers(scenarioID string, amount int) ([]
 			availableUsers--
 		}
 
-		b, err := msgpack.Marshal(scenario)
+		b, err := msgpack.Marshal(userIDs)
 
 		if err != nil {
 			return nil, fmt.Errorf("Error marshalling user ids: %v", err)

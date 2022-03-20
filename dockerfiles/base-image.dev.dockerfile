@@ -9,7 +9,7 @@ RUN pip install --user --upgrade setuptools wheel
 
 COPY dist dist
 COPY build build
-# COPY src/cicadad.egg-info src/cicadad-egg-info
+# COPY cicadad.egg-info cicadad-egg-info
 COPY setup.py .
 # COPY setup.cfg .
 # COPY pyproject.toml .

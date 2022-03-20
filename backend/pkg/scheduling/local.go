@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
 
 	"github.com/sirupsen/logrus"
 )
@@ -29,7 +30,11 @@ func (ls *LocalScheduler) Teardown() error {
 	return ls.client.teardown()
 }
 
-func (ls *LocalScheduler) CreateTest(testID, backendAddress, schedulingMetadata string, tags []string) error {
+func (ls *LocalScheduler) CreateTest(
+	testID, backendAddress, schedulingMetadata string,
+	tags []string,
+	env map[string]string,
+) error {
 	localSchedulingMetadata := LocalSchedulingMetadata{}
 
 	err := json.Unmarshal([]byte(schedulingMetadata), &localSchedulingMetadata)
@@ -53,7 +58,7 @@ func (ls *LocalScheduler) CreateTest(testID, backendAddress, schedulingMetadata 
 			"--backend-address",
 			backendAddress,
 		}, tagArg...),
-		map[string]string{},
+		env,
 	)
 
 	if err != nil {
@@ -70,6 +75,7 @@ func (ls *LocalScheduler) CreateScenario(
 	backendAddress,
 	schedulingMetadata,
 	encodedContext string,
+	env map[string]string,
 ) error {
 	localSchedulingMetadata := LocalSchedulingMetadata{}
 
@@ -98,7 +104,7 @@ func (ls *LocalScheduler) CreateScenario(
 			"--backend-address",
 			backendAddress,
 		},
-		map[string]string{},
+		env,
 	)
 
 	if err != nil {
@@ -111,6 +117,7 @@ func (ls *LocalScheduler) CreateScenario(
 func (ls *LocalScheduler) CreateUserManagers(
 	userManagerIDs []string,
 	testID, scenarioName, backendAddress, schedulingMetadata, encodedContext string,
+	env map[string]string,
 ) error {
 	localSchedulingMetadata := LocalSchedulingMetadata{}
 
@@ -138,7 +145,7 @@ func (ls *LocalScheduler) CreateUserManagers(
 				"--encoded-context",
 				encodedContext,
 			},
-			map[string]string{},
+			env,
 		)
 
 		if err != nil {
@@ -168,7 +175,13 @@ func (ls *LocalScheduler) CleanTestInstances(testID, schedulingMetadata string) 
 		return fmt.Errorf("Error stopping test instances: %v", err)
 	}
 
+	// TODO: clean scenarios and managers under test
+
 	return nil
+}
+
+func (ls *LocalScheduler) CheckTestInstance(instanceID string, schedulingMetadata string) (bool, error) {
+	return ls.client.checkTestProcess(instanceID), nil
 }
 
 type execClient struct {
@@ -306,4 +319,26 @@ func (ec *execClient) stopTestProcess(name string) error {
 	}
 
 	return nil
+}
+
+func (ec *execClient) checkTestProcess(name string) bool {
+	cmd, hasCmd := ec.processes[name]
+
+	if !hasCmd {
+		return false
+	}
+
+	process, err := os.FindProcess(cmd.Process.Pid)
+
+	if err != nil {
+		return false
+	}
+
+	err = process.Signal(syscall.Signal(0))
+
+	if err != nil {
+		return false
+	}
+
+	return true
 }

@@ -12,6 +12,7 @@ service Backend {
     rpc CreateUsers(CreateUsersRequest) returns (CreateUsersResponse);
     rpc StopUsers(StopUsersRequest) returns (google.protobuf.Empty);
     rpc CleanTestInstances(CleanTestInstancesRequest) returns (google.protobuf.Empty);
+    rpc CheckTestInstance(CheckTestInstanceRequest) returns (CheckTestInstanceResponse);
     rpc AddTestEvent (AddEventRequest) returns (google.protobuf.Empty);
     rpc GetTestEvents (GetEventsRequest) returns (Events);
     rpc AddUserResults (AddUserResultsRequest) returns (google.protobuf.Empty);
@@ -33,6 +34,7 @@ message CreateTestRequest {
     string backendAddress = 1;
     string schedulingMetadata = 2;
     repeated string tags = 3; // tags applied to filter scenario
+    map<string, string> env = 4;
 }
 
 message CreateTestResponse {
@@ -66,6 +68,15 @@ message StopUsersRequest {
 
 message CleanTestInstancesRequest {
     string testID = 1;
+}
+
+message CheckTestInstanceRequest {
+    string testID = 1;
+    string instanceID = 2;
+}
+
+message CheckTestInstanceResponse {
+    bool running = 1;
 }
 
 message CreateUsersResponse {

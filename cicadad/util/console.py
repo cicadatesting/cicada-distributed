@@ -87,6 +87,10 @@ class MetricsPanel(object):
 
         display.update_metrics(metrics)
 
+    def remove_metric(self, scenario: str):
+        if scenario in self.displays:
+            del self.displays[scenario]
+
     def get_renderable(self):
         if self.displays == {}:
             return None
@@ -113,7 +117,9 @@ class LivePanel(object):
         metrics_panel_rendered = self.metrics_panel.get_renderable()
 
         if tasks_panel_rendered is None and metrics_panel_rendered is None:
-            return Align(Text(f"Started Test: {self.test_name}"), align="center")
+            return Align(
+                Text(f"Waiting for test to start... ({self.test_name})"), align="center"
+            )
 
         layout = Layout()
 

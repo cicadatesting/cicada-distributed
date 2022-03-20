@@ -21,12 +21,50 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=b'Z$github.com/cicadatesting/backend/api',
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\x1c\x63icadad/protos/backend.proto\x12\x07\x62\x61\x63kend\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1egoogle/protobuf/wrappers.proto\"U\n\x11\x43reateTestRequest\x12\x16\n\x0e\x62\x61\x63kendAddress\x18\x01 \x01(\t\x12\x1a\n\x12schedulingMetadata\x18\x02 \x01(\t\x12\x0c\n\x04tags\x18\x03 \x03(\t\"$\n\x12\x43reateTestResponse\x12\x0e\n\x06testID\x18\x01 \x01(\t\"v\n\x15\x43reateScenarioRequest\x12\x0e\n\x06testID\x18\x01 \x01(\t\x12\x14\n\x0cscenarioName\x18\x02 \x01(\t\x12\x0f\n\x07\x63ontext\x18\x03 \x01(\t\x12\x18\n\x10usersPerInstance\x18\x04 \x01(\x05\x12\x0c\n\x04tags\x18\x05 \x03(\t\",\n\x16\x43reateScenarioResponse\x12\x12\n\nscenarioID\x18\x01 \x01(\t\"H\n\x12\x43reateUsersRequest\x12\x12\n\nscenarioID\x18\x01 \x01(\t\x12\x0e\n\x06testID\x18\x02 \x01(\t\x12\x0e\n\x06\x61mount\x18\x03 \x01(\x05\"6\n\x10StopUsersRequest\x12\x12\n\nscenarioID\x18\x01 \x01(\t\x12\x0e\n\x06\x61mount\x18\x02 \x01(\x05\"+\n\x19\x43leanTestInstancesRequest\x12\x0e\n\x06testID\x18\x01 \x01(\t\"-\n\x13\x43reateUsersResponse\x12\x16\n\x0euserManagerIDs\x18\x01 \x03(\t\"&\n\x05\x45vent\x12\x0c\n\x04kind\x18\x01 \x01(\t\x12\x0f\n\x07payload\x18\x02 \x01(\x0c\"<\n\x0f\x41\x64\x64\x45ventRequest\x12\n\n\x02id\x18\x01 \x01(\t\x12\x1d\n\x05\x65vent\x18\x02 \x01(\x0b\x32\x0e.backend.Event\",\n\x10GetEventsRequest\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0c\n\x04kind\x18\x02 \x01(\t\"(\n\x06\x45vents\x12\x1e\n\x06\x65vents\x18\x01 \x03(\x0b\x32\x0e.backend.Event\"?\n\x15\x41\x64\x64UserResultsRequest\x12\x15\n\ruserManagerID\x18\x01 \x01(\t\x12\x0f\n\x07results\x18\x02 \x03(\x0c\"\xd1\x01\n\x18SetScenarioResultRequest\x12\x12\n\nscenarioID\x18\x01 \x01(\t\x12,\n\x06output\x18\x02 \x01(\x0b\x32\x1c.google.protobuf.StringValue\x12/\n\texception\x18\x03 \x01(\x0b\x32\x1c.google.protobuf.StringValue\x12\x0c\n\x04logs\x18\x04 \x01(\t\x12\x11\n\ttimeTaken\x18\x05 \x01(\x01\x12\x11\n\tsucceeded\x18\x06 \x01(\x05\x12\x0e\n\x06\x66\x61iled\x18\x07 \x01(\x05\";\n\x16MoveUserResultsRequest\x12\x12\n\nscenarioID\x18\x01 \x01(\t\x12\r\n\x05limit\x18\x02 \x01(\x05\"*\n\x17MoveUserResultsResponse\x12\x0f\n\x07results\x18\x01 \x03(\x0c\"/\n\x19MoveScenarioResultRequest\x12\x12\n\nscenarioID\x18\x01 \x01(\t\"\xde\x01\n\x1aMoveScenarioResultResponse\x12\n\n\x02id\x18\x01 \x01(\t\x12,\n\x06output\x18\x02 \x01(\x0b\x32\x1c.google.protobuf.StringValue\x12/\n\texception\x18\x03 \x01(\x0b\x32\x1c.google.protobuf.StringValue\x12\x0c\n\x04logs\x18\x04 \x01(\t\x12\x11\n\ttimestamp\x18\x05 \x01(\t\x12\x11\n\ttimeTaken\x18\x06 \x01(\x01\x12\x11\n\tsucceeded\x18\x07 \x01(\x05\x12\x0e\n\x06\x66\x61iled\x18\x08 \x01(\x05\";\n\x15\x44istributeWorkRequest\x12\x12\n\nscenarioID\x18\x01 \x01(\t\x12\x0e\n\x06\x61mount\x18\x02 \x01(\x05\"+\n\x12GetUserWorkRequest\x12\x15\n\ruserManagerID\x18\x01 \x01(\t\"#\n\x13GetUserWorkResponse\x12\x0c\n\x04work\x18\x01 \x01(\x05\"C\n\x10\x41\x64\x64MetricRequest\x12\x12\n\nscenarioID\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\r\n\x05value\x18\x03 \x01(\x01\"4\n\x10GetMetricRequest\x12\x12\n\nscenarioID\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\"L\n\x14GetMetricRateRequest\x12\x12\n\nscenarioID\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x12\n\nsplitPoint\x18\x03 \x01(\x01\"$\n\x13MetricTotalResponse\x12\r\n\x05total\x18\x01 \x01(\x01\"\"\n\x12LastMetricResponse\x12\x0c\n\x04last\x18\x01 \x01(\x01\"(\n\x12MetricRateResponse\x12\x12\n\npercentage\x18\x01 \x01(\x01\"b\n\x18MetricStatisticsResponse\x12\x0b\n\x03min\x18\x01 \x01(\x01\x12\x0b\n\x03max\x18\x02 \x01(\x01\x12\x0e\n\x06median\x18\x03 \x01(\x01\x12\x0f\n\x07\x61verage\x18\x04 \x01(\x01\x12\x0b\n\x03len\x18\x05 \x01(\x03\x32\xd6\x0b\n\x07\x42\x61\x63kend\x12\x45\n\nCreateTest\x12\x1a.backend.CreateTestRequest\x1a\x1b.backend.CreateTestResponse\x12Q\n\x0e\x43reateScenario\x12\x1e.backend.CreateScenarioRequest\x1a\x1f.backend.CreateScenarioResponse\x12H\n\x0b\x43reateUsers\x12\x1b.backend.CreateUsersRequest\x1a\x1c.backend.CreateUsersResponse\x12>\n\tStopUsers\x12\x19.backend.StopUsersRequest\x1a\x16.google.protobuf.Empty\x12P\n\x12\x43leanTestInstances\x12\".backend.CleanTestInstancesRequest\x1a\x16.google.protobuf.Empty\x12@\n\x0c\x41\x64\x64TestEvent\x12\x18.backend.AddEventRequest\x1a\x16.google.protobuf.Empty\x12;\n\rGetTestEvents\x12\x19.backend.GetEventsRequest\x1a\x0f.backend.Events\x12H\n\x0e\x41\x64\x64UserResults\x12\x1e.backend.AddUserResultsRequest\x1a\x16.google.protobuf.Empty\x12N\n\x11SetScenarioResult\x12!.backend.SetScenarioResultRequest\x1a\x16.google.protobuf.Empty\x12T\n\x0fMoveUserResults\x12\x1f.backend.MoveUserResultsRequest\x1a .backend.MoveUserResultsResponse\x12]\n\x12MoveScenarioResult\x12\".backend.MoveScenarioResultRequest\x1a#.backend.MoveScenarioResultResponse\x12H\n\x0e\x44istributeWork\x12\x1e.backend.DistributeWorkRequest\x1a\x16.google.protobuf.Empty\x12H\n\x0bGetUserWork\x12\x1b.backend.GetUserWorkRequest\x1a\x1c.backend.GetUserWorkResponse\x12@\n\x0c\x41\x64\x64UserEvent\x12\x18.backend.AddEventRequest\x1a\x16.google.protobuf.Empty\x12;\n\rGetUserEvents\x12\x19.backend.GetEventsRequest\x1a\x0f.backend.Events\x12>\n\tAddMetric\x12\x19.backend.AddMetricRequest\x1a\x16.google.protobuf.Empty\x12I\n\x0eGetMetricTotal\x12\x19.backend.GetMetricRequest\x1a\x1c.backend.MetricTotalResponse\x12G\n\rGetLastMetric\x12\x19.backend.GetMetricRequest\x1a\x1b.backend.LastMetricResponse\x12K\n\rGetMetricRate\x12\x1d.backend.GetMetricRateRequest\x1a\x1b.backend.MetricRateResponse\x12S\n\x13GetMetricStatistics\x12\x19.backend.GetMetricRequest\x1a!.backend.MetricStatisticsResponseB&Z$github.com/cicadatesting/backend/apib\x06proto3'
+  serialized_pb=b'\n\x1c\x63icadad/protos/backend.proto\x12\x07\x62\x61\x63kend\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1egoogle/protobuf/wrappers.proto\"\xb3\x01\n\x11\x43reateTestRequest\x12\x16\n\x0e\x62\x61\x63kendAddress\x18\x01 \x01(\t\x12\x1a\n\x12schedulingMetadata\x18\x02 \x01(\t\x12\x0c\n\x04tags\x18\x03 \x03(\t\x12\x30\n\x03\x65nv\x18\x04 \x03(\x0b\x32#.backend.CreateTestRequest.EnvEntry\x1a*\n\x08\x45nvEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"$\n\x12\x43reateTestResponse\x12\x0e\n\x06testID\x18\x01 \x01(\t\"v\n\x15\x43reateScenarioRequest\x12\x0e\n\x06testID\x18\x01 \x01(\t\x12\x14\n\x0cscenarioName\x18\x02 \x01(\t\x12\x0f\n\x07\x63ontext\x18\x03 \x01(\t\x12\x18\n\x10usersPerInstance\x18\x04 \x01(\x05\x12\x0c\n\x04tags\x18\x05 \x03(\t\",\n\x16\x43reateScenarioResponse\x12\x12\n\nscenarioID\x18\x01 \x01(\t\"H\n\x12\x43reateUsersRequest\x12\x12\n\nscenarioID\x18\x01 \x01(\t\x12\x0e\n\x06testID\x18\x02 \x01(\t\x12\x0e\n\x06\x61mount\x18\x03 \x01(\x05\"6\n\x10StopUsersRequest\x12\x12\n\nscenarioID\x18\x01 \x01(\t\x12\x0e\n\x06\x61mount\x18\x02 \x01(\x05\"+\n\x19\x43leanTestInstancesRequest\x12\x0e\n\x06testID\x18\x01 \x01(\t\">\n\x18\x43heckTestInstanceRequest\x12\x0e\n\x06testID\x18\x01 \x01(\t\x12\x12\n\ninstanceID\x18\x02 \x01(\t\",\n\x19\x43heckTestInstanceResponse\x12\x0f\n\x07running\x18\x01 \x01(\x08\"-\n\x13\x43reateUsersResponse\x12\x16\n\x0euserManagerIDs\x18\x01 \x03(\t\"&\n\x05\x45vent\x12\x0c\n\x04kind\x18\x01 \x01(\t\x12\x0f\n\x07payload\x18\x02 \x01(\x0c\"<\n\x0f\x41\x64\x64\x45ventRequest\x12\n\n\x02id\x18\x01 \x01(\t\x12\x1d\n\x05\x65vent\x18\x02 \x01(\x0b\x32\x0e.backend.Event\",\n\x10GetEventsRequest\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0c\n\x04kind\x18\x02 \x01(\t\"(\n\x06\x45vents\x12\x1e\n\x06\x65vents\x18\x01 \x03(\x0b\x32\x0e.backend.Event\"?\n\x15\x41\x64\x64UserResultsRequest\x12\x15\n\ruserManagerID\x18\x01 \x01(\t\x12\x0f\n\x07results\x18\x02 \x03(\x0c\"\xd1\x01\n\x18SetScenarioResultRequest\x12\x12\n\nscenarioID\x18\x01 \x01(\t\x12,\n\x06output\x18\x02 \x01(\x0b\x32\x1c.google.protobuf.StringValue\x12/\n\texception\x18\x03 \x01(\x0b\x32\x1c.google.protobuf.StringValue\x12\x0c\n\x04logs\x18\x04 \x01(\t\x12\x11\n\ttimeTaken\x18\x05 \x01(\x01\x12\x11\n\tsucceeded\x18\x06 \x01(\x05\x12\x0e\n\x06\x66\x61iled\x18\x07 \x01(\x05\";\n\x16MoveUserResultsRequest\x12\x12\n\nscenarioID\x18\x01 \x01(\t\x12\r\n\x05limit\x18\x02 \x01(\x05\"*\n\x17MoveUserResultsResponse\x12\x0f\n\x07results\x18\x01 \x03(\x0c\"/\n\x19MoveScenarioResultRequest\x12\x12\n\nscenarioID\x18\x01 \x01(\t\"\xde\x01\n\x1aMoveScenarioResultResponse\x12\n\n\x02id\x18\x01 \x01(\t\x12,\n\x06output\x18\x02 \x01(\x0b\x32\x1c.google.protobuf.StringValue\x12/\n\texception\x18\x03 \x01(\x0b\x32\x1c.google.protobuf.StringValue\x12\x0c\n\x04logs\x18\x04 \x01(\t\x12\x11\n\ttimestamp\x18\x05 \x01(\t\x12\x11\n\ttimeTaken\x18\x06 \x01(\x01\x12\x11\n\tsucceeded\x18\x07 \x01(\x05\x12\x0e\n\x06\x66\x61iled\x18\x08 \x01(\x05\";\n\x15\x44istributeWorkRequest\x12\x12\n\nscenarioID\x18\x01 \x01(\t\x12\x0e\n\x06\x61mount\x18\x02 \x01(\x05\"+\n\x12GetUserWorkRequest\x12\x15\n\ruserManagerID\x18\x01 \x01(\t\"#\n\x13GetUserWorkResponse\x12\x0c\n\x04work\x18\x01 \x01(\x05\"C\n\x10\x41\x64\x64MetricRequest\x12\x12\n\nscenarioID\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\r\n\x05value\x18\x03 \x01(\x01\"4\n\x10GetMetricRequest\x12\x12\n\nscenarioID\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\"L\n\x14GetMetricRateRequest\x12\x12\n\nscenarioID\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x12\n\nsplitPoint\x18\x03 \x01(\x01\"$\n\x13MetricTotalResponse\x12\r\n\x05total\x18\x01 \x01(\x01\"\"\n\x12LastMetricResponse\x12\x0c\n\x04last\x18\x01 \x01(\x01\"(\n\x12MetricRateResponse\x12\x12\n\npercentage\x18\x01 \x01(\x01\"b\n\x18MetricStatisticsResponse\x12\x0b\n\x03min\x18\x01 \x01(\x01\x12\x0b\n\x03max\x18\x02 \x01(\x01\x12\x0e\n\x06median\x18\x03 \x01(\x01\x12\x0f\n\x07\x61verage\x18\x04 \x01(\x01\x12\x0b\n\x03len\x18\x05 \x01(\x03\x32\xb2\x0c\n\x07\x42\x61\x63kend\x12\x45\n\nCreateTest\x12\x1a.backend.CreateTestRequest\x1a\x1b.backend.CreateTestResponse\x12Q\n\x0e\x43reateScenario\x12\x1e.backend.CreateScenarioRequest\x1a\x1f.backend.CreateScenarioResponse\x12H\n\x0b\x43reateUsers\x12\x1b.backend.CreateUsersRequest\x1a\x1c.backend.CreateUsersResponse\x12>\n\tStopUsers\x12\x19.backend.StopUsersRequest\x1a\x16.google.protobuf.Empty\x12P\n\x12\x43leanTestInstances\x12\".backend.CleanTestInstancesRequest\x1a\x16.google.protobuf.Empty\x12Z\n\x11\x43heckTestInstance\x12!.backend.CheckTestInstanceRequest\x1a\".backend.CheckTestInstanceResponse\x12@\n\x0c\x41\x64\x64TestEvent\x12\x18.backend.AddEventRequest\x1a\x16.google.protobuf.Empty\x12;\n\rGetTestEvents\x12\x19.backend.GetEventsRequest\x1a\x0f.backend.Events\x12H\n\x0e\x41\x64\x64UserResults\x12\x1e.backend.AddUserResultsRequest\x1a\x16.google.protobuf.Empty\x12N\n\x11SetScenarioResult\x12!.backend.SetScenarioResultRequest\x1a\x16.google.protobuf.Empty\x12T\n\x0fMoveUserResults\x12\x1f.backend.MoveUserResultsRequest\x1a .backend.MoveUserResultsResponse\x12]\n\x12MoveScenarioResult\x12\".backend.MoveScenarioResultRequest\x1a#.backend.MoveScenarioResultResponse\x12H\n\x0e\x44istributeWork\x12\x1e.backend.DistributeWorkRequest\x1a\x16.google.protobuf.Empty\x12H\n\x0bGetUserWork\x12\x1b.backend.GetUserWorkRequest\x1a\x1c.backend.GetUserWorkResponse\x12@\n\x0c\x41\x64\x64UserEvent\x12\x18.backend.AddEventRequest\x1a\x16.google.protobuf.Empty\x12;\n\rGetUserEvents\x12\x19.backend.GetEventsRequest\x1a\x0f.backend.Events\x12>\n\tAddMetric\x12\x19.backend.AddMetricRequest\x1a\x16.google.protobuf.Empty\x12I\n\x0eGetMetricTotal\x12\x19.backend.GetMetricRequest\x1a\x1c.backend.MetricTotalResponse\x12G\n\rGetLastMetric\x12\x19.backend.GetMetricRequest\x1a\x1b.backend.LastMetricResponse\x12K\n\rGetMetricRate\x12\x1d.backend.GetMetricRateRequest\x1a\x1b.backend.MetricRateResponse\x12S\n\x13GetMetricStatistics\x12\x19.backend.GetMetricRequest\x1a!.backend.MetricStatisticsResponseB&Z$github.com/cicadatesting/backend/apib\x06proto3'
   ,
   dependencies=[google_dot_protobuf_dot_empty__pb2.DESCRIPTOR,google_dot_protobuf_dot_wrappers__pb2.DESCRIPTOR,])
 
 
 
+
+_CREATETESTREQUEST_ENVENTRY = _descriptor.Descriptor(
+  name='EnvEntry',
+  full_name='backend.CreateTestRequest.EnvEntry',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='key', full_name='backend.CreateTestRequest.EnvEntry.key', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='value', full_name='backend.CreateTestRequest.EnvEntry.value', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=b'8\001',
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=240,
+  serialized_end=282,
+)
 
 _CREATETESTREQUEST = _descriptor.Descriptor(
   name='CreateTestRequest',
@@ -57,10 +95,17 @@ _CREATETESTREQUEST = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='env', full_name='backend.CreateTestRequest.env', index=3,
+      number=4, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
   ],
   extensions=[
   ],
-  nested_types=[],
+  nested_types=[_CREATETESTREQUEST_ENVENTRY, ],
   enum_types=[
   ],
   serialized_options=None,
@@ -69,8 +114,8 @@ _CREATETESTREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=102,
-  serialized_end=187,
+  serialized_start=103,
+  serialized_end=282,
 )
 
 
@@ -101,8 +146,8 @@ _CREATETESTRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=189,
-  serialized_end=225,
+  serialized_start=284,
+  serialized_end=320,
 )
 
 
@@ -161,8 +206,8 @@ _CREATESCENARIOREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=227,
-  serialized_end=345,
+  serialized_start=322,
+  serialized_end=440,
 )
 
 
@@ -193,8 +238,8 @@ _CREATESCENARIORESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=347,
-  serialized_end=391,
+  serialized_start=442,
+  serialized_end=486,
 )
 
 
@@ -239,8 +284,8 @@ _CREATEUSERSREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=393,
-  serialized_end=465,
+  serialized_start=488,
+  serialized_end=560,
 )
 
 
@@ -278,8 +323,8 @@ _STOPUSERSREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=467,
-  serialized_end=521,
+  serialized_start=562,
+  serialized_end=616,
 )
 
 
@@ -310,8 +355,79 @@ _CLEANTESTINSTANCESREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=523,
-  serialized_end=566,
+  serialized_start=618,
+  serialized_end=661,
+)
+
+
+_CHECKTESTINSTANCEREQUEST = _descriptor.Descriptor(
+  name='CheckTestInstanceRequest',
+  full_name='backend.CheckTestInstanceRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='testID', full_name='backend.CheckTestInstanceRequest.testID', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='instanceID', full_name='backend.CheckTestInstanceRequest.instanceID', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=663,
+  serialized_end=725,
+)
+
+
+_CHECKTESTINSTANCERESPONSE = _descriptor.Descriptor(
+  name='CheckTestInstanceResponse',
+  full_name='backend.CheckTestInstanceResponse',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='running', full_name='backend.CheckTestInstanceResponse.running', index=0,
+      number=1, type=8, cpp_type=7, label=1,
+      has_default_value=False, default_value=False,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=727,
+  serialized_end=771,
 )
 
 
@@ -342,8 +458,8 @@ _CREATEUSERSRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=568,
-  serialized_end=613,
+  serialized_start=773,
+  serialized_end=818,
 )
 
 
@@ -381,8 +497,8 @@ _EVENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=615,
-  serialized_end=653,
+  serialized_start=820,
+  serialized_end=858,
 )
 
 
@@ -420,8 +536,8 @@ _ADDEVENTREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=655,
-  serialized_end=715,
+  serialized_start=860,
+  serialized_end=920,
 )
 
 
@@ -459,8 +575,8 @@ _GETEVENTSREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=717,
-  serialized_end=761,
+  serialized_start=922,
+  serialized_end=966,
 )
 
 
@@ -491,8 +607,8 @@ _EVENTS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=763,
-  serialized_end=803,
+  serialized_start=968,
+  serialized_end=1008,
 )
 
 
@@ -530,8 +646,8 @@ _ADDUSERRESULTSREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=805,
-  serialized_end=868,
+  serialized_start=1010,
+  serialized_end=1073,
 )
 
 
@@ -604,8 +720,8 @@ _SETSCENARIORESULTREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=871,
-  serialized_end=1080,
+  serialized_start=1076,
+  serialized_end=1285,
 )
 
 
@@ -643,8 +759,8 @@ _MOVEUSERRESULTSREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1082,
-  serialized_end=1141,
+  serialized_start=1287,
+  serialized_end=1346,
 )
 
 
@@ -675,8 +791,8 @@ _MOVEUSERRESULTSRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1143,
-  serialized_end=1185,
+  serialized_start=1348,
+  serialized_end=1390,
 )
 
 
@@ -707,8 +823,8 @@ _MOVESCENARIORESULTREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1187,
-  serialized_end=1234,
+  serialized_start=1392,
+  serialized_end=1439,
 )
 
 
@@ -788,8 +904,8 @@ _MOVESCENARIORESULTRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1237,
-  serialized_end=1459,
+  serialized_start=1442,
+  serialized_end=1664,
 )
 
 
@@ -827,8 +943,8 @@ _DISTRIBUTEWORKREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1461,
-  serialized_end=1520,
+  serialized_start=1666,
+  serialized_end=1725,
 )
 
 
@@ -859,8 +975,8 @@ _GETUSERWORKREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1522,
-  serialized_end=1565,
+  serialized_start=1727,
+  serialized_end=1770,
 )
 
 
@@ -891,8 +1007,8 @@ _GETUSERWORKRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1567,
-  serialized_end=1602,
+  serialized_start=1772,
+  serialized_end=1807,
 )
 
 
@@ -937,8 +1053,8 @@ _ADDMETRICREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1604,
-  serialized_end=1671,
+  serialized_start=1809,
+  serialized_end=1876,
 )
 
 
@@ -976,8 +1092,8 @@ _GETMETRICREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1673,
-  serialized_end=1725,
+  serialized_start=1878,
+  serialized_end=1930,
 )
 
 
@@ -1022,8 +1138,8 @@ _GETMETRICRATEREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1727,
-  serialized_end=1803,
+  serialized_start=1932,
+  serialized_end=2008,
 )
 
 
@@ -1054,8 +1170,8 @@ _METRICTOTALRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1805,
-  serialized_end=1841,
+  serialized_start=2010,
+  serialized_end=2046,
 )
 
 
@@ -1086,8 +1202,8 @@ _LASTMETRICRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1843,
-  serialized_end=1877,
+  serialized_start=2048,
+  serialized_end=2082,
 )
 
 
@@ -1118,8 +1234,8 @@ _METRICRATERESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1879,
-  serialized_end=1919,
+  serialized_start=2084,
+  serialized_end=2124,
 )
 
 
@@ -1178,10 +1294,12 @@ _METRICSTATISTICSRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1921,
-  serialized_end=2019,
+  serialized_start=2126,
+  serialized_end=2224,
 )
 
+_CREATETESTREQUEST_ENVENTRY.containing_type = _CREATETESTREQUEST
+_CREATETESTREQUEST.fields_by_name['env'].message_type = _CREATETESTREQUEST_ENVENTRY
 _ADDEVENTREQUEST.fields_by_name['event'].message_type = _EVENT
 _EVENTS.fields_by_name['events'].message_type = _EVENT
 _SETSCENARIORESULTREQUEST.fields_by_name['output'].message_type = google_dot_protobuf_dot_wrappers__pb2._STRINGVALUE
@@ -1195,6 +1313,8 @@ DESCRIPTOR.message_types_by_name['CreateScenarioResponse'] = _CREATESCENARIORESP
 DESCRIPTOR.message_types_by_name['CreateUsersRequest'] = _CREATEUSERSREQUEST
 DESCRIPTOR.message_types_by_name['StopUsersRequest'] = _STOPUSERSREQUEST
 DESCRIPTOR.message_types_by_name['CleanTestInstancesRequest'] = _CLEANTESTINSTANCESREQUEST
+DESCRIPTOR.message_types_by_name['CheckTestInstanceRequest'] = _CHECKTESTINSTANCEREQUEST
+DESCRIPTOR.message_types_by_name['CheckTestInstanceResponse'] = _CHECKTESTINSTANCERESPONSE
 DESCRIPTOR.message_types_by_name['CreateUsersResponse'] = _CREATEUSERSRESPONSE
 DESCRIPTOR.message_types_by_name['Event'] = _EVENT
 DESCRIPTOR.message_types_by_name['AddEventRequest'] = _ADDEVENTREQUEST
@@ -1219,11 +1339,19 @@ DESCRIPTOR.message_types_by_name['MetricStatisticsResponse'] = _METRICSTATISTICS
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
 CreateTestRequest = _reflection.GeneratedProtocolMessageType('CreateTestRequest', (_message.Message,), {
+
+  'EnvEntry' : _reflection.GeneratedProtocolMessageType('EnvEntry', (_message.Message,), {
+    'DESCRIPTOR' : _CREATETESTREQUEST_ENVENTRY,
+    '__module__' : 'cicadad.protos.backend_pb2'
+    # @@protoc_insertion_point(class_scope:backend.CreateTestRequest.EnvEntry)
+    })
+  ,
   'DESCRIPTOR' : _CREATETESTREQUEST,
   '__module__' : 'cicadad.protos.backend_pb2'
   # @@protoc_insertion_point(class_scope:backend.CreateTestRequest)
   })
 _sym_db.RegisterMessage(CreateTestRequest)
+_sym_db.RegisterMessage(CreateTestRequest.EnvEntry)
 
 CreateTestResponse = _reflection.GeneratedProtocolMessageType('CreateTestResponse', (_message.Message,), {
   'DESCRIPTOR' : _CREATETESTRESPONSE,
@@ -1266,6 +1394,20 @@ CleanTestInstancesRequest = _reflection.GeneratedProtocolMessageType('CleanTestI
   # @@protoc_insertion_point(class_scope:backend.CleanTestInstancesRequest)
   })
 _sym_db.RegisterMessage(CleanTestInstancesRequest)
+
+CheckTestInstanceRequest = _reflection.GeneratedProtocolMessageType('CheckTestInstanceRequest', (_message.Message,), {
+  'DESCRIPTOR' : _CHECKTESTINSTANCEREQUEST,
+  '__module__' : 'cicadad.protos.backend_pb2'
+  # @@protoc_insertion_point(class_scope:backend.CheckTestInstanceRequest)
+  })
+_sym_db.RegisterMessage(CheckTestInstanceRequest)
+
+CheckTestInstanceResponse = _reflection.GeneratedProtocolMessageType('CheckTestInstanceResponse', (_message.Message,), {
+  'DESCRIPTOR' : _CHECKTESTINSTANCERESPONSE,
+  '__module__' : 'cicadad.protos.backend_pb2'
+  # @@protoc_insertion_point(class_scope:backend.CheckTestInstanceResponse)
+  })
+_sym_db.RegisterMessage(CheckTestInstanceResponse)
 
 CreateUsersResponse = _reflection.GeneratedProtocolMessageType('CreateUsersResponse', (_message.Message,), {
   'DESCRIPTOR' : _CREATEUSERSRESPONSE,
@@ -1416,6 +1558,7 @@ _sym_db.RegisterMessage(MetricStatisticsResponse)
 
 
 DESCRIPTOR._options = None
+_CREATETESTREQUEST_ENVENTRY._options = None
 
 _BACKEND = _descriptor.ServiceDescriptor(
   name='Backend',
@@ -1424,8 +1567,8 @@ _BACKEND = _descriptor.ServiceDescriptor(
   index=0,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=2022,
-  serialized_end=3516,
+  serialized_start=2227,
+  serialized_end=3813,
   methods=[
   _descriptor.MethodDescriptor(
     name='CreateTest',
@@ -1478,9 +1621,19 @@ _BACKEND = _descriptor.ServiceDescriptor(
     create_key=_descriptor._internal_create_key,
   ),
   _descriptor.MethodDescriptor(
+    name='CheckTestInstance',
+    full_name='backend.Backend.CheckTestInstance',
+    index=5,
+    containing_service=None,
+    input_type=_CHECKTESTINSTANCEREQUEST,
+    output_type=_CHECKTESTINSTANCERESPONSE,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+  _descriptor.MethodDescriptor(
     name='AddTestEvent',
     full_name='backend.Backend.AddTestEvent',
-    index=5,
+    index=6,
     containing_service=None,
     input_type=_ADDEVENTREQUEST,
     output_type=google_dot_protobuf_dot_empty__pb2._EMPTY,
@@ -1490,7 +1643,7 @@ _BACKEND = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='GetTestEvents',
     full_name='backend.Backend.GetTestEvents',
-    index=6,
+    index=7,
     containing_service=None,
     input_type=_GETEVENTSREQUEST,
     output_type=_EVENTS,
@@ -1500,7 +1653,7 @@ _BACKEND = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='AddUserResults',
     full_name='backend.Backend.AddUserResults',
-    index=7,
+    index=8,
     containing_service=None,
     input_type=_ADDUSERRESULTSREQUEST,
     output_type=google_dot_protobuf_dot_empty__pb2._EMPTY,
@@ -1510,7 +1663,7 @@ _BACKEND = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='SetScenarioResult',
     full_name='backend.Backend.SetScenarioResult',
-    index=8,
+    index=9,
     containing_service=None,
     input_type=_SETSCENARIORESULTREQUEST,
     output_type=google_dot_protobuf_dot_empty__pb2._EMPTY,
@@ -1520,7 +1673,7 @@ _BACKEND = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='MoveUserResults',
     full_name='backend.Backend.MoveUserResults',
-    index=9,
+    index=10,
     containing_service=None,
     input_type=_MOVEUSERRESULTSREQUEST,
     output_type=_MOVEUSERRESULTSRESPONSE,
@@ -1530,7 +1683,7 @@ _BACKEND = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='MoveScenarioResult',
     full_name='backend.Backend.MoveScenarioResult',
-    index=10,
+    index=11,
     containing_service=None,
     input_type=_MOVESCENARIORESULTREQUEST,
     output_type=_MOVESCENARIORESULTRESPONSE,
@@ -1540,7 +1693,7 @@ _BACKEND = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='DistributeWork',
     full_name='backend.Backend.DistributeWork',
-    index=11,
+    index=12,
     containing_service=None,
     input_type=_DISTRIBUTEWORKREQUEST,
     output_type=google_dot_protobuf_dot_empty__pb2._EMPTY,
@@ -1550,7 +1703,7 @@ _BACKEND = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='GetUserWork',
     full_name='backend.Backend.GetUserWork',
-    index=12,
+    index=13,
     containing_service=None,
     input_type=_GETUSERWORKREQUEST,
     output_type=_GETUSERWORKRESPONSE,
@@ -1560,7 +1713,7 @@ _BACKEND = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='AddUserEvent',
     full_name='backend.Backend.AddUserEvent',
-    index=13,
+    index=14,
     containing_service=None,
     input_type=_ADDEVENTREQUEST,
     output_type=google_dot_protobuf_dot_empty__pb2._EMPTY,
@@ -1570,7 +1723,7 @@ _BACKEND = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='GetUserEvents',
     full_name='backend.Backend.GetUserEvents',
-    index=14,
+    index=15,
     containing_service=None,
     input_type=_GETEVENTSREQUEST,
     output_type=_EVENTS,
@@ -1580,7 +1733,7 @@ _BACKEND = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='AddMetric',
     full_name='backend.Backend.AddMetric',
-    index=15,
+    index=16,
     containing_service=None,
     input_type=_ADDMETRICREQUEST,
     output_type=google_dot_protobuf_dot_empty__pb2._EMPTY,
@@ -1590,7 +1743,7 @@ _BACKEND = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='GetMetricTotal',
     full_name='backend.Backend.GetMetricTotal',
-    index=16,
+    index=17,
     containing_service=None,
     input_type=_GETMETRICREQUEST,
     output_type=_METRICTOTALRESPONSE,
@@ -1600,7 +1753,7 @@ _BACKEND = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='GetLastMetric',
     full_name='backend.Backend.GetLastMetric',
-    index=17,
+    index=18,
     containing_service=None,
     input_type=_GETMETRICREQUEST,
     output_type=_LASTMETRICRESPONSE,
@@ -1610,7 +1763,7 @@ _BACKEND = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='GetMetricRate',
     full_name='backend.Backend.GetMetricRate',
-    index=18,
+    index=19,
     containing_service=None,
     input_type=_GETMETRICRATEREQUEST,
     output_type=_METRICRATERESPONSE,
@@ -1620,7 +1773,7 @@ _BACKEND = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='GetMetricStatistics',
     full_name='backend.Backend.GetMetricStatistics',
-    index=19,
+    index=20,
     containing_service=None,
     input_type=_GETMETRICREQUEST,
     output_type=_METRICSTATISTICSRESPONSE,

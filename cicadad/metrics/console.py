@@ -23,15 +23,25 @@ def console_collector(name: str, collector: ConsoleCollectorFn):
     return collect_metric
 
 
-def console_stats():
-    """Get stats for metric from datastore."""
+def console_stats(metric_name: str):
+    """Get stats for metric values from datastore.
+
+    * Min
+    * Median
+    * Max
+    * Average
+    * Len (Number of results for this metric)
+
+    Args:
+        metric_name (str): Name of saved metric
+    """
 
     def get(
-        name: str,
+        display_name: str,
         scenario_id: str,
         backend: IConsoleMetricsBackend,
     ):
-        stats = backend.get_metric_statistics(scenario_id, name)
+        stats = backend.get_metric_statistics(scenario_id, metric_name)
 
         if stats is None:
             return None
@@ -47,15 +57,19 @@ def console_stats():
     return get
 
 
-def console_count():
-    """Get count metric from datastore."""
+def console_count(metric_name: str):
+    """Get total of all values for a metric in datastore.
+
+    Args:
+        metric_name (str): Name of saved metric
+    """
 
     def get(
-        name: str,
+        display_name: str,
         scenario_id: str,
         backend: IConsoleMetricsBackend,
     ):
-        count = backend.get_metric_total(scenario_id, name)
+        count = backend.get_metric_total(scenario_id, metric_name)
 
         if count is None:
             return None
@@ -65,15 +79,19 @@ def console_count():
     return get
 
 
-def console_latest():
-    """Get latest metric from datastore."""
+def console_latest(metric_name: str):
+    """Get latest value of metric from datastore.
+
+    Args:
+        metric_name (str): Name of saved metric
+    """
 
     def get(
-        name: str,
+        display_name: str,
         scenario_id: str,
         backend: IConsoleMetricsBackend,
     ):
-        last = backend.get_last_metric(scenario_id, name)
+        last = backend.get_last_metric(scenario_id, metric_name)
 
         if last is None:
             return None
@@ -83,19 +101,20 @@ def console_latest():
     return get
 
 
-def console_percent(split_point: float):
-    """Get percent above split point for metric from datastore.
+def console_percent(metric_name: str, split_point: float):
+    """Get percent of values for a metric above split point from datastore.
 
     Args:
+        metric_name (str): Name of saved metric
         split_point (float): Point to split metric values at
     """
 
     def get(
-        name: str,
+        display_name: str,
         scenario_id: str,
         backend: IConsoleMetricsBackend,
     ):
-        rate = backend.get_metric_rate(scenario_id, name, split_point)
+        rate = backend.get_metric_rate(scenario_id, metric_name, split_point)
 
         if rate is None:
             return None

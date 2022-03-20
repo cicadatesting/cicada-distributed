@@ -8,6 +8,7 @@ import subprocess  # nosec
 from pydantic import BaseModel
 from docker.errors import APIError, NotFound  # type: ignore
 import docker  # type: ignore
+import requests
 
 from cicadad.util.constants import (
     CICADA_VERSION,
@@ -435,90 +436,126 @@ def docker_backend_down(client: docker.DockerClient):
     docker_container_down_by_name(client, "cicada-distributed-backend")
 
 
-def determine_local_backend_binary(
-    os_name: str, arch: str, debug: bool
-) -> Optional[List[str]]:
+def local_backend_name(os_name: str, arch: str) -> Optional[str]:
     """Determine which backend binary to use for running locally.
 
     Args:
         os_name (str): Name of system operating system (linux, darwin, windows)
         arch (str): Processor architecture
-        debug (bool): Set debug flag in command
 
     Returns:
-        Optional[str]: Path to backend binary if found
+        Optional[str]: Name of binary if found
     """
-    binary_path = None
+    binary_name = None
 
     if arch == "aarch64":
         if os_name == "linux":
-            binary_path = os.path.join(
-                os.path.dirname(backend_module.__file__), "backend-linux-arm64"
-            )
+            binary_name = "backend-linux-arm64"
         elif os_name == "darwin":
-            binary_path = os.path.join(
-                os.path.dirname(backend_module.__file__), "backend-darwin-arm64"
-            )
+            binary_name = "backend-darwin-arm64"
     elif "64" in arch:
         # assume 64 bit
         if os_name == "windows":
-            binary_path = os.path.join(
-                os.path.dirname(backend_module.__file__), "backend-amd64.exe"
-            )
+            binary_name = "backend-amd64.exe"
         elif os_name == "linux":
-            binary_path = os.path.join(
-                os.path.dirname(backend_module.__file__), "backend-linux-amd64"
-            )
+            binary_name = "backend-linux-amd64"
         elif os_name == "darwin":
-            binary_path = os.path.join(
-                os.path.dirname(backend_module.__file__), "backend-darwin-amd64"
-            )
+            binary_name = "backend-darwin-amd64"
     elif "arm" in arch:
         if os_name == "linux":
-            binary_path = os.path.join(
-                os.path.dirname(backend_module.__file__), "backend-linux-arm"
-            )
+            binary_name = "backend-linux-arm"
     else:
         # assume 32 bit
         if os_name == "linux":
-            binary_path = os.path.join(
-                os.path.dirname(backend_module.__file__), "backend-linux-32"
-            )
+            binary_name = "backend-linux-32"
 
-    if binary_path is None:
-        return None
+    return binary_name
+
+
+def build_backend_command(
+    backend_location: str, binary_name: str, os_name: str
+) -> List[str]:
+    """Build command to run binary locally.
+
+    Args:
+        backend_location (str): Location backend binaries were installed to
+        binary_name (str): Name of binary determined
+        os_name (str): Name of system operating system (linux, darwin, windows)
+
+    Returns:
+        Optional[List[str]]: Command to run backend binary locally
+    """
+    binary_path = os.path.join(backend_location, binary_name)
 
     if os_name == "windows":
-        # FIXME: cannot specify debug for some reason
         return [
             "cmd",
             "/c",
             f'"{binary_path}"',
         ]
     else:
-        return ["env", "LOG_LEVEL=DEBUG" if debug else "LOG_LEVEL=ERROR", binary_path]
+        return [binary_path]
 
 
-def start_local_backend(debug: bool):
+def start_local_backend(backend_location: str, debug: bool):
     """Start local backend process.
+
+    Args:
+        backend_location (str): Location backend binaries were installed to
+        debug (bool): Enable debug logs on backend
 
     Raises:
         ValueError: No backend distribution found to start.
 
     Returns:
-        [type]: [description]
+        Process: backend subprocess
     """
     # determine os and architecture
     os_name = platform.system().lower()
     arch = platform.machine()
 
-    command = determine_local_backend_binary(os_name, arch, debug)
+    binary_name = local_backend_name(os_name, arch)
 
-    if command is None:
+    if binary_name is None:
         raise ValueError(f"No backend distribution found for {arch} + {os_name}")
 
+    command = build_backend_command(backend_location, binary_name, arch)
+
     # start process
-    return subprocess.Popen(command)  # nosec
+    return subprocess.Popen(
+        command, env={"LOG_LEVEL": "DEBUG" if debug else "ERROR"}
+    )  # nosec
+
+
+def download_local_backend(install_location: str):
+    """Download local backend files
+
+    Args:
+        install_location (str): path to install backend files to
+    """
+    # determine backend name, which version to download
+    os_name = platform.system().lower()
+    arch = platform.machine()
+
+    binary_name = local_backend_name(os_name, arch)
+
+    if os.getenv("ENV") == "local":
+        release_folder = "latest-binaries"
+    elif os.getenv("ENV") == "dev":
+        release_folder = "pre-release-binaries"
+    else:
+        release_folder = f"{CICADA_VERSION}-binaries"
+
+    local_filename = os.path.join(install_location, binary_name)
+
+    with requests.get(
+        f"http://releases.cicadatesting.io/{release_folder}/{binary_name}", stream=True
+    ) as req:
+        req.raise_for_status()
+
+        with open(local_filename, "wb") as fp:
+            for chunk in req.iter_content(chunk_size=8192):
+                fp.write(chunk)
 
 
 def make_kube_template(template_filename: str):

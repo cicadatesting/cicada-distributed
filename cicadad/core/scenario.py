@@ -4,6 +4,9 @@ import time
 
 from pydantic import BaseModel, Field
 
+from cicadad.metrics.collectors import runtime_seconds, pass_or_fail, results_per_second
+from cicadad.metrics.console import console_stats, console_collector, console_percent
+
 from cicadad.core.types import (
     ConsoleMetricDisplays,
     IScenarioCommands,
@@ -31,14 +34,13 @@ def while_has_work(polling_timeout_ms: int = 1000):
         while user_commands.is_up():
             if user_commands.has_work(polling_timeout_ms):
                 start = datetime.now()
-                # FEATURE: option to retry on failure
                 output, exception, logs = user_commands.run(context=context)
                 end = datetime.now()
                 user_commands.report_result(
                     output,
                     exception,
                     logs,
-                    time_taken=(end - start).seconds,
+                    time_taken=(end - start).total_seconds(),
                 )
 
     return closure
@@ -56,7 +58,7 @@ def while_alive():
                 output,
                 exception,
                 logs,
-                time_taken=(end - start).seconds,
+                time_taken=(end - start).total_seconds(),
             )
 
     return closure
@@ -86,7 +88,7 @@ def iterations_per_second_limited(limit: int):
                     output,
                     exception,
                     logs,
-                    time_taken=(end - start).seconds,
+                    time_taken=(end - start).total_seconds(),
                 )
             else:
                 td = (second_start_time + timedelta(seconds=1)) - datetime.now()
@@ -108,7 +110,6 @@ def n_iterations(
     skip_scaledown: bool = False,
 ):
     """Create a load model where a pool of users is called n times.
-
     Args:
         iterations (int): Number of shared iterations for users to run
         users (int): Size of user pool
@@ -151,17 +152,42 @@ def n_iterations(
     return closure
 
 
-def run_scenario_once(wait_period: int = 1, timeout: Optional[int] = 15):
-    """Run scenario one time with one user.
+def run_scenario_once(wait_period: int = 1, timeout: int = 15):
+    """Run scenario one time with one user and retry on failure.
 
     Args:
-        wait_period (int, optional): Time in seconds to wait before polling for results. Defaults to 1.
-        timeout (int, optional): Time in seconds to wait for scenario to complete before failing. Defaults to 15.
+        wait_period (int): Time in seconds to wait before polling for results. Defaults to 1.
+        timeout (int): Time in seconds to continue trying until a successful result is reached. Defaults to 15.
 
     Returns:
         Callable: Closure for configured load model
     """
-    return n_iterations(1, 1, wait_period, timeout)
+
+    def closure(scenario_commands: IScenarioCommands, context: dict):
+        scenario_commands.scale_users(1)
+        scenario_commands.add_work(1)
+        start_time = datetime.now()
+
+        # wait for passing result or until timeout reached
+        while datetime.now() < start_time + timedelta(seconds=timeout):
+            latest_results = scenario_commands.get_latest_results()
+
+            scenario_commands.aggregate_results(latest_results)
+            scenario_commands.verify_results(latest_results)
+            scenario_commands.collect_datastore_metrics(latest_results)
+
+            if (
+                scenario_commands.errors == []
+                and scenario_commands.num_results_collected > 0
+            ):
+                break
+
+            time.sleep(wait_period)
+            scenario_commands.add_work(1)
+
+        scenario_commands.scale_users(0)
+
+    return closure
 
 
 def n_seconds(
@@ -390,8 +416,17 @@ class Scenario(BaseModel):
     raise_exception: bool = True
     output_transformer: Optional[OutputTransformerFn]
     users_per_instance: int = 50
-    metric_collectors: List[MetricCollector] = []
-    console_metric_displays: Optional[ConsoleMetricDisplays]
+    # NOTE: may be useful to add these to list later to avoid a potential circular dependency
+    metric_collectors: List[MetricCollector] = [
+        console_collector("runtime", runtime_seconds),
+        console_collector("pass_or_fail", pass_or_fail),
+        console_collector("results_per_second", results_per_second),
+    ]
+    console_metric_displays: Optional[ConsoleMetricDisplays] = {
+        "runtimes": console_stats("runtime"),
+        "results_per_second": console_stats("results_per_second"),
+        "success_rate": console_percent("pass_or_fail", 0.5),
+    }
     tags: List[str] = []
 
     class Config:

@@ -11,6 +11,9 @@ on:
 jobs:
   integration-test:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -22,6 +25,16 @@ jobs:
         uses: actions/setup-go@v1
         with:
           go-version: '1.17.6'
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@master
+        with:
+          aws-region: us-east-2
+          role-to-assume: arn:aws:iam::939879343571:role/github
+      - name: Push Binaries
+        run: |
+          cd backend
+          make build-bin
+          make upload-bin-local
       - name: Install dependencies
         run: |
           python3 -m pip install --upgrade build wheel
@@ -35,7 +48,9 @@ jobs:
         run: |
           cd integration-test
           ls
-          ENV=local cicada-distributed --debug run -t run --log-path logs --no-exit-unsuccessful
+          ENV=local cicada-distributed --debug start-cluster --mode LOCAL --install-location ./
+          chmod +x ./backend-linux-amd64
+          ENV=local cicada-distributed --debug run -t run --log-path logs --no-exit-unsuccessful --backend-location ./
   smoke-test-docker:
     runs-on: ubuntu-latest
     steps:
