@@ -17,7 +17,6 @@ from cicadad.util.constants import (
 )
 from cicadad import configs as configs_module
 from cicadad import templates as templates_module
-from cicadad import backend as backend_module
 
 
 class Volume(BaseModel):
@@ -539,6 +538,9 @@ def download_local_backend(install_location: str):
 
     binary_name = local_backend_name(os_name, arch)
 
+    if binary_name is None:
+        raise ValueError(f"No backend distribution found for {arch} + {os_name}")
+
     if os.getenv("ENV") == "local":
         release_folder = "latest-binaries"
     elif os.getenv("ENV") == "dev":
@@ -546,6 +548,7 @@ def download_local_backend(install_location: str):
     else:
         release_folder = f"{CICADA_VERSION}-binaries"
 
+    # TODO: binary needs permissions update automatically
     local_filename = os.path.join(install_location, binary_name)
 
     with requests.get(

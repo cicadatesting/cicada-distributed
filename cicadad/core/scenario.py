@@ -183,6 +183,7 @@ def run_scenario_once(wait_period: int = 1, timeout: int = 15):
                 break
 
             time.sleep(wait_period)
+            # TODO: only add work if exception recieved
             scenario_commands.add_work(1)
 
         scenario_commands.scale_users(0)

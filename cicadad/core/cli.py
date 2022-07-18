@@ -14,7 +14,7 @@ from blessed import Terminal  # type: ignore
 import click
 import docker  # type: ignore
 from cicadad.core.types import ICLIBackend
-from cicadad.services.backend import CLIBackend  # type: ignore
+from cicadad.services.backend import CLIBackend, DefaultBackendAPI  # type: ignore
 
 from cicadad.util.console import LivePanel, MetricDisplay, MetricsPanel, TasksPanel
 from cicadad.core import containers
@@ -250,8 +250,8 @@ def run(
     no_exit_unsuccessful,
     no_cleanup,
 ):
-    backend = CLIBackend(backend_address)
-    docker_client = docker.from_env()
+    # TODO: not configurable, probably can get rid of interfaces
+    backend = CLIBackend(DefaultBackendAPI(backend_address))
     term = Terminal()
 
     if mode == constants.LOCAL_SCHEDULING_MODE:
@@ -275,6 +275,8 @@ def run(
     elif image:
         image_id = image
     elif mode == constants.DOCKER_SCHEDULING_MODE:
+        docker_client = docker.from_env()
+
         image_id = containers.build_docker_image(
             client=docker_client,
             path=build_path,

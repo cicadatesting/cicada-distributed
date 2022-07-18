@@ -24,9 +24,9 @@ jobs:
         run: |
           cd integration-test
           ls
-          ENV=local cicada-distributed --debug start-cluster --mode LOCAL --install-location ./
+          cicada-distributed --debug start-cluster --mode LOCAL --install-location ./
           chmod +x ./backend-linux-amd64
-          ENV=local cicada-distributed --debug run -t run --log-path logs --no-exit-unsuccessful --backend-location ./
+          cicada-distributed --debug run -t run --log-path logs --no-exit-unsuccessful --backend-location ./
   push-base-image:
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
