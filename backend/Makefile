@@ -11,16 +11,6 @@ build-bin:
 	env GOOS=linux GOARCH=arm go build -o build/backend-linux-arm github.com/cicadatesting/backend
 	env GOOS=windows GOARCH=amd64 go build -o build/backend-amd64.exe github.com/cicadatesting/backend
 
-
-upload-bin-local:
-	aws s3 cp build s3://releases.cicadatesting.io/latest-binaries --recursive
-
-upload-bin-dev:
-	aws s3 cp build s3://releases.cicadatesting.io/pre-release-binaries --recursive
-
-upload-bin:
-	aws s3 cp build s3://releases.cicadatesting.io/${VERSION}-binaries --recursive
-
 build-local:
 	docker build -t ${BACKEND_IMAGE_NAME}:latest .
 

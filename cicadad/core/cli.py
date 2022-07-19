@@ -85,9 +85,7 @@ def init(ctx, build_path):
     default=True,
     help="Create network for cluster and containers",
 )
-@click.option(
-    "--mode", default=constants.DOCKER_SCHEDULING_MODE, help="DOCKER, KUBE, or LOCAL"
-)
+@click.option("--mode", default=constants.DOCKER_SCHEDULING_MODE, help="DOCKER or KUBE")
 @click.option(
     "--install-location",
     default=os.path.dirname(backend_module.__file__),
@@ -99,14 +97,8 @@ def start_cluster(ctx, network, create_network, mode, install_location):
     \b
     * DOCKER will create a containerized local cluster
     * KUBE will print out a chart to install the cluster
-    * LOCAL will download binaries to start the cluster at runtime
     """
-    if mode == constants.LOCAL_SCHEDULING_MODE:
-        if ctx.obj["DEBUG"]:
-            click.echo("Downloading Local Backend")
-
-        containers.download_local_backend(install_location)
-    elif mode == constants.KUBE_SCHEDULING_MODE:
+    if mode == constants.KUBE_SCHEDULING_MODE:
         click.echo(containers.make_concatenated_kube_templates())
     elif mode == constants.DOCKER_SCHEDULING_MODE:
         docker_client = docker.from_env()

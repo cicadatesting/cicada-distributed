@@ -8,7 +8,6 @@ import subprocess  # nosec
 from pydantic import BaseModel
 from docker.errors import APIError, NotFound  # type: ignore
 import docker  # type: ignore
-import requests
 
 from cicadad.util.constants import (
     CICADA_VERSION,
@@ -524,41 +523,6 @@ def start_local_backend(backend_location: str, debug: bool):
     return subprocess.Popen(
         command, env={"LOG_LEVEL": "DEBUG" if debug else "ERROR"}
     )  # nosec
-
-
-def download_local_backend(install_location: str):
-    """Download local backend files
-
-    Args:
-        install_location (str): path to install backend files to
-    """
-    # determine backend name, which version to download
-    os_name = platform.system().lower()
-    arch = platform.machine()
-
-    binary_name = local_backend_name(os_name, arch)
-
-    if binary_name is None:
-        raise ValueError(f"No backend distribution found for {arch} + {os_name}")
-
-    if os.getenv("ENV") == "local":
-        release_folder = "latest-binaries"
-    elif os.getenv("ENV") == "dev":
-        release_folder = "pre-release-binaries"
-    else:
-        release_folder = f"{CICADA_VERSION}-binaries"
-
-    # TODO: binary needs permissions update automatically
-    local_filename = os.path.join(install_location, binary_name)
-
-    with requests.get(
-        f"http://releases.cicadatesting.io/{release_folder}/{binary_name}", stream=True
-    ) as req:
-        req.raise_for_status()
-
-        with open(local_filename, "wb") as fp:
-            for chunk in req.iter_content(chunk_size=8192):
-                fp.write(chunk)
 
 
 def make_kube_template(template_filename: str):
