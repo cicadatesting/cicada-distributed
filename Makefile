@@ -1,7 +1,7 @@
 
 BASE_IMAGE_NAME=cicadatesting/cicada-distributed-base-image
 BACKEND_IMAGE_NAME=cicadatesting/cicada-distributed-backend
-CICADA_VERSION=1.5.0
+CICADA_VERSION=1.6.0
 
 build-bin:
 	cd backend && make build-bin

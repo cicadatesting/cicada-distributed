@@ -1,6 +1,6 @@
 .PHONY=build
 BACKEND_IMAGE_NAME=cicadatesting/cicada-distributed-backend
-VERSION=1.5.0
+VERSION=1.6.0
 
 build-bin:
 	env GOOS=darwin GOARCH=amd64 go build -o build/backend-darwin-amd64 github.com/cicadatesting/backend
