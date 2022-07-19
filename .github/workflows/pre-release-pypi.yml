@@ -24,17 +24,13 @@ jobs:
         with:
           aws-region: us-east-2
           role-to-assume: arn:aws:iam::939879343571:role/github
-      - name: Push Binaries
-        run: |
-          cd backend
-          make build-bin
-          make upload-bin-dev
       - name: Install dependencies
         run: |
           python3 -m pip install --upgrade build wheel
           python3 -m pip install --user --upgrade twine
       - name: Package
         run: |
+          make build-bin
           make package
       - name: Publish
         uses: pypa/gh-action-pypi-publish@master

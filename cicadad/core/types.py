@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
+from distributed.client import Future  # type: ignore
 from pydantic.main import BaseModel
 
 from cicadad.util.constants import ONE_SEC_MS
@@ -393,7 +394,7 @@ class ITestBackend(ABC):
         Args:
             scenario_id (str): ID of scenario to get
         """
-        # FEATURE: see if this can be changed to return "Result"
+        # FEATURE: see if this can be changed to return "Result" or explain why
         pass
 
     @abstractmethod
@@ -509,6 +510,53 @@ class IScenarioBackend(ABC):
         pass
 
 
+class IUserBufferActor(ABC):
+    """Actor to buffer work and events for users."""
+
+    def add_users(self, user_ids: List[str]) -> Future:
+        """Add a user for tracking events and work.
+
+        Args:
+            user_ids (List[str]): User IDs to add
+        """
+        pass
+
+    def get_user_events(self, user_id: str, kind: str) -> Future:
+        """Get events for a user in the user manager or refresh events.
+
+        Args:
+            user_id (str): User ID to get events for
+            kind (str): Type of event to retrieve
+
+        Returns:
+            List[UserEvent]: List of events for this user
+        """
+        pass
+
+    def get_user_work(self, user_id: str) -> Future:
+        """Get work for user or refresh work for all users.
+
+        Args:
+            user_id (str): User ID to get work for
+
+        Returns:
+            int: Amount of work allocated to user
+        """
+        pass
+
+    def add_user_result(self, result: Result) -> Future:
+        """Add user result to buffer.
+
+        Args:
+            result (Result): User result
+        """
+        pass
+
+    def send_user_results(self) -> Future:
+        """Flushes buffer of user results and sends them to datastore."""
+        pass
+
+
 class IUserBackend(ABC):
     """Datastore methods available to user."""
 
@@ -570,6 +618,183 @@ class IUserManagerBackend(ABC):
     @abstractmethod
     def send_user_results(self):
         """Flush buffer full of user results."""
+        pass
+
+
+class IBackendAPI(ABC):
+    @abstractmethod
+    def create_test(
+        self,
+        scheduling_metadata: str,
+        tags: List[str],
+        env: Dict[str, str],
+        backend_address: str,
+    ) -> str:
+        pass
+
+    @abstractmethod
+    def create_scenario(
+        self,
+        test_id: str,
+        scenario_name: str,
+        context: str,
+        users_per_instance: int,
+        tags: List[str],
+    ) -> str:
+        pass
+
+    @abstractmethod
+    def create_users(
+        self,
+        test_id: str,
+        scenario_id: str,
+        amount: int,
+    ) -> List[str]:
+        pass
+
+    @abstractmethod
+    def stop_users(
+        self,
+        scenario_id: str,
+        amount: int,
+    ) -> None:
+        pass
+
+    @abstractmethod
+    def clean_test_instances(self, test_id: str):
+        pass
+
+    @abstractmethod
+    def check_test_instance(self, test_id: str, instance_id: str):
+        pass
+
+    @abstractmethod
+    def add_test_event(self, test_id: str, event: TestEvent):
+        pass
+
+    @abstractmethod
+    def get_test_events(self, test_id: str) -> List[TestEvent]:
+        pass
+
+    @abstractmethod
+    def add_user_results(self, user_manager_id: str, results: List[Result]):
+        pass
+
+    @abstractmethod
+    def set_scenario_result(
+        self,
+        scenario_id: str,
+        output: Any,
+        exception: Any,
+        logs: str,
+        time_taken: float,
+        succeeded: int,
+        failed: int,
+    ):
+        pass
+
+    @abstractmethod
+    def move_user_results(self, scenario_id: str, limit: int = 500) -> List[Result]:
+        pass
+
+    @abstractmethod
+    def move_scenario_result(self, scenario_id: str) -> Optional[dict]:
+        pass
+
+    @abstractmethod
+    def distribute_work(self, scenario_id: str, amount: int):
+        pass
+
+    @abstractmethod
+    def get_user_work(self, user_manager_id: str) -> int:
+        pass
+
+    @abstractmethod
+    def add_user_event(self, scenario_id: str, kind: str, payload: dict):
+        pass
+
+    @abstractmethod
+    def get_user_events(self, user_manager_id: str, kind: str):
+        pass
+
+    @abstractmethod
+    def add_metric(self, scenario_id: str, name: str, value: float):
+        pass
+
+    @abstractmethod
+    def get_metric_total(self, scenario_id: str, name: str) -> Optional[float]:
+        pass
+
+    @abstractmethod
+    def get_last_metric(self, scenario_id: str, name: str) -> Optional[float]:
+        pass
+
+    @abstractmethod
+    def get_metric_rate(
+        self, scenario_id: str, name: str, split_point: float
+    ) -> Optional[float]:
+        pass
+
+    @abstractmethod
+    def get_metric_statistics(self, scenario_id: str, name: str) -> Optional[dict]:
+        pass
+
+
+class IBackendBuilder(ABC):
+    """Interface for class that generates backend implementations in Engine."""
+
+    @abstractmethod
+    def make_test_backend(self, test_id: str, address: str) -> ITestBackend:
+        """Configure ITestBackend implementation.
+
+        Args:
+            test_id (str): ID of test being run
+            address (str): Address of backend API
+
+        Returns:
+            ITestBackend: implementation of test backend
+        """
+        pass
+
+    @abstractmethod
+    def make_scenario_backend(
+        self, test_id: str, scenario_id: str, address: str
+    ) -> IScenarioBackend:
+        """_summary_
+
+        Args:
+            test_id (str): _description_
+            scenario_id (str): _description_
+            address (str): _description_
+
+        Returns:
+            IScenarioBackend: _description_
+        """
+        pass
+
+    @abstractmethod
+    def get_backend_api_maker(self) -> Callable[[str], IBackendAPI]:
+        """_summary_
+
+        Returns:
+            Callable[[str], IBackendAPI]: _description_
+        """
+        pass
+
+    @abstractmethod
+    def make_user_manager_backend(
+        self, user_manager_id: str, buffer: IUserBufferActor, address: str
+    ) -> IUserManagerBackend:
+        """_summary_
+
+        Args:
+            user_manager_id (str): _description_
+            buffer (str): _description_
+            address (str): _description_
+
+        Returns:
+            UserManagerBackend: _description_
+        """
         pass
 
 

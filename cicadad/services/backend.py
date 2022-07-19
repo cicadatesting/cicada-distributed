@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 import time
 import pickle  # nosec
 import json
@@ -10,14 +10,19 @@ import grpc  # type: ignore
 from google.protobuf import wrappers_pb2
 
 from cicadad.core.types import (
+    IBackendAPI,
+    IBackendBuilder,
     ICLIBackend,
     IConsoleMetricsBackend,
     IScenarioBackend,
     ITestBackend,
     IUserBackend,
+    IUserBufferActor,
     IUserManagerBackend,
     Result,
+    ScenarioMetric,
     TestEvent,
+    TestStatus,
     UserEvent,
 )
 from cicadad.protos import backend_pb2, backend_pb2_grpc
@@ -25,8 +30,8 @@ from cicadad.util.constants import DEFAULT_BACKEND_ADDRESS, ONE_SEC_MS
 
 
 class CLIBackend(ICLIBackend):
-    def __init__(self, address: str) -> None:
-        self.__address = address
+    def __init__(self, backend_api: IBackendAPI) -> None:
+        self.__backend_api = backend_api
 
     def create_test(
         self,
@@ -36,23 +41,28 @@ class CLIBackend(ICLIBackend):
         env: Dict[str, str],
     ) -> str:
         # NOTE: backend address in instance may be different from outside instance on CLI
-        return _create_test(
-            scheduling_metadata, tags, env, backend_address, self.__address
+        return self.__backend_api.create_test(
+            scheduling_metadata, tags, env, backend_address
         )
 
     def get_test_events(self, test_id: str) -> List[TestEvent]:
-        return _get_test_events(test_id, self.__address)
+        return self.__backend_api.get_test_events(test_id)
 
     def clean_test_instances(self, test_id: str):
-        _clean_test_instances(test_id, self.__address)
+        self.__backend_api.clean_test_instances(test_id)
 
 
-class UserBufferActor(object):
+class UserBufferActor(IUserBufferActor):
     """Actor to buffer work and events for users."""
 
-    def __init__(self, user_manager_id: str, backend_address: str):
+    def __init__(
+        self,
+        user_manager_id: str,
+        backend_address: str,
+        backend_api_maker: Callable[[str], IBackendAPI],
+    ):
         self.__user_manager_id = user_manager_id
-        self.__backend_address = backend_address
+        self.__backend_api = backend_api_maker(backend_address)
 
         self.__user_events: Dict[str, List[UserEvent]] = {}
         self.__user_work: Dict[str, int] = {}
@@ -82,10 +92,8 @@ class UserBufferActor(object):
             return []
 
         if self.__user_events[user_id] == []:
-            user_manager_events = _get_user_events(
-                self.__user_manager_id,
-                kind,
-                self.__backend_address,
+            user_manager_events = self.__backend_api.get_user_events(
+                self.__user_manager_id, kind
             )
 
             for event in user_manager_events:
@@ -110,10 +118,7 @@ class UserBufferActor(object):
             return 0
 
         if self.__user_work[user_id] == 0:
-            user_manager_work = _get_user_work(
-                self.__user_manager_id,
-                self.__backend_address,
-            )
+            user_manager_work = self.__backend_api.get_user_work(self.__user_manager_id)
 
             shuffled_user_ids = list(self.__user_work.keys())
             random.shuffle(shuffled_user_ids)
@@ -144,15 +149,13 @@ class UserBufferActor(object):
     def send_user_results(self) -> Future:
         """Flushes buffer of user results and sends them to datastore."""
         # TODO: user results should be less than 1MB
-        _add_user_results(
-            self.__user_manager_id, self.__results, self.__backend_address
-        )
+        self.__backend_api.add_user_results(self.__user_manager_id, self.__results)
 
         self.__results = []
 
 
 class UserBackend(IUserBackend):
-    def __init__(self, user_id: str, buffer: UserBufferActor):
+    def __init__(self, user_id: str, buffer: IUserBufferActor):
         self.__user_id = user_id
         self.__buffer = buffer
 
@@ -173,13 +176,17 @@ class UserBackend(IUserBackend):
 
 
 class UserManagerBackend(IUserManagerBackend):
-    def __init__(self, user_manager_id: str, buffer: UserBufferActor, address: str):
+    def __init__(
+        self, user_manager_id: str, buffer: IUserBufferActor, backend_api: IBackendAPI
+    ):
         self.__user_manager_id = user_manager_id
         self.__buffer = buffer
-        self.__address = address
+        self.__backend_api = backend_api
 
     def get_new_users(self) -> List[str]:
-        events = _get_user_events(self.__user_manager_id, "START_USERS", self.__address)
+        events = self.__backend_api.get_user_events(
+            self.__user_manager_id, "START_USERS"
+        )
 
         user_ids = [user_id for event in events for user_id in event.payload["IDs"]]
 
@@ -197,42 +204,41 @@ class UserManagerBackend(IUserManagerBackend):
 
 
 class ScenarioBackend(IScenarioBackend):
-    def __init__(self, test_id: str, scenario_id: str, address: str) -> None:
+    def __init__(
+        self, test_id: str, scenario_id: str, backend_api: IBackendAPI
+    ) -> None:
         self.__test_id = test_id
         self.__scenario_id = scenario_id
-        self.__address = address
+        self.__backend_api = backend_api
 
     def create_users(self, amount: int) -> List[str]:
-        return _create_users(self.__test_id, self.__scenario_id, amount, self.__address)
-
-    def stop_users(self, amount: int):
-        _stop_users(self.__scenario_id, amount, self.__address)
-
-    def distribute_work(self, n: int):
-        _distribute_work(
-            scenario_id=self.__scenario_id, amount=n, address=self.__address
+        return self.__backend_api.create_users(
+            self.__test_id, self.__scenario_id, amount
         )
 
+    def stop_users(self, amount: int):
+        self.__backend_api.stop_users(self.__scenario_id, amount)
+
+    def distribute_work(self, n: int):
+        self.__backend_api.distribute_work(scenario_id=self.__scenario_id, amount=n)
+
     def send_user_events(self, kind: str, payload: dict):
-        _add_user_event(
-            scenario_id=self.__scenario_id,
-            kind=kind,
-            payload=payload,
-            address=self.__address,
+        self.__backend_api.add_user_event(
+            scenario_id=self.__scenario_id, kind=kind, payload=payload
         )
 
     def move_user_results(
         self, limit: int, timeout_ms: Optional[int] = ONE_SEC_MS
     ) -> List[Result]:
         # Wait timeout_ms and get results again if no results
-        results = _move_user_results(
-            scenario_id=self.__scenario_id, limit=limit, address=self.__address
+        results = self.__backend_api.move_user_results(
+            scenario_id=self.__scenario_id, limit=limit
         )
 
         if results == [] and timeout_ms is not None:
             time.sleep(timeout_ms / ONE_SEC_MS)
-            results = _move_user_results(
-                scenario_id=self.__scenario_id, limit=limit, address=self.__address
+            results = self.__backend_api.move_user_results(
+                scenario_id=self.__scenario_id, limit=limit
             )
 
         return results
@@ -246,7 +252,7 @@ class ScenarioBackend(IScenarioBackend):
         succeeded: int,
         failed: int,
     ):
-        _set_scenario_result(
+        self.__backend_api.set_scenario_result(
             scenario_id=self.__scenario_id,
             output=output,
             exception=exception,
@@ -254,41 +260,37 @@ class ScenarioBackend(IScenarioBackend):
             time_taken=time_taken,
             succeeded=succeeded,
             failed=failed,
-            address=self.__address,
         )
 
     def add_metric(self, name: str, value: float):
-        _add_metric(
-            scenario_id=self.__scenario_id,
-            name=name,
-            value=value,
-            address=self.__address,
+        self.__backend_api.add_metric(
+            scenario_id=self.__scenario_id, name=name, value=value
         )
 
 
 class ConsoleMetricsBackend(IConsoleMetricsBackend):
-    def __init__(self, address: str) -> None:
-        self.__address = address
+    def __init__(self, backend_api: IBackendAPI) -> None:
+        self.__backend_api = backend_api
 
     def get_metric_statistics(self, scenario_id: str, name: str) -> Optional[dict]:
-        return _get_metric_statistics(scenario_id, name, self.__address)
+        return self.__backend_api.get_metric_statistics(scenario_id, name)
 
     def get_metric_total(self, scenario_id: str, name: str) -> Optional[float]:
-        return _get_metric_total(scenario_id, name, self.__address)
+        return self.__backend_api.get_metric_total(scenario_id, name)
 
     def get_last_metric(self, scenario_id: str, name: str) -> Optional[float]:
-        return _get_last_metric(scenario_id, name, self.__address)
+        return self.__backend_api.get_last_metric(scenario_id, name)
 
     def get_metric_rate(
         self, scenario_id: str, name: str, split_point: float
     ) -> Optional[float]:
-        return _get_metric_rate(scenario_id, name, split_point, self.__address)
+        return self.__backend_api.get_metric_rate(scenario_id, name, split_point)
 
 
 class TestBackend(ITestBackend):
-    def __init__(self, test_id: str, address: str) -> None:
+    def __init__(self, test_id: str, backend_api: IBackendAPI) -> None:
         self.__test_id = test_id
-        self.__address = address
+        self.__backend_api = backend_api
 
     def create_scenario(
         self,
@@ -297,412 +299,412 @@ class TestBackend(ITestBackend):
         users_per_instance: int,
         tags: List[str],
     ) -> str:
-        return _create_scenario(
+        return self.__backend_api.create_scenario(
             self.__test_id,
             scenario_name,
             context,
             users_per_instance,
             tags,
-            self.__address,
         )
 
     def add_test_event(self, event: TestEvent):
-        _add_test_event(self.__test_id, event, self.__address)
+        self.__backend_api.add_test_event(self.__test_id, event)
 
     def move_scenario_result(self, scenario_id: str) -> Optional[dict]:
-        return _move_scenario_result(scenario_id, self.__address)
+        return self.__backend_api.move_scenario_result(scenario_id)
 
     def get_console_metrics_backend(self) -> IConsoleMetricsBackend:
-        return ConsoleMetricsBackend(self.__address)
+        return ConsoleMetricsBackend(self.__backend_api)
 
     def scenario_running(self, scenario_id: str) -> bool:
-        return _check_test_instance(self.__test_id, scenario_id, self.__address)
+        return self.__backend_api.check_test_instance(self.__test_id, scenario_id)
 
 
-def _create_test(
-    scheduling_metadata: str,
-    tags: List[str],
-    env: Dict[str, str],
-    backend_address: str,
-    address: str = DEFAULT_BACKEND_ADDRESS,
-) -> str:
-    with grpc.insecure_channel(address, compression=grpc.Compression.Gzip) as channel:
-        stub = backend_pb2_grpc.BackendStub(channel)
-        request = backend_pb2.CreateTestRequest(
-            backendAddress=backend_address,
-            schedulingMetadata=scheduling_metadata,
-            tags=tags,
-            env=env,
-        )
+class BackendBuilder(IBackendBuilder):
+    def __init__(self) -> None:
+        super().__init__()
 
-        response = stub.CreateTest(request)
+    def make_backend_api(self, address: str) -> IBackendAPI:
+        return DefaultBackendAPI(address)
 
-        return response.testID
+    def make_test_backend(self, test_id: str, address: str) -> ITestBackend:
+        backend_api = self.make_backend_api(address)
 
+        return TestBackend(test_id, backend_api)
 
-def _create_scenario(
-    test_id: str,
-    scenario_name: str,
-    context: str,
-    users_per_instance: int,
-    tags: List[str],
-    address: str = DEFAULT_BACKEND_ADDRESS,
-) -> str:
-    with grpc.insecure_channel(address, compression=grpc.Compression.Gzip) as channel:
-        stub = backend_pb2_grpc.BackendStub(channel)
-        request = backend_pb2.CreateScenarioRequest(
-            testID=test_id,
-            scenarioName=scenario_name,
-            context=context,
-            usersPerInstance=users_per_instance,
-            tags=tags,
-        )
+    def make_scenario_backend(
+        self, test_id: str, scenario_id: str, address: str
+    ) -> IScenarioBackend:
+        backend_api = self.make_backend_api(address)
 
-        response = stub.CreateScenario(request)
+        return ScenarioBackend(test_id, scenario_id, backend_api)
 
-        return response.scenarioID
+    def get_backend_api_maker(self) -> Callable[[str], IBackendAPI]:
+        return lambda address: self.make_backend_api(address)
+
+    def make_user_manager_backend(
+        self, user_manager_id: str, buffer: IUserBufferActor, address: str
+    ) -> IUserManagerBackend:
+        backend_api = self.make_backend_api(address)
+
+        return UserManagerBackend(user_manager_id, buffer, backend_api)
 
 
-def _create_users(
-    test_id: str,
-    scenario_id: str,
-    amount: int,
-    address: str = DEFAULT_BACKEND_ADDRESS,
-) -> List[str]:
-    with grpc.insecure_channel(address, compression=grpc.Compression.Gzip) as channel:
-        stub = backend_pb2_grpc.BackendStub(channel)
-        request = backend_pb2.CreateUsersRequest(
-            testID=test_id, scenarioID=scenario_id, amount=amount
-        )
+class DefaultBackendAPI(IBackendAPI):
+    def __init__(
+        self,
+        backend_address: str = DEFAULT_BACKEND_ADDRESS,
+        use_ssl=False,
+        use_gzip=True,
+    ) -> None:
+        self.__backend_address = backend_address
+        self.__use_ssl = use_ssl
+        self.__use_gzip = use_gzip
 
-        response = stub.CreateUsers(request)
+    def __get_channel(self) -> grpc.Channel:
+        if self.__use_gzip:
+            compression = grpc.Compression.Gzip
+        else:
+            compression = grpc.Compression.NoCompression
 
-        return response.userManagerIDs
+        if self.__use_ssl:
+            credentials = grpc.ssl_channel_credentials()
 
+            return grpc.secure_channel(
+                self.__backend_address, credentials=credentials, compression=compression
+            )
+        else:
+            return grpc.insecure_channel(
+                self.__backend_address, compression=compression
+            )
 
-def _stop_users(
-    scenario_id: str,
-    amount: int,
-    address: str = DEFAULT_BACKEND_ADDRESS,
-):
-    with grpc.insecure_channel(address, compression=grpc.Compression.Gzip) as channel:
-        stub = backend_pb2_grpc.BackendStub(channel)
-        request = backend_pb2.StopUsersRequest(scenarioID=scenario_id, amount=amount)
-
-        stub.StopUsers(request)
-
-
-def _clean_test_instances(test_id: str, address: str = DEFAULT_BACKEND_ADDRESS):
-    with grpc.insecure_channel(address, compression=grpc.Compression.Gzip) as channel:
-        stub = backend_pb2_grpc.BackendStub(channel)
-        request = backend_pb2.CleanTestInstancesRequest(testID=test_id)
-
-        stub.CleanTestInstances(request)
-
-
-def _check_test_instance(
-    test_id: str, instance_id: str, address: str = DEFAULT_BACKEND_ADDRESS
-):
-    with grpc.insecure_channel(address, compression=grpc.Compression.Gzip) as channel:
-        stub = backend_pb2_grpc.BackendStub(channel)
-        request = backend_pb2.CheckTestInstanceRequest(
-            testID=test_id, instanceID=instance_id
-        )
-
-        response = stub.CheckTestInstance(request)
-
-        return response.running
-
-
-def _add_test_event(
-    test_id: str,
-    event: TestEvent,
-    address: str = DEFAULT_BACKEND_ADDRESS,
-):
-    with grpc.insecure_channel(address, compression=grpc.Compression.Gzip) as channel:
-        stub = backend_pb2_grpc.BackendStub(channel)
-        request = backend_pb2.AddEventRequest(
-            id=test_id,
-            event=backend_pb2.Event(
-                kind=event.kind,
-                payload=pickle.dumps(event.payload),
-            ),
-        )
-
-        stub.AddTestEvent(request)
-
-
-def _get_test_events(
-    test_id: str, address: str = DEFAULT_BACKEND_ADDRESS
-) -> List[TestEvent]:
-    with grpc.insecure_channel(address, compression=grpc.Compression.Gzip) as channel:
-        stub = backend_pb2_grpc.BackendStub(channel)
-        request = backend_pb2.GetEventsRequest(id=test_id)
-
-        response = stub.GetTestEvents(request)
-
-        return [
-            TestEvent(kind=event.kind, payload=pickle.loads(event.payload))  # nosec
-            for event in response.events
-        ]
-
-
-def _add_user_results(
-    user_manager_id: str, results: List[Result], address: str = DEFAULT_BACKEND_ADDRESS
-):
-    with grpc.insecure_channel(address, compression=grpc.Compression.Gzip) as channel:
-        stub = backend_pb2_grpc.BackendStub(channel)
-        request = backend_pb2.AddUserResultsRequest(
-            userManagerID=user_manager_id,
-            results=[pickle.dumps(result) for result in results],
-        )
-
-        stub.AddUserResults(request)
-
-
-def _set_scenario_result(
-    scenario_id: str,
-    output: Any,
-    exception: Any,
-    logs: str,
-    time_taken: float,
-    succeeded: int,
-    failed: int,
-    address: str = DEFAULT_BACKEND_ADDRESS,
-):
-    with grpc.insecure_channel(address, compression=grpc.Compression.Gzip) as channel:
-        stub = backend_pb2_grpc.BackendStub(channel)
-        request = backend_pb2.SetScenarioResultRequest(
-            scenarioID=scenario_id,
-            output=wrappers_pb2.StringValue(value=json.dumps(output)),
-            exception=wrappers_pb2.StringValue(
-                value=json.dumps(str(exception) if exception is not None else None)
-            ),
-            logs=logs,
-            timeTaken=time_taken,
-            succeeded=succeeded,
-            failed=failed,
-        )
-
-        stub.SetScenarioResult(request)
-
-
-def _move_user_results(
-    scenario_id: str,
-    limit: int = 500,
-    address: str = DEFAULT_BACKEND_ADDRESS,
-) -> List[Result]:
-    with grpc.insecure_channel(address, compression=grpc.Compression.Gzip) as channel:
-        stub = backend_pb2_grpc.BackendStub(channel)
-        request = backend_pb2.MoveUserResultsRequest(
-            scenarioID=scenario_id, limit=limit
-        )
-
-        response = stub.MoveUserResults(request)
-
-        return [pickle.loads(result) for result in response.results]  # nosec
-
-
-def _move_scenario_result(
-    scenario_id: str, address: str = DEFAULT_BACKEND_ADDRESS
-) -> Optional[dict]:
-    with grpc.insecure_channel(address, compression=grpc.Compression.Gzip) as channel:
-        try:
+    def create_test(
+        self,
+        scheduling_metadata: str,
+        tags: List[str],
+        env: Dict[str, str],
+        backend_address: str,
+    ) -> str:
+        with self.__get_channel() as channel:
             stub = backend_pb2_grpc.BackendStub(channel)
-            request = backend_pb2.MoveScenarioResultRequest(
+            request = backend_pb2.CreateTestRequest(
+                backendAddress=backend_address,
+                schedulingMetadata=scheduling_metadata,
+                tags=tags,
+                env=env,
+            )
+
+            response = stub.CreateTest(request)
+
+            return response.testID
+
+    def create_scenario(
+        self,
+        test_id: str,
+        scenario_name: str,
+        context: str,
+        users_per_instance: int,
+        tags: List[str],
+    ) -> str:
+        with self.__get_channel() as channel:
+            stub = backend_pb2_grpc.BackendStub(channel)
+            request = backend_pb2.CreateScenarioRequest(
+                testID=test_id,
+                scenarioName=scenario_name,
+                context=context,
+                usersPerInstance=users_per_instance,
+                tags=tags,
+            )
+
+            response = stub.CreateScenario(request)
+
+            return response.scenarioID
+
+    def create_users(self, test_id: str, scenario_id: str, amount: int) -> List[str]:
+        with self.__get_channel() as channel:
+            stub = backend_pb2_grpc.BackendStub(channel)
+            request = backend_pb2.CreateUsersRequest(
+                testID=test_id, scenarioID=scenario_id, amount=amount
+            )
+
+            response = stub.CreateUsers(request)
+
+            return response.userManagerIDs
+
+    def stop_users(self, scenario_id: str, amount: int):
+        with self.__get_channel() as channel:
+            stub = backend_pb2_grpc.BackendStub(channel)
+            request = backend_pb2.StopUsersRequest(
+                scenarioID=scenario_id, amount=amount
+            )
+
+            stub.StopUsers(request)
+
+    def clean_test_instances(self, test_id: str):
+        with self.__get_channel() as channel:
+            stub = backend_pb2_grpc.BackendStub(channel)
+            request = backend_pb2.CleanTestInstancesRequest(testID=test_id)
+
+            stub.CleanTestInstances(request)
+
+    def check_test_instance(self, test_id: str, instance_id: str):
+        with self.__get_channel() as channel:
+            stub = backend_pb2_grpc.BackendStub(channel)
+            request = backend_pb2.CheckTestInstanceRequest(
+                testID=test_id, instanceID=instance_id
+            )
+
+            response = stub.CheckTestInstance(request)
+
+            return response.running
+
+    def add_test_event(self, test_id: str, event: TestEvent):
+        with self.__get_channel() as channel:
+            stub = backend_pb2_grpc.BackendStub(channel)
+            request = backend_pb2.AddEventRequest(
+                id=test_id,
+                event=backend_pb2.Event(
+                    kind=event.kind,
+                    payload=event.payload.json().encode("utf-8"),
+                ),
+            )
+
+            stub.AddTestEvent(request)
+
+    def _load_test_event(self, event: Any):
+        if event.kind == "SCENARIO_METRIC":
+            return TestEvent(
+                kind=event.kind, payload=ScenarioMetric.parse_raw(event.payload)
+            )
+        else:
+            return TestEvent(
+                kind=event.kind, payload=TestStatus.parse_raw(event.payload)
+            )
+
+    def get_test_events(self, test_id: str) -> List[TestEvent]:
+        with self.__get_channel() as channel:
+            stub = backend_pb2_grpc.BackendStub(channel)
+            request = backend_pb2.GetEventsRequest(id=test_id)
+
+            response = stub.GetTestEvents(request)
+
+            return [self._load_test_event(event) for event in response.events]
+
+    def add_user_results(
+        self,
+        user_manager_id: str,
+        results: List[Result],
+    ):
+        with self.__get_channel() as channel:
+            stub = backend_pb2_grpc.BackendStub(channel)
+            request = backend_pb2.AddUserResultsRequest(
+                userManagerID=user_manager_id,
+                results=[pickle.dumps(result) for result in results],
+            )
+
+            stub.AddUserResults(request)
+
+    def set_scenario_result(
+        self,
+        scenario_id: str,
+        output: Any,
+        exception: Any,
+        logs: str,
+        time_taken: float,
+        succeeded: int,
+        failed: int,
+    ):
+        with self.__get_channel() as channel:
+            stub = backend_pb2_grpc.BackendStub(channel)
+            request = backend_pb2.SetScenarioResultRequest(
                 scenarioID=scenario_id,
+                output=wrappers_pb2.StringValue(value=json.dumps(output)),
+                exception=wrappers_pb2.StringValue(
+                    value=json.dumps(str(exception) if exception is not None else None)
+                ),
+                logs=logs,
+                timeTaken=time_taken,
+                succeeded=succeeded,
+                failed=failed,
             )
 
-            response = stub.MoveScenarioResult(request)
+            stub.SetScenarioResult(request)
 
-            return {
-                "id": response.id,
-                "output": json.loads(response.output.value),
-                "exception": json.loads(response.exception.value),
-                "logs": response.logs,
-                "timestamp": response.timestamp,
-                "time_taken": response.timeTaken,
-                "succeeded": response.succeeded,
-                "failed": response.failed,
-            }
-        except grpc.RpcError as err:
-            if err.code() == grpc.StatusCode.NOT_FOUND:
-                return None
-            else:
-                raise err
-
-
-def _distribute_work(
-    scenario_id: str, amount: int, address: str = DEFAULT_BACKEND_ADDRESS
-):
-    with grpc.insecure_channel(address, compression=grpc.Compression.Gzip) as channel:
-        stub = backend_pb2_grpc.BackendStub(channel)
-        request = backend_pb2.DistributeWorkRequest(
-            scenarioID=scenario_id, amount=amount
-        )
-
-        stub.DistributeWork(request)
-
-
-def _get_user_work(user_manager_id: str, address: str = DEFAULT_BACKEND_ADDRESS) -> int:
-    with grpc.insecure_channel(address, compression=grpc.Compression.Gzip) as channel:
-        stub = backend_pb2_grpc.BackendStub(channel)
-        request = backend_pb2.GetUserWorkRequest(userManagerID=user_manager_id)
-
-        response = stub.GetUserWork(request)
-
-        return response.work
-
-
-def _add_user_event(
-    scenario_id: str,
-    kind: str,
-    payload: dict,
-    address: str = DEFAULT_BACKEND_ADDRESS,
-):
-    with grpc.insecure_channel(address, compression=grpc.Compression.Gzip) as channel:
-        stub = backend_pb2_grpc.BackendStub(channel)
-        request = backend_pb2.AddEventRequest(
-            id=scenario_id,
-            event=backend_pb2.Event(
-                kind=kind,
-                payload=json.dumps(payload).encode("utf-8"),
-            ),
-        )
-
-        stub.AddUserEvent(request)
-
-
-def _get_user_events(
-    user_manager_id: str, kind: str, address: str = DEFAULT_BACKEND_ADDRESS
-):
-    with grpc.insecure_channel(address, compression=grpc.Compression.Gzip) as channel:
-        stub = backend_pb2_grpc.BackendStub(channel)
-        request = backend_pb2.GetEventsRequest(id=user_manager_id, kind=kind)
-
-        response = stub.GetUserEvents(request)
-
-        return [
-            UserEvent(
-                kind=event.kind, payload=json.loads(event.payload.decode("utf-8"))
-            )
-            for event in response.events
-        ]
-
-
-def _add_metric(
-    scenario_id: str,
-    name: str,
-    value: float,
-    address: str = DEFAULT_BACKEND_ADDRESS,
-):
-    with grpc.insecure_channel(address, compression=grpc.Compression.Gzip) as channel:
-        stub = backend_pb2_grpc.BackendStub(channel)
-        request = backend_pb2.AddMetricRequest(
-            scenarioID=scenario_id,
-            name=name,
-            value=value,
-        )
-
-        stub.AddMetric(request)
-
-
-def _get_metric_total(
-    scenario_id: str,
-    name: str,
-    address: str = DEFAULT_BACKEND_ADDRESS,
-) -> Optional[float]:
-    with grpc.insecure_channel(address, compression=grpc.Compression.Gzip) as channel:
-        try:
+    def move_user_results(
+        self,
+        scenario_id: str,
+        limit: int = 500,
+    ) -> List[Result]:
+        with self.__get_channel() as channel:
             stub = backend_pb2_grpc.BackendStub(channel)
-            request = backend_pb2.GetMetricRequest(
-                scenarioID=scenario_id,
-                name=name,
+            request = backend_pb2.MoveUserResultsRequest(
+                scenarioID=scenario_id, limit=limit
             )
 
-            response = stub.GetMetricTotal(request)
+            response = stub.MoveUserResults(request)
 
-            return response.total
-        except grpc.RpcError as err:
-            if err.code() == grpc.StatusCode.NOT_FOUND:
-                return None
-            else:
-                raise err
+            return [pickle.loads(result) for result in response.results]  # nosec
 
+    def move_scenario_result(self, scenario_id: str) -> Optional[dict]:
+        with self.__get_channel() as channel:
+            try:
+                stub = backend_pb2_grpc.BackendStub(channel)
+                request = backend_pb2.MoveScenarioResultRequest(
+                    scenarioID=scenario_id,
+                )
 
-def _get_last_metric(
-    scenario_id: str,
-    name: str,
-    address: str = DEFAULT_BACKEND_ADDRESS,
-) -> Optional[float]:
-    with grpc.insecure_channel(address, compression=grpc.Compression.Gzip) as channel:
-        try:
+                response = stub.MoveScenarioResult(request)
+
+                return {
+                    "id": response.id,
+                    "output": json.loads(response.output.value),
+                    "exception": json.loads(response.exception.value),
+                    "logs": response.logs,
+                    "timestamp": response.timestamp,
+                    "time_taken": response.timeTaken,
+                    "succeeded": response.succeeded,
+                    "failed": response.failed,
+                }
+            except grpc.RpcError as err:
+                if err.code() == grpc.StatusCode.NOT_FOUND:
+                    return None
+                else:
+                    raise err
+
+    def distribute_work(self, scenario_id: str, amount: int):
+        with self.__get_channel() as channel:
             stub = backend_pb2_grpc.BackendStub(channel)
-            request = backend_pb2.GetMetricRequest(
+            request = backend_pb2.DistributeWorkRequest(
+                scenarioID=scenario_id, amount=amount
+            )
+
+            stub.DistributeWork(request)
+
+    def get_user_work(self, user_manager_id: str) -> int:
+        with self.__get_channel() as channel:
+            stub = backend_pb2_grpc.BackendStub(channel)
+            request = backend_pb2.GetUserWorkRequest(userManagerID=user_manager_id)
+
+            response = stub.GetUserWork(request)
+
+            return response.work
+
+    def add_user_event(self, scenario_id: str, kind: str, payload: dict):
+        with self.__get_channel() as channel:
+            stub = backend_pb2_grpc.BackendStub(channel)
+            request = backend_pb2.AddEventRequest(
+                id=scenario_id,
+                event=backend_pb2.Event(
+                    kind=kind,
+                    payload=json.dumps(payload).encode("utf-8"),
+                ),
+            )
+
+            stub.AddUserEvent(request)
+
+    def get_user_events(self, user_manager_id: str, kind: str):
+        with self.__get_channel() as channel:
+            stub = backend_pb2_grpc.BackendStub(channel)
+            request = backend_pb2.GetEventsRequest(id=user_manager_id, kind=kind)
+
+            response = stub.GetUserEvents(request)
+
+            return [
+                UserEvent(
+                    kind=event.kind, payload=json.loads(event.payload.decode("utf-8"))
+                )
+                for event in response.events
+            ]
+
+    def add_metric(self, scenario_id: str, name: str, value: float):
+        with self.__get_channel() as channel:
+            stub = backend_pb2_grpc.BackendStub(channel)
+            request = backend_pb2.AddMetricRequest(
                 scenarioID=scenario_id,
                 name=name,
+                value=value,
             )
 
-            response = stub.GetLastMetric(request)
+            stub.AddMetric(request)
 
-            return response.last
-        except grpc.RpcError as err:
-            if err.code() == grpc.StatusCode.NOT_FOUND:
-                return None
-            else:
-                raise err
+    def get_metric_total(self, scenario_id: str, name: str) -> Optional[float]:
+        with self.__get_channel() as channel:
+            try:
+                stub = backend_pb2_grpc.BackendStub(channel)
+                request = backend_pb2.GetMetricRequest(
+                    scenarioID=scenario_id,
+                    name=name,
+                )
 
+                response = stub.GetMetricTotal(request)
 
-def _get_metric_rate(
-    scenario_id: str,
-    name: str,
-    split_point: float,
-    address: str = DEFAULT_BACKEND_ADDRESS,
-) -> Optional[float]:
-    with grpc.insecure_channel(address, compression=grpc.Compression.Gzip) as channel:
-        try:
-            stub = backend_pb2_grpc.BackendStub(channel)
-            request = backend_pb2.GetMetricRateRequest(
-                scenarioID=scenario_id,
-                name=name,
-                splitPoint=split_point,
-            )
+                return response.total
+            except grpc.RpcError as err:
+                if err.code() == grpc.StatusCode.NOT_FOUND:
+                    return None
+                else:
+                    raise err
 
-            response = stub.GetMetricRate(request)
+    def get_last_metric(self, scenario_id: str, name: str) -> Optional[float]:
+        with self.__get_channel() as channel:
+            try:
+                stub = backend_pb2_grpc.BackendStub(channel)
+                request = backend_pb2.GetMetricRequest(
+                    scenarioID=scenario_id,
+                    name=name,
+                )
 
-            return response.percentage
-        except grpc.RpcError as err:
-            if err.code() == grpc.StatusCode.NOT_FOUND:
-                return None
-            else:
-                raise err
+                response = stub.GetLastMetric(request)
 
+                return response.last
+            except grpc.RpcError as err:
+                if err.code() == grpc.StatusCode.NOT_FOUND:
+                    return None
+                else:
+                    raise err
 
-def _get_metric_statistics(
-    scenario_id: str,
-    name: str,
-    address: str = DEFAULT_BACKEND_ADDRESS,
-) -> Optional[dict]:
-    with grpc.insecure_channel(address, compression=grpc.Compression.Gzip) as channel:
-        try:
-            stub = backend_pb2_grpc.BackendStub(channel)
-            request = backend_pb2.GetMetricRequest(
-                scenarioID=scenario_id,
-                name=name,
-            )
+    def get_metric_rate(
+        self, scenario_id: str, name: str, split_point: float
+    ) -> Optional[float]:
+        with self.__get_channel() as channel:
+            try:
+                stub = backend_pb2_grpc.BackendStub(channel)
+                request = backend_pb2.GetMetricRateRequest(
+                    scenarioID=scenario_id,
+                    name=name,
+                    splitPoint=split_point,
+                )
 
-            response = stub.GetMetricStatistics(request)
+                response = stub.GetMetricRate(request)
 
-            # FEATURE: type for metric statistics
-            return {
-                "min": response.min,
-                "max": response.max,
-                "median": response.median,
-                "average": response.average,
-                "len": response.len,
-            }
-        except grpc.RpcError as err:
-            if err.code() == grpc.StatusCode.NOT_FOUND:
-                return None
-            else:
-                raise err
+                return response.percentage
+            except grpc.RpcError as err:
+                if err.code() == grpc.StatusCode.NOT_FOUND:
+                    return None
+                else:
+                    raise err
+
+    def get_metric_statistics(self, scenario_id: str, name: str) -> Optional[dict]:
+        with self.__get_channel() as channel:
+            try:
+                stub = backend_pb2_grpc.BackendStub(channel)
+                request = backend_pb2.GetMetricRequest(
+                    scenarioID=scenario_id,
+                    name=name,
+                )
+
+                response = stub.GetMetricStatistics(request)
+
+                # FEATURE: type for metric statistics
+                return {
+                    "min": response.min,
+                    "max": response.max,
+                    "median": response.median,
+                    "average": response.average,
+                    "len": response.len,
+                }
+            except grpc.RpcError as err:
+                if err.code() == grpc.StatusCode.NOT_FOUND:
+                    return None
+                else:
+                    raise err

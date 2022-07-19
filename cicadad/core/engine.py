@@ -5,14 +5,12 @@ import atexit
 from distributed.client import Client, fire_and_forget  # type: ignore
 import click
 
-from cicadad.core.types import TestEvent, TestStatus
+from cicadad.core.types import IBackendBuilder, TestEvent, TestStatus
 from cicadad.core.scenario import Scenario
 from cicadad.core.runners import scenario_runner, test_runner, user_scheduler
 from cicadad.services.backend import (
-    ScenarioBackend,
-    TestBackend,
+    BackendBuilder,
     UserBufferActor,
-    UserManagerBackend,
 )
 from cicadad.util.context import decode_context
 from cicadad.util.constants import (
@@ -22,11 +20,12 @@ from cicadad.util.constants import (
 
 
 class Engine:
-    def __init__(self) -> None:
+    def __init__(self, backend_builder: Optional[IBackendBuilder] = None) -> None:
         """Entrypoint for Cicada tests. Links tests to Cicada infrastructure"""
-        self.scenarios: Dict[str, Scenario] = {}
-        self.test_id: Optional[str] = None
-        self.backend_address: Optional[str] = None
+        self.__scenarios: Dict[str, Scenario] = {}
+        self.__test_id: Optional[str] = None
+        self.__backend_address: Optional[str] = None
+        self.__backend_builder: IBackendBuilder = backend_builder or BackendBuilder()
 
     def add_scenario(self, scenario: Scenario):
         """Add a scenario to the engine
@@ -34,7 +33,7 @@ class Engine:
         Args:
             scenario (Scenario): Scenario being added to engine
         """
-        self.scenarios[scenario.name] = scenario
+        self.__scenarios[scenario.name] = scenario
 
     def start(self):
         """Called internally when test container is started to parse args"""
@@ -46,9 +45,9 @@ class Engine:
             print("An unexpected error occured while running the test:", e)
             traceback.print_tb(e.__traceback__)
 
-            if self.test_id is not None and self.backend_address is not None:
-                backend = TestBackend(
-                    test_id=self.test_id, address=self.backend_address
+            if self.__test_id is not None and self.__backend_address is not None:
+                backend = self.__backend_builder.make_test_backend(
+                    test_id=self.__test_id, address=self.__backend_address
                 )
 
                 backend.add_test_event(
@@ -76,10 +75,12 @@ class Engine:
             test_id: ID of test to event back to client
             backend_address (str): Address of backend client to receive scenario results
         """
-        backend = TestBackend(test_id=test_id, address=backend_address)
+        backend = self.__backend_builder.make_test_backend(
+            test_id=test_id, address=backend_address
+        )
 
         test_runner(
-            scenarios=self.scenarios.values(),
+            scenarios=self.__scenarios.values(),
             tags=list(tags),
             backend=backend,
         )
@@ -102,10 +103,10 @@ class Engine:
             backend_address (str): Address of backend client to save and receive results
             encoded_context (str): Context from test containing previous results
         """
-        scenario = self.scenarios[scenario_name]
+        scenario = self.__scenarios[scenario_name]
         context = decode_context(encoded_context)
 
-        backend = ScenarioBackend(
+        backend = self.__backend_builder.make_scenario_backend(
             test_id=test_id, scenario_id=scenario_id, address=backend_address
         )
 
@@ -132,7 +133,7 @@ class Engine:
             backend_address (str): Address of backend client to receive work and save results
             encoded_context (str): Context from test containing previous results
         """
-        scenario = self.scenarios[scenario_name]
+        scenario = self.__scenarios[scenario_name]
         context = decode_context(encoded_context)
         client = Client()
 
@@ -141,6 +142,7 @@ class Engine:
             UserBufferActor,
             user_manager_id=user_manager_id,
             backend_address=backend_address,
+            backend_api_maker=self.__backend_builder.get_backend_api_maker(),
             actor=True,
         )
 
@@ -148,7 +150,7 @@ class Engine:
 
         fire_and_forget(buffer_fut)
 
-        backend = UserManagerBackend(
+        backend = self.__backend_builder.make_user_manager_backend(
             user_manager_id=user_manager_id,
             buffer=buffer,
             address=backend_address,
@@ -183,8 +185,8 @@ def run_test(
 ):
     engine: Engine = ctx.obj
 
-    engine.test_id = test_id
-    engine.backend_address = backend_address
+    engine.__test_id = test_id
+    engine.__backend_address = backend_address
 
     engine.run_test(tags=tag, test_id=test_id, backend_address=backend_address)
 

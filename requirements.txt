@@ -3,7 +3,6 @@ click
 configobj
 pydantic
 grpcio
-requests
 protobuf
 blessed
 dask

@@ -30,11 +30,6 @@ jobs:
         with:
           aws-region: us-east-2
           role-to-assume: arn:aws:iam::939879343571:role/github
-      - name: Push Binaries
-        run: |
-          cd backend
-          make build-bin
-          make upload-bin-local
       - name: Install dependencies
         run: |
           python3 -m pip install --upgrade build wheel
@@ -42,15 +37,14 @@ jobs:
           make install-dev-dependencies
       - name: build-library
         run: |
+          make build-bin
           make package
           make install-dev-local
       - name: run-smoke-test
         run: |
           cd integration-test
           ls
-          ENV=local cicada-distributed --debug start-cluster --mode LOCAL --install-location ./
-          chmod +x ./backend-linux-amd64
-          ENV=local cicada-distributed --debug run -t run --log-path logs --no-exit-unsuccessful --backend-location ./
+          ENV=local cicada-distributed --debug run -t run --log-path logs --no-exit-unsuccessful
   smoke-test-docker:
     runs-on: ubuntu-latest
     steps:
@@ -75,6 +69,7 @@ jobs:
           make install-dev-dependencies
       - name: build-library
         run: |
+          make build-bin
           make package
           make install-dev-local
       - name: build-base-image
@@ -119,6 +114,7 @@ jobs:
           make install-dev-dependencies
       - name: build-library
         run: |
+          make build-bin
           make package
           make install-dev-local
       - name: build-base-image
