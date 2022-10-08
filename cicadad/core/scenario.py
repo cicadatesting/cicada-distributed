@@ -176,14 +176,10 @@ def run_scenario_once(wait_period: int = 1, timeout: int = 15):
             scenario_commands.verify_results(latest_results)
             scenario_commands.collect_datastore_metrics(latest_results)
 
-            if (
-                scenario_commands.errors == []
-                and scenario_commands.num_results_collected > 0
-            ):
+            if scenario_commands.num_results_collected > len(scenario_commands.errors):
                 break
 
             time.sleep(wait_period)
-            # TODO: only add work if exception recieved
             scenario_commands.add_work(1)
 
         scenario_commands.scale_users(0)
