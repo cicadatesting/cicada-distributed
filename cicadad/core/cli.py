@@ -242,7 +242,7 @@ def run(
     no_exit_unsuccessful,
     no_cleanup,
 ):
-    # TODO: not configurable, probably can get rid of interfaces
+    # NOTE: not configurable, probably can get rid of interfaces
     backend = CLIBackend(DefaultBackendAPI(backend_address))
     term = Terminal()
 
