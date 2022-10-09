@@ -489,7 +489,7 @@ def build_backend_command(
         return [
             "cmd",
             "/c",
-            f'"{binary_path}"',
+            binary_path,
         ]
     else:
         return [binary_path]
@@ -517,7 +517,7 @@ def start_local_backend(backend_location: str, debug: bool):
     if binary_name is None:
         raise ValueError(f"No backend distribution found for {arch} + {os_name}")
 
-    command = build_backend_command(backend_location, binary_name, arch)
+    command = build_backend_command(backend_location, binary_name, os_name)
 
     # start process
     return subprocess.Popen(
