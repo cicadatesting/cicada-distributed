@@ -1,6 +1,7 @@
-from typing import Any, Callable, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 from cicadad.core.types import (
+    ConsoleMetricDisplayer,
     ConsoleMetricDisplays,
     MetricCollector,
     LoadModelFn,
@@ -157,6 +158,22 @@ def output_transformer(transformer_fn: OutputTransformerFn):
     return wrapper
 
 
+def metrics_collectors(collectors: List[MetricCollector]):
+    """Set list of metrics collectors functions used to save metric data about
+    user results reported during run of a scenario
+
+    Args:
+        collectors (List[MetricCollector]): Collector functions given to be given a list of results
+    """
+
+    def wrapper(fn):
+        _set_scenario_attribute(fn, "metric_collectors", collectors)
+
+        return fn
+
+    return wrapper
+
+
 def metrics_collector(collector: MetricCollector):
     """Add a collector function to parse and send metrics from scenario.
 
@@ -166,10 +183,19 @@ def metrics_collector(collector: MetricCollector):
 
     def wrapper(fn):
         collectors = _get_scenario_attribute(fn, "metric_collectors")
+        additional_collectors = _get_additional_scenario_attribute(
+            fn, "additional_metric_collectors"
+        )
         entry = [collector]
 
-        if collectors is None:
-            _set_scenario_attribute(fn, "metric_collectors", entry)
+        if collectors is None and additional_collectors is None:
+            _set_additional_scenario_attribute(
+                fn, "additional_metric_collectors", entry
+            )
+        elif collectors is None:
+            _set_additional_scenario_attribute(
+                fn, "additional_metric_collectors", additional_collectors + entry
+            )
         else:
             _set_scenario_attribute(fn, "metric_collectors", collectors + entry)
 
@@ -187,6 +213,40 @@ def console_metric_displays(displays: ConsoleMetricDisplays):
 
     def wrapper(fn):
         _set_scenario_attribute(fn, "console_metric_displays", displays)
+
+        return fn
+
+    return wrapper
+
+
+def add_console_metric_display(display_name: str, displayer: ConsoleMetricDisplayer):
+    """Add display function to console metric displays
+
+    Args:
+        display_name (str): Name of metric when displayed in console
+        displayer (ConsoleMetricDisplayer): Function to retrive metric data and return printable string in console
+    """
+
+    def wrapper(fn):
+        metric_displays = _get_scenario_attribute(fn, "console_metric_displays")
+        additional_metric_displays = _get_additional_scenario_attribute(
+            fn, "additional_console_metric_displays"
+        )
+
+        if metric_displays is None and additional_metric_displays is None:
+            _set_additional_scenario_attribute(
+                fn, "additional_console_metric_displays", {display_name: displayer}
+            )
+        elif metric_displays is None:
+            additional_metric_displays[display_name] = displayer
+            _set_additional_scenario_attribute(
+                fn, "additional_console_metric_displays", additional_metric_displays
+            )
+        else:
+            metric_displays[display_name] = displayer
+            _set_scenario_attribute(
+                fn, "console_metric_displays", additional_metric_displays
+            )
 
         return fn
 
@@ -223,7 +283,31 @@ def make_scenario(name: str, fn: Callable):
     else:
         scenario_kwargs = {}
 
-    return Scenario(name=name, fn=fn, **scenario_kwargs)
+    scenario = Scenario(name=name, fn=fn, **scenario_kwargs)
+
+    additional_console_metric_displays: Optional[
+        Dict[str, ConsoleMetricDisplayer]
+    ] = _get_additional_scenario_attribute(fn, "additional_console_metric_displays")
+    additional_metric_collectors = _get_additional_scenario_attribute(
+        fn, "additional_metric_collectors"
+    )
+
+    if additional_console_metric_displays is not None:
+        for display in additional_console_metric_displays:
+            scenario.console_metric_displays[
+                display
+            ] = additional_console_metric_displays[
+                display
+            ]  # type: ignore
+
+    if additional_metric_collectors is not None:
+        for collector in additional_metric_collectors:
+            scenario.metric_collectors.append(collector)
+
+    if hasattr(fn, "__additional_scenario_attribute__"):
+        del fn.__additional_scenario_attribute__  # type: ignore
+
+    return scenario
 
 
 def _get_scenario_attribute(obj: Union[Scenario, Callable], name: str):
@@ -245,3 +329,26 @@ def _set_scenario_attribute(obj: Union[Scenario, Callable], name: str, value: An
         return
 
     obj.__scenario_attribute__ = {name: value}  # type: ignore
+
+
+def _get_additional_scenario_attribute(obj: Union[Scenario, Callable], name: str):
+    if hasattr(obj, name):
+        return getattr(obj, name)
+
+    if hasattr(obj, "__additional_scenario_attribute__"):
+        return obj.__additional_scenario_attribute__.get(name)  # type: ignore
+
+    return None
+
+
+def _set_additional_scenario_attribute(
+    obj: Union[Scenario, Callable], name: str, value: Any
+):
+    if hasattr(obj, name):
+        return setattr(obj, name, value)
+
+    if hasattr(obj, "__additional_scenario_attribute__"):
+        obj.__additional_scenario_attribute__[name] = value  # type: ignore
+        return
+
+    obj.__additional_scenario_attribute__ = {name: value}  # type: ignore
