@@ -167,7 +167,7 @@ def test_add_console_metrics_displays():
     e = Mock()
 
     @decorators.scenario(e)
-    @decorators.add_console_metric_display("foo", console_stats("bar"))
+    @decorators.console_metric_display("foo", console_stats("bar"))
     def test_fn():
         return 42
 

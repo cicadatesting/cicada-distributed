@@ -219,7 +219,7 @@ def console_metric_displays(displays: ConsoleMetricDisplays):
     return wrapper
 
 
-def add_console_metric_display(display_name: str, displayer: ConsoleMetricDisplayer):
+def console_metric_display(display_name: str, displayer: ConsoleMetricDisplayer):
     """Add display function to console metric displays
 
     Args:
