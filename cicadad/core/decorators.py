@@ -292,13 +292,14 @@ def make_scenario(name: str, fn: Callable):
         fn, "additional_metric_collectors"
     )
 
-    if additional_console_metric_displays is not None:
+    if (
+        additional_console_metric_displays is not None
+        and scenario.console_metric_displays is not None
+    ):
         for display in additional_console_metric_displays:
             scenario.console_metric_displays[
                 display
-            ] = additional_console_metric_displays[
-                display
-            ]  # type: ignore
+            ] = additional_console_metric_displays[display]
 
     if additional_metric_collectors is not None:
         for collector in additional_metric_collectors:
