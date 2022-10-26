@@ -1,6 +1,6 @@
 # cicada-distributed
 
-<!-- FEATURE: build status badges -->
+[![Main-Test](https://github.com/cicadatesting/cicada-distributed/actions/workflows/main-test.yml/badge.svg)](https://github.com/cicadatesting/cicada-distributed/actions/workflows/main-test.yml)
 
 Cicada Distributed is a framework with the goal of making integration, load, and
 stress tests less expensive to build. Cicada is designed to manage vast groups
@@ -11,34 +11,9 @@ understand. To get started, install Cicada through pip:
 pip install cicadad
 ```
 
-You will also need to install Docker in order to use Cicada locally. To install
-Docker, visit https://docs.docker.com/get-docker/.
-
 # Example
 
-Before running tests, you must start `redis`, and the `backend` containers.
-To start the cluster, run:
-
-```bash
-cicada-distributed start-cluster
-```
-
-To create a simple test, create a directory and initialize the test scripts:
-
-```bash
-mkdir example-tests
-cicada-distributed init ./example-tests
-```
-
-You should see a couple of files:
-
-```
-- example-tests
-  - test.py
-  - Dockerfile
-```
-
-Inside the `test.py`, there will be a basic test:
+Create a file called `test.py` with the following:
 
 ```python
 from cicadad.core.decorators import scenario
@@ -68,10 +43,65 @@ Next, run the test:
 cicada-distributed run
 ```
 
-Cicada will build an image for the test and start a test runner. You should see
-the test runner collect the scenario and successfully complete.
+You should see Cicada run the test and print something like this
+in the console:
 
-Finally, stop the cluster:
+```bash
+========================= Test Complete =========================
+
+Passed:
+
+* my_first_test
+
+====================== 1 passed, 0 failed =======================
+
+--------------------- my_first_test: Passed ---------------------
+
+Time Taken: 2.018773 Seconds
+Succeeded: 1 Loop(s)
+Failed: 0 Loop(s)
+Metrics:
+                      my_first_test metrics
+ ───────────────────────────────────────────────────────────────
+  name                 value
+ ───────────────────────────────────────────────────────────────
+  runtimes             Min: 0.118, Median: 0.118, Average:
+                       0.118, Max: 0.118, Len: 1
+  results_per_second
+  success_rate         100.0
+ ───────────────────────────────────────────────────────────────
+```
+
+# Example with Docker
+
+To create a test and Dockerfile, create a directory and initialize the test
+scripts:
+
+```bash
+mkdir example-tests
+cicada-distributed init ./example-tests
+```
+
+You should see a couple of files:
+
+```
+- example-tests
+  - test.py
+  - Dockerfile
+```
+
+Before running tests, you must start a local backend:
+
+```bash
+cicada-distributed start-cluster
+```
+
+When you run the command `cicada-distributed run --mode=DOCKER`, Cicada will
+build an image for the test and start a test runner. You should see the test
+runner create a container for the test, scenario, and users when you run
+`docker ps`.
+
+Once tests are complete, stop the cluster:
 
 ```bash
 cicada-distributed stop-cluster
@@ -79,9 +109,11 @@ cicada-distributed stop-cluster
 
 # Documentation
 
-Documentation is available at https://cicadatesting.github.io/cicada-distributed-docs/
+Documentation is available at https://cicadatesting.github.io/cicada-distributed-docs/docs/introduction/installation
 
 Demos are available at https://github.com/cicadatesting/cicada-distributed-demos
+
+Cicada Cloud's homepage is https://cicada-cloud.webflow.io/
 
 # Help
 
