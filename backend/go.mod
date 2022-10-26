@@ -9,7 +9,7 @@ require (
 	github.com/golang/protobuf v1.5.2
 	github.com/google/uuid v1.3.0
 	github.com/jpillora/maplock v0.0.0-20160420012925-5c725ac6e22a
-	github.com/stretchr/testify v1.6.0
+	github.com/stretchr/testify v1.7.0
 	github.com/vmihailenco/msgpack/v5 v5.3.5
 	github.com/wangjia184/sortedset v0.0.0-20210325043434-64dd27e173e2
 	google.golang.org/grpc v1.43.0
