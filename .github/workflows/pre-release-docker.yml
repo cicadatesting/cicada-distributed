@@ -6,7 +6,7 @@ on:
     types:
       - completed
 env:
-  cicadaVersion: "1.6.0"
+  cicadaVersion: "1.7.0"
 jobs:
   integration-test:
     runs-on: ubuntu-latest

@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 from distributed.client import Future  # type: ignore
 from pydantic.main import BaseModel
@@ -799,12 +799,20 @@ class IBackendBuilder(ABC):
 
 
 UserLoopFn = Callable[[IUserCommands, dict], None]
-LoadModelFn = Callable[[IScenarioCommands, dict], Any]
+LoadModelFn = Callable[[IScenarioCommands, dict], None]
 # FEATURE: Give result aggregator access to metrics and num users for scenario
-ResultAggregatorFn = Callable[[Optional[Any], List[Result]], Any]
-ResultVerifierFn = Callable[[List[Result]], List[str]]
-OutputTransformerFn = Callable[[Optional[Any]], Any]
+ResultAggregatorFn = Callable[
+    [Optional[Any], List[Result]], Any
+]  # NOTE: takes previous result, list of results. output result should be JSON serializable
+ResultVerifierFn = Callable[
+    [List[Result]], List[str]
+]  # NOTE: returns list of error strings
+OutputTransformerFn = Callable[
+    [Optional[Any]], Any
+]  # NOTE: takes JSON serializable aggregate. Return must also be json serializable
+ConsoleCollectorFn = Callable[[List[Result]], Iterable[float]]
 MetricCollector = Callable[[List[Result], IScenarioBackend], None]
-ConsoleMetricDisplays = Dict[
-    str, Callable[[str, str, IConsoleMetricsBackend], Optional[str]]
-]
+ConsoleMetricDisplayer = Callable[
+    [str, str, IConsoleMetricsBackend], Optional[str]
+]  # NOTE: function with display name, scenario ID. returns formatted output string
+ConsoleMetricDisplays = Dict[str, ConsoleMetricDisplayer]  # NOTE: takes display name

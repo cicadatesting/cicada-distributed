@@ -86,12 +86,7 @@ def init(ctx, build_path):
     help="Create network for cluster and containers",
 )
 @click.option("--mode", default=constants.DOCKER_SCHEDULING_MODE, help="DOCKER or KUBE")
-@click.option(
-    "--install-location",
-    default=os.path.dirname(backend_module.__file__),
-    help="Path to install backend binaries to",
-)
-def start_cluster(ctx, network, create_network, mode, install_location):
+def start_cluster(ctx, network, create_network, mode):
     """Setup backend
 
     \b
@@ -242,7 +237,7 @@ def run(
     no_exit_unsuccessful,
     no_cleanup,
 ):
-    # TODO: not configurable, probably can get rid of interfaces
+    # NOTE: not configurable, probably can get rid of interfaces
     backend = CLIBackend(DefaultBackendAPI(backend_address))
     term = Terminal()
 

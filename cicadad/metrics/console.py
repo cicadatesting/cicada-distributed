@@ -1,9 +1,11 @@
-from typing import Callable, Iterable, List
+from typing import List
 
-from cicadad.core.types import IConsoleMetricsBackend, IScenarioBackend, Result
-
-
-ConsoleCollectorFn = Callable[[List[Result]], Iterable[float]]
+from cicadad.core.types import (
+    IConsoleMetricsBackend,
+    IScenarioBackend,
+    Result,
+    ConsoleCollectorFn,
+)
 
 
 def console_collector(name: str, collector: ConsoleCollectorFn):
